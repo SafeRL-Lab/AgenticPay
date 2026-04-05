@@ -7,7 +7,7 @@ Seller can switch between two buyers and make a deal with either buyer.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from agenticpay.core import BaseEnv, NegotiationStatus, NegotiationInfo
 from agenticpay.agents.base_agent import BaseAgent
@@ -133,6 +133,7 @@ class Task3SequentialTwoBuyerNegotiation(BaseEnv):
         self.current_selected_buyer: Optional[int] = None  # 1 or 2, selected for current round
         self.final_selected_buyer: Optional[int] = None  # 1 or 2, chosen for final deal
         self.final_deal_price: Optional[float] = None
+        self.product_images: Optional[List[str]] = None  # For VLM img input
     
     def reset(
         self,
@@ -163,13 +164,22 @@ class Task3SequentialTwoBuyerNegotiation(BaseEnv):
         self.final_selected_buyer = None
         self.final_deal_price = None
         
-        # Initialize Buyer1 Agent
+        # Extract product_images for VLM (single product: image_url in product_info)
+        product_info = product_info or {}
+        product_images = None
+        img_url = product_info.get("image_path") or product_info.get("image_url")
+        if img_url:
+            product_images = [img_url]
+        self.product_images = product_images
+        
+        # Initialize Buyer1 Agent (include product_images for VLM img input)
         buyer1_context = {
             "user_requirement": user_requirement,
             "max_price": self.buyer1_max_price,
             "user_profile": user_profile,
             "environment_info": self.environment_info,
-            "product_info": product_info or {},
+            "product_info": product_info,
+            "product_images": product_images,  # For VLM: product images (URL/path)
             "buyer_id": 1,  # Identify as buyer 1
         }
         self.buyer1_agent.initialize(buyer1_context)
@@ -180,14 +190,16 @@ class Task3SequentialTwoBuyerNegotiation(BaseEnv):
             "max_price": self.buyer2_max_price,
             "user_profile": user_profile,
             "environment_info": self.environment_info,
-            "product_info": product_info or {},
+            "product_info": product_info,
+            "product_images": product_images,  # For VLM: product images (URL/path)
             "buyer_id": 2,  # Identify as buyer 2
         }
         self.buyer2_agent.initialize(buyer2_context)
         
         # Initialize Seller Agent (seller knows about both buyers)
         seller_context = {
-            "product_info": product_info or {},
+            "product_info": product_info,
+            "product_images": product_images,  # For VLM: product images (URL/path)
             "initial_price": self.initial_seller_price,
             "min_price": self.seller_min_price,
             "environment_info": self.environment_info,
@@ -498,7 +510,7 @@ class Task3SequentialTwoBuyerNegotiation(BaseEnv):
     
     def _get_observation(self) -> Dict[str, Any]:
         """Get current observation"""
-        return {
+        obs = {
             "conversation_history_buyer1": self.memory_buyer1.get_history(),
             "conversation_history_buyer2": self.memory_buyer2.get_history(),
             "current_round": self.current_round,
@@ -511,6 +523,10 @@ class Task3SequentialTwoBuyerNegotiation(BaseEnv):
             "final_selected_buyer": self.final_selected_buyer,
             "final_deal_price": self.final_deal_price,
         }
+        # Include product_images for VLM (agent passes img to model when is_vlm)
+        if self.product_images is not None:
+            obs["product_images"] = self.product_images
+        return obs
     
     def _get_info(self) -> Dict[str, Any]:
         """Get current info"""

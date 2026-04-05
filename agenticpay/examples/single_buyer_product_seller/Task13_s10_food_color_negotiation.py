@@ -105,7 +105,7 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     # Scenario 10: Food Color - buyer_max_price: $6.00, seller_min_price: $4.50
-    buyer_max_price = 6.0  # Maximum acceptable purchase price for buyer (confidential)
+    buyer_max_price = 5.5  # Maximum acceptable purchase price for buyer (confidential)
     seller_min_price = 4.5  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)

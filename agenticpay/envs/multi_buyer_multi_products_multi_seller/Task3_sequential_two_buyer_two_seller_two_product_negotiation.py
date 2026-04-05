@@ -204,6 +204,16 @@ class Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation(BaseEnv):
         if len(products) < 2:
             raise ValueError("product_info must contain at least 2 products in 'products' list")
         
+        # Extract product_images for VLM (from image_url or image_path in each product)
+        product_images = []
+        for p in products:
+            img_url = p.get("image_path") or p.get("image_url")
+            if img_url:
+                product_images.append(img_url)
+        if not product_images:
+            product_images = None
+        self.product_images = product_images
+        
         # Initialize Buyer1 Agent (buyer1 knows about both sellers)
         buyer1_context = {
             "user_requirement": user_requirement,
@@ -211,6 +221,7 @@ class Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation(BaseEnv):
             "user_profile": user_profile,
             "environment_info": self.environment_info,
             "product_info": self.product_info,  # Buyer can see both products
+            "product_images": product_images,  # For VLM: product images (URL/path) for img input
             "buyer_id": 1,
             "num_sellers": 2,  # Inform buyer there are 2 sellers
             "negotiation_mode": "sequential",  # Inform buyer this is sequential negotiation
@@ -224,6 +235,7 @@ class Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation(BaseEnv):
             "user_profile": user_profile,
             "environment_info": self.environment_info,
             "product_info": self.product_info,  # Buyer can see both products
+            "product_images": product_images,  # For VLM: product images (URL/path) for img input
             "buyer_id": 2,
             "num_sellers": 2,  # Inform buyer there are 2 sellers
             "negotiation_mode": "sequential",  # Inform buyer this is sequential negotiation
@@ -233,6 +245,7 @@ class Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation(BaseEnv):
         # Initialize Seller1 Agent
         seller1_context = {
             "product_info": self.product_info,  # Seller can see both products
+            "product_images": product_images,  # For VLM: product images (URL/path) for img input
             "initial_price": self.initial_seller1_price,  # Initial total price for both products
             "min_price": self.seller1_min_price,  # Total min price for both products
             "environment_info": self.environment_info,
@@ -244,6 +257,7 @@ class Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation(BaseEnv):
         # Initialize Seller2 Agent
         seller2_context = {
             "product_info": self.product_info,  # Seller can see both products
+            "product_images": product_images,  # For VLM: product images (URL/path) for img input
             "initial_price": self.initial_seller2_price,  # Initial total price for both products
             "min_price": self.seller2_min_price,  # Total min price for both products
             "environment_info": self.environment_info,
@@ -754,7 +768,7 @@ class Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation(BaseEnv):
     
     def _get_observation(self) -> Dict[str, Any]:
         """Get current observation"""
-        return {
+        obs = {
             "conversation_history_b1s1": self.memory_b1s1.get_history(),
             "conversation_history_b1s2": self.memory_b1s2.get_history(),
             "conversation_history_b2s1": self.memory_b2s1.get_history(),
@@ -776,6 +790,10 @@ class Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation(BaseEnv):
             "final_deal_price": self.final_deal_price,
             "product_info": self.product_info,
         }
+        # Include product_images for VLM (agent passes img to model when is_vlm)
+        if getattr(self, "product_images", None) is not None:
+            obs["product_images"] = self.product_images
+        return obs
     
     def _get_info(self) -> Dict[str, Any]:
         """Get current info"""

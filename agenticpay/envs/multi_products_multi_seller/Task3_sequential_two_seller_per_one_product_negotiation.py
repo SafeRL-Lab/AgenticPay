@@ -176,6 +176,16 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         self.seller1_product_info = seller1_product_info or {}
         self.seller2_product_info = seller2_product_info or {}
         
+        # Extract product_images for VLM (from image_url in seller1/seller2 product_info)
+        product_images = []
+        for prod in [self.seller1_product_info, self.seller2_product_info]:
+            img_url = prod.get("image_path") or prod.get("image_url")
+            if img_url:
+                product_images.append(img_url)
+        if not product_images:
+            product_images = None
+        self.product_images = product_images
+        
         # Initialize Buyer Agent (buyer knows about both sellers and their products)
         buyer_context = {
             "user_requirement": user_requirement,
@@ -186,26 +196,37 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "seller2_product_info": self.seller2_product_info,
             "num_sellers": 2,  # Inform buyer there are 2 sellers
             "negotiation_mode": "sequential",  # Inform buyer this is sequential negotiation
+            "product_images": product_images,  # For VLM: product images (URL/path) for img input
         }
         self.buyer_agent.initialize(buyer_context)
         
         # Initialize Seller1 Agent with its own product
+        seller1_images = None
+        img1 = self.seller1_product_info.get("image_path") or self.seller1_product_info.get("image_url")
+        if img1:
+            seller1_images = [img1]
         seller1_context = {
             "product_info": self.seller1_product_info,
             "initial_price": self.initial_seller1_price,
             "min_price": self.seller1_min_price,
             "environment_info": self.environment_info,
             "seller_id": 1,  # Identify as seller 1
+            "product_images": seller1_images,  # For VLM: product image (URL/path) for img input
         }
         self.seller1_agent.initialize(seller1_context)
         
         # Initialize Seller2 Agent with its own product
+        seller2_images = None
+        img2 = self.seller2_product_info.get("image_path") or self.seller2_product_info.get("image_url")
+        if img2:
+            seller2_images = [img2]
         seller2_context = {
             "product_info": self.seller2_product_info,
             "initial_price": self.initial_seller2_price,
             "min_price": self.seller2_min_price,
             "environment_info": self.environment_info,
             "seller_id": 2,  # Identify as seller 2
+            "product_images": seller2_images,  # For VLM: product image (URL/path) for img input
         }
         self.seller2_agent.initialize(seller2_context)
         
@@ -513,7 +534,7 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
     
     def _get_observation(self) -> Dict[str, Any]:
         """Get current observation"""
-        return {
+        obs = {
             "conversation_history_seller1": self.memory_seller1.get_history(),
             "conversation_history_seller2": self.memory_seller2.get_history(),
             "current_round": self.current_round,
@@ -528,6 +549,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "seller1_product_info": self.seller1_product_info,
             "seller2_product_info": self.seller2_product_info,
         }
+        # Include product_images for VLM (agent passes img to model when is_vlm)
+        if getattr(self, "product_images", None) is not None:
+            obs["product_images"] = self.product_images
+        return obs
     
     def _get_info(self) -> Dict[str, Any]:
         """Get current info"""

@@ -29,17 +29,17 @@ class Task1BasicPriceNegotiation(BaseEnv):
         price_tolerance: float = 1.0,
         reward_weights: Optional[Dict[str, float]] = None,
         gamma: float = 0.99,
-        deal_score_weight: float = 30.0,
-        quality_score_weight: float = 55.0,
-        efficiency_score_weight: float = 15.0,
+        deal_score_weight: float = 10.0,  # D: deal score weight (default: 30.0 -> 10.0)
+        quality_score_weight: float = 80.0,  # W: quality score weight (default: 55.0 -> 80.0)
+        efficiency_score_weight: float = 10.0,  # E: efficiency score weight (default: 15.0 -> 10.0)
         failure_penalty_weight: float = 15.0,
-        buyer_deal_weight: float = 30.0,
-        buyer_utility_weight: float = 55.0,
-        buyer_efficiency_weight: float = 15.0,
+        buyer_deal_weight: float = 10.0,  # Db: buyer deal weight (default: 30.0 -> 10.0)
+        buyer_utility_weight: float = 80.0,  # Wb: buyer utility weight (default: 55.0 -> 80.0)
+        buyer_efficiency_weight: float = 10.0,  # Eb: buyer efficiency weight (default: 15.0 -> 10.0)
         buyer_failure_penalty_weight: float = 15.0,
-        seller_deal_weight: float = 30.0,
-        seller_utility_weight: float = 55.0,
-        seller_efficiency_weight: float = 15.0,
+        seller_deal_weight: float = 10.0,  # Ds: seller deal weight (default: 30.0 -> 10.0)
+        seller_utility_weight: float = 80.0,  # Ws: seller utility weight (default: 55.0 -> 80.0)
+        seller_efficiency_weight: float = 10.0,  # Es: seller efficiency weight (default: 15.0 -> 10.0)
         seller_failure_penalty_weight: float = 15.0,
     ):
         """Initialize negotiation environment

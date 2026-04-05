@@ -75,12 +75,12 @@ TASK_SCRIPTS["Task5"]="Task5_s1_used_smartphone_bundle_negotiation"
 TASK_SCRIPTS["Task6"]="Task6_s2_used_car_bundle_negotiation"
 TASK_SCRIPTS["Task7"]="Task7_s3_vacation_rental_bundle_negotiation"
 TASK_SCRIPTS["Task8"]="Task8_s4_website_development_bundle_negotiation"
-TASK_SCRIPTS["Task9"]="Task9_s5_commercial_photography_bundle_negotiation"
+TASK_SCRIPTS["Task9"]="Task9_s5_bed_wall_lantern_bundle_negotiation"
 TASK_SCRIPTS["Task10"]="Task10_s6_home_renovation_bundle_negotiation"
-TASK_SCRIPTS["Task11"]="Task11_s7_saas_software_bundle_negotiation"
-TASK_SCRIPTS["Task12"]="Task12_s8_raw_materials_bundle_negotiation"
-TASK_SCRIPTS["Task13"]="Task13_s9_luxury_watch_bundle_negotiation"
-TASK_SCRIPTS["Task14"]="Task14_s10_business_acquisition_bundle_negotiation"
+TASK_SCRIPTS["Task11"]="Task11_s7_flipflops_tshirt_bundle_negotiation"
+TASK_SCRIPTS["Task12"]="Task12_s8_jeans_tshirt_bundle_negotiation"
+TASK_SCRIPTS["Task13"]="Task13_s9_beverage_air_plants_bundle_negotiation"
+TASK_SCRIPTS["Task14"]="Task14_s10_food_color_smokehouse_bundle_negotiation"
 
 # Determine which tasks to run
 if [ ${#TASKS[@]} -eq 0 ]; then

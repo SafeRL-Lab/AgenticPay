@@ -105,6 +105,7 @@ class Task2TwoProductNegotiation(BaseEnv):
         self.current_round = 0
         self.negotiation_info = NegotiationInfo()
         self.product_info: Optional[Dict[str, Any]] = None
+        self.product_images: Optional[List[str]] = None  # For VLM img input
     
     def reset(
         self,
@@ -142,21 +143,33 @@ class Task2TwoProductNegotiation(BaseEnv):
         if len(products) < 2:
             raise ValueError("product_info must contain at least 2 products in 'products' list")
         
+        # Extract product_images for VLM (from image_url in each product)
+        product_images = []
+        for p in products:
+            img_url = p.get("image_path") or p.get("image_url")
+            if img_url:
+                product_images.append(img_url)
+        if not product_images:
+            product_images = None
+        self.product_images = product_images
+        
         # Calculate total price of both products
         total_product_price = sum(p.get("price", 0.0) for p in products)
         
-        # Initialize Agents
+        # Initialize Agents (include product_images for VLM to use img input)
         buyer_context = {
             "user_requirement": user_requirement,
             "max_price": self.buyer_max_price,  # Total max price for both products
             "user_profile": user_profile,
             "environment_info": self.environment_info,
             "product_info": self.product_info,  # Buyer can see both products
+            "product_images": product_images,  # For VLM: product images (URL/path)
         }
         self.buyer_agent.initialize(buyer_context)
         
         seller_context = {
             "product_info": self.product_info,  # Seller can see both products
+            "product_images": product_images,  # For VLM: product images (URL/path)
             "initial_price": self.initial_seller_price,  # Initial total price
             "min_price": self.seller_min_price,  # Total min price for both products
             "environment_info": self.environment_info,
@@ -404,7 +417,7 @@ class Task2TwoProductNegotiation(BaseEnv):
     
     def _get_observation(self) -> Dict[str, Any]:
         """Get current observation"""
-        return {
+        obs = {
             "conversation_history": self.memory.get_history(),
             "current_round": self.current_round,
             "seller_price": self.state.seller_price,  # Total price for both products
@@ -412,6 +425,10 @@ class Task2TwoProductNegotiation(BaseEnv):
             "status": self.negotiation_info.status.value,
             "product_info": self.product_info,
         }
+        # Include product_images for VLM (agent passes img to model when is_vlm)
+        if getattr(self, "product_images", None) is not None:
+            obs["product_images"] = self.product_images
+        return obs
     
     def _get_info(self) -> Dict[str, Any]:
         """Get current info"""
