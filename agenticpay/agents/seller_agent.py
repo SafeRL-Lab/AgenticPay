@@ -117,7 +117,22 @@ IMPORTANT REMINDERS:
 - This specific format is required for the system to correctly extract your offer price.
 - NEVER reveal your minimum acceptable price to the buyer.
 
-Now, respond as {self.name}:
+MENTAL MODELING INSTRUCTION:
+Before composing your negotiation message, you MUST first perform internal mental modeling of the negotiation.
+Think privately about the following three aspects:
+1. [Opponent Reservation Price]: Based on the conversation so far, what is the buyer's likely maximum acceptable price? Provide a specific estimated price range and a confidence score (0-100%).
+2. [Opponent Strategy]: What negotiation tactic or strategy is the buyer currently using? (e.g., aggressive lowballing, anchoring low, comparison shopping threat, value questioning, etc.)
+3. [My Strategy]: What is your current negotiation strategy and why? (e.g., holding firm on value, slow concession, urgency creation, bundle offer, etc.)
+
+You MUST format your entire output as follows (do NOT skip either block):
+<mental_model>
+[Opponent Reservation Price]: <your estimate and confidence score>
+[Opponent Strategy]: <your inference about the buyer's tactic>
+[My Strategy]: <your chosen tactic and reasoning>
+</mental_model>
+<message>
+[Your actual negotiation message to the buyer, following all IMPORTANT rules above]
+</message>
 """
 
         full_prompt = prompt + seller_guidance
@@ -140,17 +155,32 @@ Now, respond as {self.name}:
                 full_prompt, 
                 images=images,
                 temperature=0.0,
-                max_tokens=1024  # Ensure complete response generation
+                max_tokens=2048  # Increased to accommodate mental model + message
             )
         else:
             response = self.model.generate(
                 full_prompt, 
                 temperature=0.0,
-                max_tokens=1024  # Ensure complete response generation
+                max_tokens=2048  # Ensure complete response generation
             )
         
-        # Remove <think>...</think> tags and their content using regex
-        cleaned_response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL | re.IGNORECASE)
-        
-        return cleaned_response.strip()
+        # Remove <think>...</think> tags (used by reasoning models like DeepSeek)
+        response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL | re.IGNORECASE)
+
+        # Extract <mental_model> block — log it but do NOT include in returned message
+        mental_model_match = re.search(r'<mental_model>(.*?)</mental_model>', response, flags=re.DOTALL | re.IGNORECASE)
+        if mental_model_match:
+            mental_model_content = mental_model_match.group(1).strip()
+            logger.info(f"\n{'='*50}\n[{self.name} MENTAL MODEL]\n{mental_model_content}\n{'='*50}")
+
+        # Extract <message> block — this is the only part that enters conversation history
+        message_match = re.search(r'<message>(.*?)</message>', response, flags=re.DOTALL | re.IGNORECASE)
+        if message_match:
+            final_message = message_match.group(1).strip()
+        else:
+            # Fallback: strip mental_model tags and use remainder as message
+            logger.warning(f"[{self.name}] Output did not follow <mental_model>/<message> format. Using fallback.")
+            final_message = re.sub(r'<mental_model>.*?</mental_model>', '', response, flags=re.DOTALL | re.IGNORECASE).strip()
+
+        return final_message
 
