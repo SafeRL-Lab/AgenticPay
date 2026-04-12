@@ -108,7 +108,7 @@ def main(model_name=None):
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
     # NOU fragrance $21.95 + BFWood hair brush $6.48 = $28.43 total
-    buyer_max_price = 30.0  # Maximum acceptable total purchase price for buyer (confidential)
+    buyer_max_price = 27.0  # Maximum acceptable total purchase price for buyer (confidential)
     seller_min_price = 20.0  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, seller_min_price=seller_min_price)

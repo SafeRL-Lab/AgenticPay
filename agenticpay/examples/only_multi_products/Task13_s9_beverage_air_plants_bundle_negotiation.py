@@ -87,7 +87,7 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 55.0  # Maximum acceptable total purchase price for buyer (confidential) - Beverage ~$35 + Air Plants ~$20
+    buyer_max_price = 50.0  # Maximum acceptable total purchase price for buyer (confidential) - Beverage ~$35 + Air Plants ~$20
     seller_min_price = 42.0  # Minimum acceptable total selling price for seller (confidential) - Beverage ~$24 + Air Plants ~$15
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, seller_min_price=seller_min_price)

@@ -154,7 +154,7 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     # NOU Oriental Eau de Toilette: pricing $21.95
-    buyer_max_price = 22.0  # Maximum acceptable purchase price for buyer (confidential)
+    buyer_max_price = 20.0  # Maximum acceptable purchase price for buyer (confidential)
     seller1_min_price = 14.0  # Minimum acceptable selling price for seller1 (confidential)
     seller2_min_price = 15.0  # Minimum acceptable selling price for seller2 (confidential, slightly higher than seller1)
     
