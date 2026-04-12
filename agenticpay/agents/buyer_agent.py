@@ -171,20 +171,22 @@ IMPORTANT:
 {available_products_info}
 - Consider the environment: {self.context.get('environment_info', {})}.
 {personality_section}
-- **CRITICAL: In each turn, you MUST make exactly ONE price offer for the product using the format:**
-  ### BUYER_PRICE($X) ###
+- **CRITICAL: In each turn, you MUST include exactly ONE ### BUYER_PRICE($X) ### inside `<message>` — including when you accept or confirm a deal.** There are no exceptions: if you only say you accept without this tag, the environment keeps your previous numeric offer and the deal will fail to register as agreed.
+- When you accept the seller's price, set $X to the total you agree to pay (typically the seller's last stated price in ### SELLER_PRICE($Y) ### that you are accepting). When counter-offering, $X is your new offer.
 - **IMPORTANT: BUYER_PRICE($X) must be the TOTAL PRICE for the entire order/transaction, NOT a per-unit price.**
   - If ordering multiple units/items, $X should be the total amount you will pay.
   - Example: For 10,000 units at $0.40 each, use ### BUYER_PRICE($4000) ###, NOT ### BUYER_PRICE($0.40) ###
 - Example: "I can offer ### BUYER_PRICE($10) ### for this product."
 - Example: "How about ### BUYER_PRICE($12.50) ###?"
+- Example (accepting their price): "Deal — I'll take it at ### BUYER_PRICE($6.50) ###. MAKE_DEAL"
 - This specific format is required for the system to correctly extract your offer price.
 - NEVER reveal your maximum acceptable price to the seller.
 
 DEAL AGREEMENT INSTRUCTION:
 - Only finalize the transaction when you believe the price is reasonably balanced.
-- If you decide to accept the deal, you MUST include the exact phrase "MAKE_DEAL" in your response.
-- Example: "That sounds acceptable to me. MAKE_DEAL"
+- If you decide to accept the deal, you MUST include BOTH in `<message>`: (1) the exact phrase "MAKE_DEAL", AND (2) ### BUYER_PRICE($X) ### with $X equal to the agreed total you will pay (same as the price you are accepting).
+- Wrong: "That sounds acceptable to me. MAKE_DEAL" with no ### BUYER_PRICE(...) ### — this breaks agreement detection.
+- Right: "I accept your offer at ### BUYER_PRICE($6.50) ###. MAKE_DEAL"
 
 {preference_guidance}
 
@@ -202,7 +204,7 @@ You MUST format your entire output as follows (do NOT skip either block):
 [My Strategy]: <your chosen tactic and reasoning>
 </mental_model>
 <message>
-[Your actual negotiation message to the seller, following all IMPORTANT rules above]
+[Your actual negotiation message to the seller. Must include exactly one ### BUYER_PRICE($X) ### and obey all IMPORTANT / DEAL AGREEMENT rules above.]
 </message>
 """
 
