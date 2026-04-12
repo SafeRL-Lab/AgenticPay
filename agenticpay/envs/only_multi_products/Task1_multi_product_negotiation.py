@@ -51,17 +51,17 @@ class Task1MultiProductNegotiation(BaseEnv):
         price_tolerance: float = 1.0,
         reward_weights: Optional[Dict[str, float]] = None,
         gamma: float = 0.99,
-        deal_score_weight: float = 30.0,
-        quality_score_weight: float = 55.0,
-        efficiency_score_weight: float = 15.0,
+        deal_score_weight: float = 10.0,
+        quality_score_weight: float = 80.0,
+        efficiency_score_weight: float = 10.0,
         failure_penalty_weight: float = 15.0,
-        buyer_deal_weight: float = 30.0,
-        buyer_utility_weight: float = 55.0,
-        buyer_efficiency_weight: float = 15.0,
+        buyer_deal_weight: float = 10.0,
+        buyer_utility_weight: float = 80.0,
+        buyer_efficiency_weight: float = 10.0,
         buyer_failure_penalty_weight: float = 15.0,
-        seller_deal_weight: float = 30.0,
-        seller_utility_weight: float = 55.0,
-        seller_efficiency_weight: float = 15.0,
+        seller_deal_weight: float = 10.0,
+        seller_utility_weight: float = 80.0,
+        seller_efficiency_weight: float = 10.0,
         seller_failure_penalty_weight: float = 15.0,
     ):
         """Initialize multi-product negotiation environment
@@ -80,17 +80,17 @@ class Task1MultiProductNegotiation(BaseEnv):
                 - seller_profit: weight for seller profit (default: 1.0)
                 - time_cost: weight for time cost (default: 0.1)
             gamma: Discount factor for GlobalScore calculation, controls penalty for longer negotiations (default: 0.99, range: 0.97-0.995)
-            deal_score_weight: Weight D for DealScore component (default: 30.0)
-            quality_score_weight: Weight W for QualityScore component (default: 55.0)
-            efficiency_score_weight: Weight E for EfficiencyScore component (default: 15.0)
+            deal_score_weight: Weight D for DealScore component (default: 10.0)
+            quality_score_weight: Weight W for QualityScore component (default: 80.0)
+            efficiency_score_weight: Weight E for EfficiencyScore component (default: 10.0)
             failure_penalty_weight: Weight F for FailurePenalty component (default: 15.0)
-            buyer_deal_weight: Weight Db for Buyer Deal Bonus (default: 30.0)
-            buyer_utility_weight: Weight Wb for Buyer utility component (default: 55.0)
-            buyer_efficiency_weight: Weight Eb for Buyer Efficiency Bonus (default: 15.0)
+            buyer_deal_weight: Weight Db for Buyer Deal Bonus (default: 10.0)
+            buyer_utility_weight: Weight Wb for Buyer utility component (default: 80.0)
+            buyer_efficiency_weight: Weight Eb for Buyer Efficiency Bonus (default: 10.0)
             buyer_failure_penalty_weight: Weight Fb for Buyer Failure Penalty (default: 15.0)
-            seller_deal_weight: Weight Ds for Seller Deal Bonus (default: 30.0)
-            seller_utility_weight: Weight Ws for Seller utility component (default: 55.0)
-            seller_efficiency_weight: Weight Es for Seller Efficiency Bonus (default: 15.0)
+            seller_deal_weight: Weight Ds for Seller Deal Bonus (default: 10.0)
+            seller_utility_weight: Weight Ws for Seller utility component (default: 80.0)
+            seller_efficiency_weight: Weight Es for Seller Efficiency Bonus (default: 10.0)
             seller_failure_penalty_weight: Weight Fs for Seller Failure Penalty (default: 15.0)
         """
         self.buyer_agent = buyer_agent
