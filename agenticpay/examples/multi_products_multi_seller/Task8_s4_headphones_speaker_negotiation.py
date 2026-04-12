@@ -141,7 +141,7 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # Seller1: Kids Headphones ~$15, Seller2: Sony Speaker ~$108
     print("Creating agents...")
-    buyer_max_price = 120.0  # Maximum acceptable price for buyer (covers both products)
+    buyer_max_price = 13.0  # Maximum acceptable price for buyer (covers both products)
     seller1_min_price = 10.0  # Minimum for seller1 - Kids Headphones
     seller2_min_price = 85.0  # Minimum for seller2 - Sony Bluetooth Speaker
     

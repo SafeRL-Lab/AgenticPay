@@ -145,8 +145,8 @@ def main(model_name=None):
     # buyer_max_price and seller_min_price represent total expected cost for Wall Lantern + Queen Bed package
     # Total list price: $61.17 + $226.20 = $287.37
     print("Creating agents...")
-    buyer1_max_price = 270.0  # Maximum acceptable total price for buyer1 (confidential, smaller budget)
-    buyer2_max_price = 300.0  # Maximum acceptable total price for buyer2 (confidential, larger budget)
+    buyer1_max_price = 250.0  # Maximum acceptable total price for buyer1 (confidential, smaller budget)
+    buyer2_max_price = 260.0  # Maximum acceptable total price for buyer2 (confidential, larger budget)
     seller_min_price = 225.0  # Minimum acceptable total price for seller (confidential, cost basis $45 + $180)
 
     buyer1 = BuyerAgent(model=model, buyer_max_price=buyer1_max_price)

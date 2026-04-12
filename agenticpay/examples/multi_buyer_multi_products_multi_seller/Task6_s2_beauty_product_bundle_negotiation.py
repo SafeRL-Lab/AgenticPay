@@ -149,8 +149,8 @@ def main(model_name=None):
     # buyer_max_price and seller_min_price represent total expected cost for the beauty bundle (Toothpaste + Hair Brush)
     # Product1: ARM & HAMMER Toothpaste $16, Product2: BFWood Hair Brush $6.48, Total: $22.48
     print("Creating agents...")
-    buyer1_max_price = 25.0  # Maximum acceptable total purchase price for buyer1 (confidential)
-    buyer2_max_price = 26.0  # Maximum acceptable total purchase price for buyer2 (confidential)
+    buyer1_max_price = 20.0  # Maximum acceptable total purchase price for buyer1 (confidential)
+    buyer2_max_price = 21.0  # Maximum acceptable total purchase price for buyer2 (confidential)
     seller1_min_price = 18.0  # Minimum acceptable total selling price for seller1 (confidential)
     seller2_min_price = 17.0  # Minimum acceptable total selling price for seller2 (confidential)
     

@@ -146,8 +146,8 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 250.0  # Maximum acceptable price for buyer1 (confidential) - Riflescope or Epson
-    buyer2_max_price = 280.0  # Maximum acceptable price for buyer2 (confidential) - Riflescope or Epson
+    buyer1_max_price = 210.0  # Maximum acceptable price for buyer1 (confidential) - Riflescope or Epson
+    buyer2_max_price = 215.0  # Maximum acceptable price for buyer2 (confidential) - Riflescope or Epson
     seller1_min_price = 180.0  # Minimum acceptable price for seller1 - Crimson Trace Riflescope (confidential)
     seller2_min_price = 250.0  # Minimum acceptable price for seller2 - Epson Printer (confidential)
     

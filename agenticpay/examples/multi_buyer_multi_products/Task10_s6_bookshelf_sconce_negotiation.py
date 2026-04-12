@@ -146,8 +146,8 @@ def main(model_name=None):
     # buyer_max_price and seller_min_price represent total price for both products (Bookshelf + Wall Sconce)
     # Bookshelf $36.94 + Wall Sconce $113.99 = $150.93 total
     print("Creating agents...")
-    buyer1_max_price = 155.0  # Maximum acceptable total price for buyer1 (confidential)
-    buyer2_max_price = 160.0  # Maximum acceptable total price for buyer2 (confidential)
+    buyer1_max_price = 135.0  # Maximum acceptable total price for buyer1 (confidential)
+    buyer2_max_price = 140.0  # Maximum acceptable total price for buyer2 (confidential)
     seller_min_price = 123.0  # Minimum acceptable total price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, buyer_max_price=buyer1_max_price)

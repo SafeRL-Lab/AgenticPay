@@ -142,7 +142,7 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # Seller1: Maybelline Eyeshadow ~$7.98. Seller2: NOU Oliban ~$21.95 (from sampled_products2)
     print("Creating agents...")
-    buyer_max_price = 22.0  # Maximum acceptable purchase price for buyer (covers both products)
+    buyer_max_price = 7.0  # Maximum acceptable purchase price for buyer (covers both products)
     seller1_min_price = 5.0  # Maybelline cost basis (Task4)
     seller2_min_price = 17.0  # NOU Oliban cost basis
     

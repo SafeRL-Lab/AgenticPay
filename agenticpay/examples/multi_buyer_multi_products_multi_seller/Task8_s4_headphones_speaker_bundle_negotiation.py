@@ -149,8 +149,8 @@ def main(model_name=None):
     # buyer_max_price and seller_min_price represent total expected cost for the bundle (Kids Headphones + Sony Speaker)
     # Product1: Kids Headphones $14.99, Product2: Sony Speaker $108.49, Total: $123.48
     print("Creating agents...")
-    buyer1_max_price = 125.0  # Maximum acceptable total bundle price for buyer1 (confidential)
-    buyer2_max_price = 130.0  # Maximum acceptable total bundle price for buyer2 (confidential)
+    buyer1_max_price = 110.0  # Maximum acceptable total bundle price for buyer1 (confidential)
+    buyer2_max_price = 115.0  # Maximum acceptable total bundle price for buyer2 (confidential)
     seller1_min_price = 95.0  # Minimum acceptable total bundle price for seller1 (confidential)
     seller2_min_price = 90.0  # Minimum acceptable total bundle price for seller2 (confidential)
     

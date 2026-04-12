@@ -147,8 +147,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     # Seller1: Toothpaste $16, Seller2: BFWood hair brush $6.48
-    buyer1_max_price = 18.0  # Maximum acceptable purchase price for buyer1 (confidential)
-    buyer2_max_price = 18.0  # Maximum acceptable purchase price for buyer2 (confidential)
+    buyer1_max_price = 6.2  # Maximum acceptable purchase price for buyer1 (confidential)
+    buyer2_max_price = 5.8  # Maximum acceptable purchase price for buyer2 (confidential)
     seller1_min_price = 12.0  # Minimum acceptable selling price for seller1 - Toothpaste (confidential)
     seller2_min_price = 4.0  # Minimum acceptable selling price for seller2 - Hair brush (confidential)
     

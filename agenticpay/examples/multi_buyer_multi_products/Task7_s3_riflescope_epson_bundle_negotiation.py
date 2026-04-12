@@ -145,7 +145,7 @@ def main(model_name=None):
     # buyer_max_price and seller_min_price represent total for Riflescope ($218.79) + Epson Printer ($320) = $538.79 bundle
     print("Creating agents...")
     buyer1_max_price = 530.0  # Maximum acceptable total for buyer1 (confidential, budget buyer)
-    buyer2_max_price = 560.0  # Maximum acceptable total for buyer2 (confidential, higher budget)
+    buyer2_max_price = 520.0  # Maximum acceptable total for buyer2 (confidential, higher budget)
     seller_min_price = 450.0  # Minimum acceptable total for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, buyer_max_price=buyer1_max_price)
