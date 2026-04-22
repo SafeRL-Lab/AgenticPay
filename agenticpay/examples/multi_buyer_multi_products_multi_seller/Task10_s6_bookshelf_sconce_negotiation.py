@@ -134,7 +134,7 @@ def main(model_name=None):
     print("Initializing model...")
     
     # OpenVLM via OpenAI-compatible API
-    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY or "token-abc123"
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     openvlm_base_url = os.getenv("OPENAI_URL") or os.getenv("OPENVLM_BASE_URL", "http://localhost:8000/v1")
     openvlm_model = os.getenv("OPENVLM_MODEL", "openvlm")
     

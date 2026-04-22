@@ -33,7 +33,7 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):

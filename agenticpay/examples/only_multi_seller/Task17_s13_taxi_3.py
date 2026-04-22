@@ -26,7 +26,7 @@ from agenticpay.models.openai_vlm import OpenAIVLM
 from agenticpay.models.qwen3_vl import Qwen3VL
 from agenticpay.models.vllm_lm import VLLMLLM
 from agenticpay.models.sglang_vlm import SGLangVLM
-from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 import re
 
 
@@ -119,16 +119,16 @@ def main(model_name=None):
     
     print("Initializing model...")
     
-    # OpenVLM via OpenAI-compatible API (product images passed to VLM)
-    api_key = os.getenv("OPENAI_API_KEY") or "token-abc123"
-    openvlm_base_url = os.getenv("OPENAI_URL") or os.getenv("OPENVLM_BASE_URL", "http://localhost:8000/v1")
-    openvlm_model = os.getenv("OPENVLM_MODEL", "openvlm")
-    
-    model = OpenAIVLM(
-        model=model_name or openvlm_model,
-        api_key=api_key,
-        base_url=openvlm_base_url,
-    )
+    # Check API key
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
+    if not api_key:
+        print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
+        print("You can set it with: export OPENAI_API_KEY='your-key-here'")
+        return
+
+    # Use OpenAIVLM (Vision Language Model) for multi-seller negotiation with images (image + text)
+    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    model = OpenAIVLM(model=model_name, api_key=api_key)
 
     # Build absolute path to model directory
     # model_path = os.path.join(project_root, "models", "download_models", "Qwen3-8B-Instruct")
@@ -590,7 +590,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         default=None,
-        help="OpenVLM model name. Set OPENAI_URL/OPENVLM_BASE_URL for API endpoint, OPENVLM_MODEL for default model name."
+        help="Model name to use (e.g., 'gemini-3-pro-all', 'gpt-5.2', 'claude-sonnet-4-5-20250929'). If not provided, uses default model."
     )
     args = parser.parse_args()
     main(model_name=args.model)

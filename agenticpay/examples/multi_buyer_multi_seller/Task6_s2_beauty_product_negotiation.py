@@ -33,7 +33,7 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -138,7 +138,7 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
     

@@ -1,7 +1,7 @@
-"""Task5 Scenario 1: Beauty Product - Sequential Two-Buyer Two-Seller Negotiation (图文)
+"""Task5 Scenario 1: Beauty Product - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
 Two buyers negotiating with two sellers for Maybelline Expert Wear Eyeshadow (Task4).
-Each buyer chooses one seller per round to negotiate with. Product info with images (图文).
+Each buyer chooses one seller per round to negotiate with. Product info with images (image + text).
 Category: Daily Life Consumption
 """
 
@@ -34,7 +34,7 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -139,7 +139,7 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
@@ -193,7 +193,7 @@ def main(model_name=None):
     print("Starting new sequential negotiation with two buyers and two sellers...")
     print("="*60)
     
-    # Product image for VLM (图文) - from Task4
+    # Product image for VLM (image + text) - from Task4
     product_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"
     
     # Product info from Task4 Maybelline, condition variants from Task4/sampled_products2
@@ -599,7 +599,7 @@ def main(model_name=None):
         output_file = run_dir / "Task5_s1_beauty_product_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task5 Scenario 1: Beauty Product - Sequential Two-Buyer Two-Seller Negotiation Results (图文)\n")
+            f.write("Task5 Scenario 1: Beauty Product - Sequential Two-Buyer Two-Seller Negotiation Results (image + text)\n")
             f.write("Category: Daily Life Consumption\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -664,7 +664,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Beauty Product - Sequential Two-Buyer Two-Seller Negotiation (图文)")
+    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Beauty Product - Sequential Two-Buyer Two-Seller Negotiation (image + text)")
     parser.add_argument(
         "--model",
         type=str,

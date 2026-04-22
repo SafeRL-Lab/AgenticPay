@@ -26,7 +26,7 @@ from agenticpay.models.openai_vlm import OpenAIVLM
 from agenticpay.models.qwen3_vl import Qwen3VL
 from agenticpay.models.vllm_lm import VLLMLLM
 from agenticpay.models.sglang_vlm import SGLangVLM
-from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 import re
 
 
@@ -120,13 +120,13 @@ def main(model_name=None):
     print("Initializing model...")
     
     # Check API key
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     if not api_key:
         print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for Epson receipt printer negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for Epson receipt printer negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
 
@@ -206,7 +206,7 @@ def main(model_name=None):
     print("Starting new sequential negotiation with two sellers...")
     print("="*60)
     
-    # Product image for VLM (图文): from sampled_products2.jsonl 3rd sample - Epson TM-T20
+    # Product image for VLM (image + text): from sampled_products2.jsonl 3rd sample - Epson TM-T20
     product_image_url = "https://m.media-amazon.com/images/I/51BzGMyEVfL.jpg"
 
     observation, info = env.reset(
@@ -225,7 +225,7 @@ def main(model_name=None):
             "seller_name": "SourceLink Technologies",
             "asin": "B00A0WG5KW",
             "full_description": "For nearly 40 years, Epson has led the industry in developing innovative, reliable, high-performance products. From scanners to printers to 3D projectors, our award-winning technology brings your images to life. Epson Headquartered and established on the shore of Lake Suwa in Nagano, Japan. Ethernet interface. Dark gray color. Without Cable.",
-            "image_url": product_image_url,  # For VLM: product image (图文)
+            "image_url": product_image_url,  # For VLM: product image (image + text)
         },
         user_profile=user_profile,  # Pass user profile
     )

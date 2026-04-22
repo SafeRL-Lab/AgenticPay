@@ -3,7 +3,7 @@
 One seller negotiating with two potential buyers for Sony Extra Bass Portable Bluetooth Speaker on Amazon.
 Seller chooses which buyer to negotiate with each round.
 Category: Electronics
-Product from sampled_products2.jsonl (4th sample) with image (图文).
+Product from sampled_products2.jsonl (4th sample) with image (image + text).
 """
 
 import os
@@ -29,7 +29,7 @@ import re
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, examples_dir)
 try:
-    from config import reward_weights, buyer_reward_aggregation, seller_reward_aggregation, max_rounds, price_tolerance
+    from config import reward_weights, buyer_reward_aggregation, seller_reward_aggregation, max_rounds, price_tolerance, OPENAI_API_KEY
 except ImportError:
     # Default values if config not available
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
@@ -37,6 +37,7 @@ except ImportError:
     seller_reward_aggregation = "average"
     max_rounds = 20
     price_tolerance = 0.0
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -131,13 +132,13 @@ def main(model_name=None):
     print("Initializing model...")
     
     # Check API key
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     if not api_key:
         print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for multi-buyer negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for multi-buyer negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
@@ -189,7 +190,7 @@ def main(model_name=None):
     print("Starting new sequential negotiation with two buyers...")
     print("="*60)
     
-    # Product image for VLM (图文): from sampled_products2.jsonl 4th sample
+    # Product image for VLM (image + text): from sampled_products2.jsonl 4th sample
     product_image_url = "https://m.media-amazon.com/images/I/41+lMIUpYbL.jpg"  # Sony SRS-XB33
 
     observation, info = env.reset(
@@ -206,7 +207,7 @@ def main(model_name=None):
             "seller_name": "Planet Open Box",
             "asin": "B08FZDJRQ7",
             "full_description": "This pre-owned or refurbished product has been professionally inspected and tested to work and look like new. How a product becomes part of Amazon Renewed, your destination for pre-owned, refurbished products: A customer buys a new product and returns it or trades it in for a newer or different model. That product is inspected and tested to work and look like new by Amazon-qualified suppliers. Then, the product is sold as an Amazon Renewed product on Amazon. If not satisfied with the purchase, renewed products are eligible for replacement or refund under the Amazon Renewed Guarantee.",
-            "image_url": product_image_url,  # For VLM: product image (图文)
+            "image_url": product_image_url,  # For VLM: product image (image + text)
         },
         user_profile=user_profile,  # Pass user profile
     )

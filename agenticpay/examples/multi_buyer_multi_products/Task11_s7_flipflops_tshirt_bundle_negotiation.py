@@ -34,7 +34,7 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -129,7 +129,7 @@ def main(model_name=None):
     print("Initializing model...")
     
     # OpenVLM via OpenAI-compatible API (product images passed to VLM)
-    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY or "token-abc123"
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     openvlm_base_url = os.getenv("OPENAI_URL") or os.getenv("OPENVLM_BASE_URL", "http://localhost:8000/v1")
     openvlm_model = os.getenv("OPENVLM_MODEL", "openvlm")
     

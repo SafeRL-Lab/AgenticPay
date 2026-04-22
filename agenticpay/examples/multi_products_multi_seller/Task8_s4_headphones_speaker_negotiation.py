@@ -3,7 +3,7 @@
 Buyer negotiating with two sellers on Amazon: Seller1 offers Kids Headphones, Seller2 offers Sony Bluetooth Speaker.
 Buyer chooses one seller per round to negotiate with.
 Category: Electronics
-Product info from Task7 example (Kids Headphones) and sampled_products2.jsonl 4th (Sony Speaker), with images (图文).
+Product info from Task7 example (Kids Headphones) and sampled_products2.jsonl 4th (Sony Speaker), with images (image + text).
 """
 
 import os
@@ -132,7 +132,7 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for product negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for product negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
@@ -180,7 +180,7 @@ def main(model_name=None):
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment with different products for each seller
-    # Product images for VLM (图文): from example and jsonl
+    # Product images for VLM (image + text): from example and jsonl
     seller1_image_url = "https://m.media-amazon.com/images/I/41B+OC0qnOL.jpg"  # Kids Headphones (Task7 example)
     seller2_image_url = "https://m.media-amazon.com/images/I/41+lMIUpYbL.jpg"  # Sony Speaker (jsonl 4th)
 
@@ -202,7 +202,7 @@ def main(model_name=None):
             "seller_name": "Manyutech",
             "asin": "B09KQNH5C6",
             "full_description": "WIRELESS & WIRED KIDS HEADPHONES: Built with 5.0 Bluetooth chip for fast and stable connection, also with 3.5mm jack. Compatible with smartphones, laptops, tablets, computers, TVs. Cute cat headphones designed with cartoon pattern, comfortable and soft ear cushions to protect child's ears. Excellent sound quality and adjustable headband, stretchable and foldable design for travel and storage. Long battery life (up to 7 hours) and built-in microphone for calls, video chats, or online lessons. Perfect for kids headphones for school and outdoor use.",
-            "image_url": seller1_image_url,  # For VLM: product image (图文)
+            "image_url": seller1_image_url,  # For VLM: product image (image + text)
         },
         seller2_product_info={
             "name": "Sony Extra Bass Portable Bluetooth Speaker Black - SRS-XB33/BC (Renewed)",
@@ -216,7 +216,7 @@ def main(model_name=None):
             "seller_name": "Planet Open Box",
             "asin": "B08FZDJRQ7",
             "full_description": "This pre-owned or refurbished product has been professionally inspected and tested to work and look like new. How a product becomes part of Amazon Renewed, your destination for pre-owned, refurbished products: A customer buys a new product and returns it or trades it in for a newer or different model. That product is inspected and tested to work and look like new by Amazon-qualified suppliers. Then, the product is sold as an Amazon Renewed product on Amazon. If not satisfied with the purchase, renewed products are eligible for replacement or refund under the Amazon Renewed Guarantee.",
-            "image_url": seller2_image_url,  # For VLM: product image (图文)
+            "image_url": seller2_image_url,  # For VLM: product image (image + text)
         },
         user_profile=user_profile,  # Pass user profile
     )

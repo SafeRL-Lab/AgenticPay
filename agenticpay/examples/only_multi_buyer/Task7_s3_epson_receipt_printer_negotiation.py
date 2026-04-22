@@ -29,7 +29,7 @@ import re
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, examples_dir)
 try:
-    from config import reward_weights, buyer_reward_aggregation, seller_reward_aggregation, max_rounds, price_tolerance
+    from config import reward_weights, buyer_reward_aggregation, seller_reward_aggregation, max_rounds, price_tolerance, OPENAI_API_KEY
 except ImportError:
     # Default values if config not available
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
@@ -37,6 +37,7 @@ except ImportError:
     seller_reward_aggregation = "average"
     max_rounds = 20
     price_tolerance = 0.0
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -131,13 +132,13 @@ def main(model_name=None):
     print("Initializing model...")
     
     # Check API key
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     if not api_key:
         print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for multi-buyer negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for multi-buyer negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
@@ -188,7 +189,7 @@ def main(model_name=None):
     print("Starting new sequential negotiation with two buyers...")
     print("="*60)
     
-    # Product image for VLM (图文): from sampled_products2.jsonl 3rd sample - Epson TM-T20
+    # Product image for VLM (image + text): from sampled_products2.jsonl 3rd sample - Epson TM-T20
     product_image_url = "https://m.media-amazon.com/images/I/51BzGMyEVfL.jpg"
     
     observation, info = env.reset(
@@ -207,7 +208,7 @@ def main(model_name=None):
             "seller_name": "SourceLink Technologies",
             "asin": "B00A0WG5KW",
             "full_description": "For nearly 40 years, Epson has led the industry in developing innovative, reliable, high-performance products. From scanners to printers to 3D projectors, our award-winning technology brings your images to life. Epson Headquartered and established on the shore of Lake Suwa in Nagano, Japan. Ethernet interface. Dark gray color. Without Cable.",
-            "image_url": product_image_url,  # For VLM: product image (图文)
+            "image_url": product_image_url,  # For VLM: product image (image + text)
         },
         user_profile=user_profile,  # Pass user profile
     )

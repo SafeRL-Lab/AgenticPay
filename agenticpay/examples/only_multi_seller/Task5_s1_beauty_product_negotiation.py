@@ -3,7 +3,7 @@
 Two sellers offering the same Maybelline Expert Wear Eyeshadow on Amazon platform.
 Buyer compares offers and chooses which seller to negotiate with each round.
 Category: Daily Life Consumption
-Tests agent's ability to handle multi-seller beauty product negotiation with product images (图文).
+Tests agent's ability to handle multi-seller beauty product negotiation with product images (image + text).
 """
 
 import os
@@ -26,7 +26,7 @@ from agenticpay.models.openai_vlm import OpenAIVLM
 from agenticpay.models.qwen3_vl import Qwen3VL
 from agenticpay.models.vllm_lm import VLLMLLM
 from agenticpay.models.sglang_vlm import SGLangVLM
-from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 import re
 
 
@@ -120,13 +120,13 @@ def main(model_name=None):
     print("Initializing model...")
     
     # Check API key
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     if not api_key:
         print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
 
@@ -230,7 +230,7 @@ def main(model_name=None):
             "seller1_rating": "98.5% positive (245 sales)",
             "seller2_rating": "97.8% positive (189 sales)",
             "asin": "B0046VILG4",
-            "image_url": product_image_url,  # For VLM: product image (图文)
+            "image_url": product_image_url,  # For VLM: product image (image + text)
         },
         user_profile=user_profile,  # Pass user profile
     )

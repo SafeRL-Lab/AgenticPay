@@ -1,8 +1,8 @@
-"""Task5 Scenario 1: Beauty Product - Sequential Two-Seller Per One Product Negotiation (图文)
+"""Task5 Scenario 1: Beauty Product - Sequential Two-Seller Per One Product Negotiation (image + text)
 
 Buyer negotiating with two sellers offering different beauty products.
 Seller1: Maybelline Expert Wear Eyeshadow (Task4). Seller2: NOU Oliban Eau de Toilette (sampled_products2).
-Buyer chooses one seller per round to negotiate with. Product info with images (图文).
+Buyer chooses one seller per round to negotiate with. Product info with images (image + text).
 Category: Daily Life Consumption
 """
 
@@ -35,7 +35,7 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -133,7 +133,7 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
@@ -179,7 +179,7 @@ def main(model_name=None):
     user_requirement = "I'm looking for beauty products - either Maybelline eyeshadow in Turquoise shade or NOU Oliban Eau de Toilette for men, preferably new with good reviews."
     print(f"Using default requirement: {user_requirement}")
     
-    # Product images for VLM (图文) - from Task4 and sampled_products2
+    # Product images for VLM (image + text) - from Task4 and sampled_products2
     seller1_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"  # Maybelline (Task4)
     seller2_image_url = "https://m.media-amazon.com/images/I/51gDhcURgKL.jpg"  # NOU Oliban (sampled_products2 images[0])
     

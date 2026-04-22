@@ -1,7 +1,7 @@
 """Task5 Scenario 1: Beauty Product Bundle - Two-Product Negotiation
 
 Buyer negotiates for two beauty products: Maybelline Eyeshadow and NOU Oliban Eau de Toilette.
-Bundle purchase with total price negotiation. Tests agent's ability with product images (图文).
+Bundle purchase with total price negotiation. Tests agent's ability with product images (image + text).
 Category: Daily Life Consumption
 """
 
@@ -29,7 +29,7 @@ from agenticpay.models.sglang_vlm import SGLangVLM
 # Import configuration parameters
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, examples_dir)
-from config import reward_weights, buyer_reward_aggregation, seller_reward_aggregation, max_rounds, price_tolerance
+from config import reward_weights, buyer_reward_aggregation, seller_reward_aggregation, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -72,13 +72,13 @@ def main(model_name=None):
     print("Initializing model...")
     
     # Check API key
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     if not api_key:
         print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
 
@@ -136,11 +136,11 @@ def main(model_name=None):
     user_profile = "Beauty-conscious user who researches product reviews before buying. Cares about brand quality and value for money. Prefers to buy from sellers with good ratings and reasonable prices."
     print(f"User Profile: {user_profile}")
     
-    # Product images for VLM (图文): URL or local path
+    # Product images for VLM (image + text): URL or local path
     product1_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"  # Maybelline Eyeshadow
     product2_image_url = "https://m.media-amazon.com/images/I/51gDhcURgKL.jpg"  # NOU Oliban Eau de Toilette
     
-    # Define two beauty products with their individual prices (图文 format with image_url)
+    # Define two beauty products with their individual prices (image + text format with image_url)
     # Product 1: Maybelline (Task4), Product 2: NOU Oliban (sampled_products2.jsonl)
     product_info = {
         "products": [
@@ -385,7 +385,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Beauty Product Bundle - Two-Product Negotiation (图文)")
+    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Beauty Product Bundle - Two-Product Negotiation (image + text)")
     parser.add_argument(
         "--model",
         type=str,

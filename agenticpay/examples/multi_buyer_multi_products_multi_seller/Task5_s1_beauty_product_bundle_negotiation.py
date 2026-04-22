@@ -1,8 +1,8 @@
-"""Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Seller Two-Product Negotiation (图文)
+"""Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Seller Two-Product Negotiation (image + text)
 
 Two buyers negotiating with two sellers for beauty product bundles.
 Product 1: Maybelline Eyeshadow (Task4). Product 2: NOU Oliban Eau de Toilette (sampled_products2).
-Each buyer chooses one seller per round to negotiate with. Product info with images (图文).
+Each buyer chooses one seller per round to negotiate with. Product info with images (image + text).
 Category: Daily Life Consumption
 """
 
@@ -140,7 +140,7 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for beauty product bundle negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for beauty product bundle negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
@@ -186,7 +186,7 @@ def main(model_name=None):
     user_profile = "Two buyers competing for beauty product bundles. Buyer1 is a student on tight budget. Buyer2 is a professional willing to pay more. Both value brand quality and product reviews."
     print(f"User Profile: {user_profile}")
     
-    # Product images for VLM (图文)
+    # Product images for VLM (image + text)
     product1_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"  # Maybelline (Task4)
     product2_image_url = "https://m.media-amazon.com/images/I/51gDhcURgKL.jpg"  # NOU Oliban (sampled_products2)
     
@@ -625,7 +625,7 @@ def main(model_name=None):
         output_file = run_dir / "Task5_s1_beauty_product_bundle_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Seller Two-Product Negotiation Results (图文)\n")
+            f.write("Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Seller Two-Product Negotiation Results (image + text)\n")
             f.write("Category: Daily Life Consumption\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -693,7 +693,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Seller Two-Product Negotiation (图文)")
+    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Seller Two-Product Negotiation (image + text)")
     parser.add_argument(
         "--model",
         type=str,

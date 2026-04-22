@@ -138,7 +138,7 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for Riflescope & Epson negotiation with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for Riflescope & Epson negotiation with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
@@ -193,7 +193,7 @@ def main(model_name=None):
     print("Starting new sequential negotiation with two buyers and two sellers...")
     print("="*60)
     
-    # Product info: Seller1 = Crimson Trace Riflescope, Seller2 = Epson thermal receipt printer (with images for VLM 图文)
+    # Product info: Seller1 = Crimson Trace Riflescope, Seller2 = Epson thermal receipt printer (with images for VLM; image + text)
     riflescope_image_url = "https://m.media-amazon.com/images/I/31j7DdlfrOL.jpg"
     epson_image_url = "https://m.media-amazon.com/images/I/51BzGMyEVfL.jpg"
     observation, info = env.reset(

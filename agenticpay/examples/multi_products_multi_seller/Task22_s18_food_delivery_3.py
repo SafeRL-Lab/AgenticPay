@@ -33,7 +33,7 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -123,18 +123,18 @@ def main(model_name=None):
     """
     
     print("Initializing model...")
-    
-    # OpenVLM via OpenAI-compatible API (product images passed to VLM)
-    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY or "token-abc123"
-    openvlm_base_url = os.getenv("OPENAI_URL") or os.getenv("OPENVLM_BASE_URL", "http://localhost:8000/v1")
-    openvlm_model = os.getenv("OPENVLM_MODEL", "openvlm")
-    
-    model = OpenAIVLM(
-        model=model_name or openvlm_model,
-        api_key=api_key,
-        base_url=openvlm_base_url,
-    )
-    
+
+    # Check API key
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
+    if not api_key:
+        print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
+        print("You can set it with: export OPENAI_API_KEY='your-key-here'")
+        return
+
+    # Use OpenAIVLM (Vision Language Model) for negotiation with product images (image + text)
+    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    model = OpenAIVLM(model=model_name, api_key=api_key)
+
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
@@ -584,7 +584,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         default=None,
-        help="OpenVLM model name. Set OPENAI_URL/OPENVLM_BASE_URL for API endpoint, OPENVLM_MODEL for default model name."
+        help="Model name to use (e.g., 'gemini-3-pro-all', 'gpt-5.2', 'claude-sonnet-4-5-20250929'). If not provided, uses default model."
     )
     args = parser.parse_args()
     main(model_name=args.model)

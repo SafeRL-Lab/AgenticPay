@@ -1,8 +1,8 @@
-"""Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Product Negotiation (图文)
+"""Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Product Negotiation (image + text)
 
 One seller negotiating with two buyers for beauty product bundle (Maybelline Eyeshadow + NOU Oliban).
 Seller chooses one buyer per round to negotiate with.
-Product info with images (图文). Category: Daily Life Consumption
+Product info with images (image + text). Category: Daily Life Consumption
 """
 
 import os
@@ -34,7 +34,7 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -135,7 +135,7 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for beauty product bundle with product images (图文)
+    # Use OpenAIVLM (Vision Language Model) for beauty product bundle with product images (image + text)
     model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
@@ -176,7 +176,7 @@ def main(model_name=None):
     user_profile = "Two buyers competing for beauty product bundle. Buyer1 is on tight budget. Buyer2 is willing to pay more for quality. Both care about brand and reviews."
     print(f"User Profile: {user_profile}")
     
-    # Product images for VLM (图文): from Task4 and sampled_products2.jsonl
+    # Product images for VLM (image + text): from Task4 and sampled_products2.jsonl
     product1_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"  # Maybelline Eyeshadow
     product2_image_url = "https://m.media-amazon.com/images/I/51gDhcURgKL.jpg"  # NOU Oliban Eau de Toilette
 
@@ -556,7 +556,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Product Negotiation (图文)")
+    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Beauty Product Bundle - Sequential Two-Buyer Two-Product Negotiation (image + text)")
     parser.add_argument(
         "--model",
         type=str,

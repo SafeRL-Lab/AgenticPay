@@ -27,7 +27,7 @@ import re
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, examples_dir)
 try:
-    from config import reward_weights, buyer_reward_aggregation, seller_reward_aggregation, max_rounds, price_tolerance
+    from config import reward_weights, buyer_reward_aggregation, seller_reward_aggregation, max_rounds, price_tolerance, OPENAI_API_KEY
 except ImportError:
     # Default values if config not available
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
@@ -35,6 +35,7 @@ except ImportError:
     seller_reward_aggregation = "average"
     max_rounds = 20
     price_tolerance = 0.0
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -129,7 +130,7 @@ def main(model_name=None):
     print("Initializing model...")
     
     # OpenVLM via OpenAI-compatible API (product images passed to VLM)
-    api_key = os.getenv("OPENAI_API_KEY") or "token-abc123"
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     openvlm_base_url = os.getenv("OPENAI_URL") or os.getenv("OPENVLM_BASE_URL", "http://localhost:8000/v1")
     openvlm_model = os.getenv("OPENVLM_MODEL", "openvlm")
     
