@@ -64,11 +64,11 @@ MODELS=("gpt-5.4")
 #
 # 下面为「最后 20 个」任务（本目录共 29 个 Task*.py，按版本序为 Task10…Task23、两个 Task24*、Task25…Task28）：
 TASKS=(
-    "Task10"
-    "Task11"
-    "Task12"
-    "Task13"
-    "Task14"
+    "Task5"
+    "Task6"
+    "Task7"
+    "Task8"
+    "Task9"
     "Task15"
     "Task16"
     "Task17"

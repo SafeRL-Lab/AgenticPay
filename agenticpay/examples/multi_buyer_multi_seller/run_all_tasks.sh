@@ -62,11 +62,11 @@ MODELS=("gpt-5.2")
 #
 # 下面为「最后 20 个」任务（本目录共 Task1–Task29，即 Task10–Task29），可按需增删或改序：
 TASKS=(
-    "Task10"
-    "Task11"
-    "Task12"
-    "Task13"
-    "Task14"
+    "Task5"
+    "Task6"
+    "Task7"
+    "Task8"
+    "Task9"
     "Task15"
     "Task16"
     "Task17"

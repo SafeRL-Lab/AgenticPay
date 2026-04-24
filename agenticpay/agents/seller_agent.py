@@ -54,11 +54,19 @@ class SellerAgent(BaseAgent):
             raise ValueError("Agent not initialized. Call initialize() first.")
         
         self.last_selected_buyer = None
-        prompt = self._build_prompt(conversation_history, current_state)
+        # Keep initial_price out of the seller-visible prompt. The seller should
+        # reason from product_info and its private reservation price instead of
+        # being anchored by an environment-side initial quote.
+        original_context = self.context
+        filtered_context = {k: v for k, v in self.context.items() if k != "initial_price"}
+        self.context = filtered_context
+        try:
+            prompt = self._build_prompt(conversation_history, current_state)
+        finally:
+            self.context = original_context
         
         # Get seller's minimum acceptable price (bottom price)
         min_price = self.seller_min_price or self.context.get('min_price', 'unknown')
-        initial_price = self.context.get('initial_price', 'unknown')
         product_info = self.context.get('product_info', {})
         available_products = self.context.get('available_products', [])
         

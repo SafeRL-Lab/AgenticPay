@@ -48,8 +48,8 @@ save_run_history() {
 # Configure the model list to use here
 # If the list is empty, each script will use its default model
 # Example:
-# MODELS=("gpt-5.2" "gemini-3-pro-all" "claude-sonnet-4-5-20250929")
-MODELS=("claude-opus-4-6")
+# MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "claude-opus-4-7")
+MODELS=("gpt-5.5")
 
 
 # ============================================
@@ -61,12 +61,16 @@ MODELS=("claude-opus-4-6")
 # (excluding *example* files such as Task1_*_example.py).
 #
 # 下面为「最后 20 个」任务（Task9–Task28），可按需增删或改序：
+# TASKS=(
+#     "Task9"
+# )
+
 TASKS=(
-    "Task9"
-    "Task10"
-    "Task11"
-    "Task12"
-    "Task13"
+    "Task4"
+    "Task5"
+    "Task6"
+    "Task7"
+    "Task8"
     "Task14"
     "Task15"
     "Task16"
