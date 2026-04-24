@@ -55,14 +55,35 @@ MODELS=("gpt-5.2")
 # ============================================
 # Configuration: Task List
 # ============================================
-# Configure which tasks to run
+# Configure which tasks to run. Use short names from TASK_SCRIPTS (e.g. "Task10") or
+# full script stems (e.g. "Task15_s11_taxi_1") if the .py file exists.
 # If the list is empty, all available Task*.py scripts in this directory are run
-# (excluding *example* files such as Task1_*_example.py)
-# Format: use task numbers (e.g., "Task1", "Task4", "Task29") or leave empty for all
-# Example:
-# TASKS=("Task1" "Task4" "Task5")
-# TASKS=()   # run all tasks
-TASKS=()
+# (excluding *example* files such as Task1_*_example.py).
+#
+# 下面为「最后 20 个」任务（本目录共 Task1–Task29，即 Task10–Task29），可按需增删或改序：
+TASKS=(
+    "Task10"
+    "Task11"
+    "Task12"
+    "Task13"
+    "Task14"
+    "Task15"
+    "Task16"
+    "Task17"
+    "Task18"
+    "Task19"
+    "Task20"
+    "Task21"
+    "Task22"
+    "Task23"
+    "Task24"
+    "Task25"
+    "Task26"
+    "Task27"
+    "Task28"
+    "Task29"
+)
+# TASKS=()   # 取消上面数组并置空，则运行本目录下全部任务
 
 # ============================================
 # Execute Tasks

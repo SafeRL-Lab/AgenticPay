@@ -89,8 +89,8 @@ def main(model_name=None):
     print("Creating agents...")
     buyer_max_price = 9380.0  # Tenant max total monthly rent for both properties (confidential)
     seller_min_price = 9150.0  # Landlord min total monthly rent (confidential); must be < buyer_max_price
-    buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
-    seller = SellerAgent(model=model, seller_min_price=seller_min_price)
+    buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
+    seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
     # Create environment using registration system
     print("Creating two-product negotiation environment...")

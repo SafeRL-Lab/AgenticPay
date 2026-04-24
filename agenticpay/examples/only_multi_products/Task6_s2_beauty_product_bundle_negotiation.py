@@ -110,8 +110,8 @@ def main(model_name=None):
     # NOU fragrance $21.95 + BFWood hair brush $6.48 = $28.43 total
     buyer_max_price = 27.0  # Maximum acceptable total purchase price for buyer (confidential)
     seller_min_price = 20.0  # Minimum acceptable total selling price for seller (confidential)
-    buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
-    seller = SellerAgent(model=model, seller_min_price=seller_min_price)
+    buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
+    seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
     # Create environment using registration system
     print("Creating two-product negotiation environment...")

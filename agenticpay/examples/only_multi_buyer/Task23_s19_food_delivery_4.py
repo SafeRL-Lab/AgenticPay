@@ -127,9 +127,9 @@ def main(model_name=None):
     buyer2_max_price = 12.50  # Maximum acceptable all-in order total for buyer2 (confidential)
     seller_min_price = 11.50  # Minimum acceptable all-in order total for seller (confidential)
     
-    buyer1 = BuyerAgent(model=model, buyer_max_price=buyer1_max_price)
-    buyer2 = BuyerAgent(model=model, buyer_max_price=buyer2_max_price)
-    seller = SellerAgent(model=model, seller_min_price=seller_min_price)
+    buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
+    buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
+    seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
     # Create environment
     print("Creating sequential multi-buyer negotiation environment...")

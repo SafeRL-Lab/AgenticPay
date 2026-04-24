@@ -98,8 +98,8 @@ def main(model_name=None):
     buyer_max_price = 67.81  # Maximum acceptable total fare for buyer (confidential)
     seller_min_price = 64.61  # Minimum acceptable total fare for seller (confidential)
     
-    buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
-    seller = SellerAgent(model=model, seller_min_price=seller_min_price)
+    buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
+    seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
     # Method 1: Create environment using registration system (recommended)
     print("Creating negotiation environment using registration system...")

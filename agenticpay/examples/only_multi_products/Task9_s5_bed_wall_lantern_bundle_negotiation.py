@@ -109,8 +109,8 @@ def main(model_name=None):
     print("Creating agents...")
     buyer_max_price = 280.0  # Maximum acceptable total purchase price for buyer (confidential) - Wall Lantern + Queen Bed
     seller_min_price = 225.0  # Minimum acceptable total selling price for seller (confidential) - $45 + $180
-    buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
-    seller = SellerAgent(model=model, seller_min_price=seller_min_price)
+    buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
+    seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
     # Create environment using registration system
     print("Creating two-product negotiation environment...")

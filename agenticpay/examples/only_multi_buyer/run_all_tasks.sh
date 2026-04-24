@@ -55,16 +55,37 @@ MODELS=("gpt-5.4")
 # ============================================
 # Configuration: Task List
 # ============================================
-# Configure which tasks to run
+# Configure which tasks to run. Use short names from TASK_SCRIPTS (e.g. "Task10") or
+# full script stems (e.g. "Task24_s21_rent_house_1") if the .py file exists.
 # If the list is empty, all available Task*.py scripts in this directory are run
-# (excluding *example* files such as Task1_*_example.py)
-# Format: use task numbers (e.g., "Task1", "Task4", "Task24") or full script stem, or leave empty for all
-# Example:
-# TASKS=("Task1" "Task4" "Task5")
-# TASKS=()   # run all tasks
-# Note: This folder has two scripts prefixed "Task24" (food_delivery_5 and rent_house_1). "Task24" maps to
-# Task24_s20_food_delivery_5; run Task24_s21_rent_house_1 by listing that stem explicitly in TASKS.
-TASKS=()
+# (excluding *example* files such as Task1_*_example.py).
+# Note: This folder has two Task24* scripts. "Task24" maps to Task24_s20_food_delivery_5; the other
+# must be listed as Task24_s21_rent_house_1.
+#
+# 下面为「最后 20 个」任务（本目录共 29 个 Task*.py，按版本序为 Task10…Task23、两个 Task24*、Task25…Task28）：
+TASKS=(
+    "Task10"
+    "Task11"
+    "Task12"
+    "Task13"
+    "Task14"
+    "Task15"
+    "Task16"
+    "Task17"
+    "Task18"
+    "Task19"
+    "Task20"
+    "Task21"
+    "Task22"
+    "Task23"
+    "Task24"
+    "Task24_s21_rent_house_1"
+    "Task25"
+    "Task26"
+    "Task27"
+    "Task28"
+)
+# TASKS=()   # 取消上面数组并置空，则运行本目录下全部任务
 
 # ============================================
 # Execute Tasks

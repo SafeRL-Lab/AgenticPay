@@ -274,7 +274,13 @@ You MUST format your entire output exactly as follows:
         mental_model_match = re.search(r'<mental_model>(.*?)</mental_model>', response, flags=re.DOTALL | re.IGNORECASE)
         if mental_model_match:
             mental_model_content = mental_model_match.group(1).strip()
-            logger.info(f"\n{'='*50}\n[{self.name} MENTAL MODEL]\n{mental_model_content}\n{'='*50}")
+            round_num = current_state.get("current_round")
+            if round_num is None:
+                round_num = current_state.get("round")
+            round_str = str(round_num) if round_num is not None else "?"
+            logger.info(
+                f"\n{'='*50}\n[{self.name} MENTAL MODEL | round {round_str}]\n{mental_model_content}\n{'='*50}"
+            )
 
         selected_seller_match = re.search(r'<selected_seller>\s*(\d+)\s*</selected_seller>', response, flags=re.DOTALL | re.IGNORECASE)
         if selected_seller_match:

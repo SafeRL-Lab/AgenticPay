@@ -122,10 +122,10 @@ def main(model_name=None):
     seller1_min_price = 11.70
     seller2_min_price = 11.50
     
-    buyer1 = BuyerAgent(model=model, buyer_max_price=buyer1_max_price)
-    buyer2 = BuyerAgent(model=model, buyer_max_price=buyer2_max_price)
-    seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
-    seller2 = SellerAgent(model=model, seller_min_price=seller2_min_price)
+    buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
+    buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
+    seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
+    seller2 = SellerAgent(model=model, name="Seller2", seller_min_price=seller2_min_price)
     
     # Create environment
     print("Creating sequential multi-buyer multi-seller negotiation environment...")

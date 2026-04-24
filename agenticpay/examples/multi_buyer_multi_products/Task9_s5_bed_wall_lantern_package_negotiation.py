@@ -118,9 +118,9 @@ def main(model_name=None):
     buyer2_max_price = 260.0
     seller_min_price = 225.0
 
-    buyer1 = BuyerAgent(model=model, buyer_max_price=buyer1_max_price)
-    buyer2 = BuyerAgent(model=model, buyer_max_price=buyer2_max_price)
-    seller = SellerAgent(model=model, seller_min_price=seller_min_price)
+    buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
+    buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
+    seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
 
     print("Creating sequential multi-buyer multi-product negotiation environment...")
     env = Task3SequentialTwoBuyerTwoProductNegotiation(

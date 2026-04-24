@@ -103,8 +103,8 @@ def main(model_name=None):
     buyer_max_price = 10200.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
     seller_min_price = 8800.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
     
-    buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
-    seller = SellerAgent(model=model, seller_min_price=seller_min_price)
+    buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
+    seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
     # Method 1: Create environment using registration system (recommended)
     print("Creating negotiation environment using registration system...")
