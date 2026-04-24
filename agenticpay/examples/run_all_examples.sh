@@ -21,13 +21,21 @@ echo ""
 # Array to store directories with run_all_tasks.sh
 DIRS=()
 
+# Subdirectories: reverse lexicographic order (opposite of */ expansion)
+shopt -s nullglob
+ALL_SUBDIRS=(*/)
+shopt -u nullglob
+
 # Find all directories containing run_all_tasks.sh
-for dir in */; do
-    if [ -f "${dir}run_all_tasks.sh" ]; then
-        DIRS+=("$dir")
-        echo "Found: ${dir}run_all_tasks.sh"
-    fi
-done
+if [ ${#ALL_SUBDIRS[@]} -gt 0 ]; then
+    mapfile -t SORTED < <(printf '%s\n' "${ALL_SUBDIRS[@]}" | LC_ALL=C sort -r)
+    for dir in "${SORTED[@]}"; do
+        if [ -f "${dir}run_all_tasks.sh" ]; then
+            DIRS+=("$dir")
+            echo "Found: ${dir}run_all_tasks.sh"
+        fi
+    done
+fi
 
 echo ""
 echo "Found ${#DIRS[@]} directories with run_all_tasks.sh"
