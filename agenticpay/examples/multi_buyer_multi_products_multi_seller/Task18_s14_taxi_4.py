@@ -1,15 +1,15 @@
 """Task18 Scenario 14: NYC Taxi Ride - Sequential Two-Buyer Two-Seller Two-Product Negotiation
 
-Two buyers negotiating with two sellers for one NYC taxi trip split into two fare components.
-Each buyer chooses one seller per round to negotiate with.
-Prices represent total price for both products.
-Category: Daily Life Consumption
+Same two fare components from two quotes: listing has no per-operator identity; two sellers each have a
+different confidential floor for the **total** all-in price. Structured `<selected_seller>` routing per round
+(aligned with Task5_s1). Category: Daily Life Consumption
 """
 
 import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -18,23 +18,13 @@ from datetime import datetime
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, project_root)
 
-from agenticpay.envs.multi_buyer_multi_products_multi_seller.Task3_sequential_two_buyer_two_seller_two_product_negotiation import Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation
+from agenticpay.envs.multi_buyer_multi_products_multi_seller.Task3_sequential_two_buyer_two_seller_two_product_negotiation import (
+    Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation,
+)
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    max_rounds = 20
-    price_tolerance = 0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -61,66 +51,49 @@ def get_model_name(model):
         if "model=" in model_str:
             try:
                 return model_str.split("model=")[1].split(")")[0]
-            except:
+            except Exception:
                 return model_str
         else:
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict, buyer_id: int) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        buyer_id: Buyer ID (1 or 2)
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    # Get prices for this buyer
-    if buyer_id == 1:
-        seller1_price = observation.get("b1s1_seller_price")
-        seller2_price = observation.get("b1s2_seller_price")
-    else:  # buyer_id == 2
-        seller1_price = observation.get("b2s1_seller_price")
-        seller2_price = observation.get("b2s2_seller_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
+def _run_buyer_routing(buyer, combined_history: list, observation: dict, routing_instruction: str):
+    """Structured ``<selected_seller>`` + retries + random fallback (aligned with Task5_s1)."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    buyer_response = None
+    selected_seller = None
+    while True:
+        buyer_response = buyer.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_sellers": 2,
+            },
+        )
+        selected_seller = buyer.last_selected_seller
+        if selected_seller is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_seller>; retrying buyer response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+        )
+    if selected_seller is None:
+        selected_seller = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_seller> after retries; "
+            f"randomly selecting Seller {selected_seller}."
+        )
+    return buyer_response, selected_seller
 
 
 def main(model_name=None):
@@ -139,8 +112,7 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for taxi negotiation with route images
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    model_name = model_name or "gpt-5.4"
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
     print(f"✓ Successfully initialized: {model}")
@@ -176,13 +148,17 @@ def main(model_name=None):
             "market_type": "Service Negotiation (Ride Fare Bundle)",
             "traffic_context": "Downtown Manhattan short route",
             "category": "Daily Life Consumption",
+            "note": "Multiple third-party quotes exist for the same two-service cart; prices are all-in totals.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Two riders are comparing quotes for the same short Manhattan trip. Both want an all-in fare with no hidden add-on charges; Buyer2 is slightly less price-sensitive than Buyer1."
+    user_profile = (
+        "Two riders compare quotes for the same base fare + mandatory fees bundle; the listing omits "
+        "operator identity. Both want one transparent all-in total; Buyer2 is slightly less price-sensitive."
+    )
     print(f"User Profile: {user_profile}")
     
     product_info = {
@@ -197,7 +173,6 @@ def main(model_name=None):
                 "dropoff_location": "Battery Park City, Manhattan, New York, NY",
                 "trip_distance_miles": 1.7,
                 "historical_trip_time": "About 12 minutes",
-                "VendorID": 1,
                 "RatecodeID": 1,
                 "Passenger Count": 0,
                 "Historical Total Amount": 22.25,
@@ -251,7 +226,9 @@ def main(model_name=None):
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
     # Use default requirement for automatic running
-    user_requirement = "We need a direct taxi ride from Seaport to Battery Park City. Please quote one transparent all-in fare that includes both base fare and required city surcharges."
+    user_requirement = (
+        "I want these two as one price: metered base fare + mandatory NYC fee package, Seaport→Battery Park City, all-in."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -287,55 +264,29 @@ def main(model_name=None):
         
         # Build combined conversation history for buyer1 (includes both sellers' conversations)
         combined_history_b1 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b1s1", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b1s2", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
-        
-        # Build combined conversation history for buyer2 (includes both sellers' conversations)
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 2"})
+
         combined_history_b2 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b2s1", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b2s2", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
-        
-        # Get buyer1's response - buyer should indicate which seller they want to negotiate with
-        buyer1_response = buyer1.respond(
-            conversation_history=combined_history_b1,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers for two taxi fare components (base fare + surcharge package). Each round, choose ONE seller to negotiate with and provide your message. Clearly indicate seller 1 or 2. Prices represent all-in total for both components."
-            }
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 2"})
+
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>. "
+            "The price you discuss is the **all-in total** for both fare components (base + mandatory fees)."
         )
-        
-        # Get buyer2's response - buyer should indicate which seller they want to negotiate with
-        buyer2_response = buyer2.respond(
-            conversation_history=combined_history_b2,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers for two taxi fare components (base fare + surcharge package). Each round, choose ONE seller to negotiate with and provide your message. Clearly indicate seller 1 or 2. Prices represent all-in total for both components."
-            }
+        buyer1_response, buyer1_selected_seller = _run_buyer_routing(
+            buyer1, combined_history_b1, observation, routing_instruction
         )
-        
-        # Extract seller choice from each buyer's response
-        buyer1_selected_seller = extract_seller_choice(buyer1_response, observation, buyer_id=1)
-        buyer2_selected_seller = extract_seller_choice(buyer2_response, observation, buyer_id=2)
+        buyer2_response, buyer2_selected_seller = _run_buyer_routing(
+            buyer2, combined_history_b2, observation, routing_instruction
+        )
         
         print(f"\n[Buyer 1 chooses to negotiate with Seller {buyer1_selected_seller} this round]")
         print(f"[Buyer 2 chooses to negotiate with Seller {buyer2_selected_seller} this round]")
@@ -534,26 +485,34 @@ def main(model_name=None):
                     weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Seller2 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (seller2_price not specified, round={info['round']})")
         
-        # If this is the final round (agreed or timeout), display score calculations after Step Rewards
         if done:
-            # Print score calculations after Step Rewards
+            print("\n" + "=" * 60)
+            print("Negotiation Ended")
+            print("=" * 60)
+            print(f"Status: {info['status']}")
+            if info.get("selected_buyer") and info.get("selected_seller"):
+                print(f"Selected Deal: Buyer {info['selected_buyer']} - Seller {info['selected_seller']}")
+                print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
+            print(
+                f"Buyer1-Seller1 Total: Buyer=${info.get('b1s1_buyer_price', 0) or 0:.2f} | "
+                f"Seller=${info.get('b1s1_seller_price', 0) or 0:.2f}"
+            )
+            print(
+                f"Buyer1-Seller2 Total: Buyer=${info.get('b1s2_buyer_price', 0) or 0:.2f} | "
+                f"Seller=${info.get('b1s2_seller_price', 0) or 0:.2f}"
+            )
+            print(
+                f"Buyer2-Seller1 Total: Buyer=${info.get('b2s1_buyer_price', 0) or 0:.2f} | "
+                f"Seller=${info.get('b2s1_seller_price', 0) or 0:.2f}"
+            )
+            print(
+                f"Buyer2-Seller2 Total: Buyer=${info.get('b2s2_buyer_price', 0) or 0:.2f} | "
+                f"Seller=${info.get('b2s2_seller_price', 0) or 0:.2f}"
+            )
             env._print_global_score_details()
             env._print_buyer_score_details()
             env._print_seller_score_details()
-            
-            print("\n" + "="*60)
-            print("Negotiation Ended")
-            print("="*60)
-            print(f"Status: {info['status']}")
-            if info.get('selected_buyer') and info.get('selected_seller'):
-                print(f"Selected Deal: Buyer {info['selected_buyer']} - Seller {info['selected_seller']}")
-                print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
-            print(f"Buyer1-Seller1 Total Prices: Buyer=${info.get('b1s1_buyer_price', 0) or 0:.2f} | Seller=${info.get('b1s1_seller_price', 0) or 0:.2f}")
-            print(f"Buyer1-Seller2 Total Prices: Buyer=${info.get('b1s2_buyer_price', 0) or 0:.2f} | Seller=${info.get('b1s2_seller_price', 0) or 0:.2f}")
-            print(f"Buyer2-Seller1 Total Prices: Buyer=${info.get('b2s1_buyer_price', 0) or 0:.2f} | Seller=${info.get('b2s1_seller_price', 0) or 0:.2f}")
-            print(f"Buyer2-Seller2 Total Prices: Buyer=${info.get('b2s2_buyer_price', 0) or 0:.2f} | Seller=${info.get('b2s2_seller_price', 0) or 0:.2f}")
-            # current_round has been incremented to reflect the completed round
-            actual_rounds = info['round']
+            actual_rounds = info["round"]
             print(f"Total Rounds: {actual_rounds}")
             print(f"Global Reward: {reward:.3f}")
             if 'buyer1_reward' in info:
@@ -570,44 +529,46 @@ def main(model_name=None):
                 print(f"BuyerScore: {info['buyer_score']:.3f}")
             if 'seller_score' in info:
                 print(f"SellerScore: {info['seller_score']:.3f}")
-            if info.get('termination_reason'):
+            if info.get("termination_reason"):
                 print(f"Reason: {info['termination_reason']}")
-            print("="*60)
-            
-            # Collect results
+            print("=" * 60)
+
             elapsed_time = time.time() - start_time
-            results.update({
-                "status": info.get('status', 'unknown'),
-                "success": terminated,
-                "selected_buyer": info.get('selected_buyer'),
-                "selected_seller": info.get('selected_seller'),
-                "final_deal_price": info.get('final_deal_price'),
-                "b1s1_buyer_price": info.get('b1s1_buyer_price'),
-                "b1s1_seller_price": info.get('b1s1_seller_price'),
-                "b1s2_buyer_price": info.get('b1s2_buyer_price'),
-                "b1s2_seller_price": info.get('b1s2_seller_price'),
-                "b2s1_buyer_price": info.get('b2s1_buyer_price'),
-                "b2s1_seller_price": info.get('b2s1_seller_price'),
-                "b2s2_buyer_price": info.get('b2s2_buyer_price'),
-                "b2s2_seller_price": info.get('b2s2_seller_price'),
-                "total_rounds": info.get('round', 0),
-                "total_reward": float(reward) if reward is not None else None,
-                "buyer1_reward": info.get('buyer1_reward'),
-                "buyer2_reward": info.get('buyer2_reward'),
-                "seller1_reward": info.get('seller1_reward'),
-                "seller2_reward": info.get('seller2_reward'),
-                "global_score": info.get('global_score'),
-                "buyer_score": info.get('buyer_score'),
-                "seller_score": info.get('seller_score'),
-                "termination_reason": info.get('termination_reason'),
-                "elapsed_time": elapsed_time,
-                "buyer1_max_price": buyer1_max_price,
-                "buyer2_max_price": buyer2_max_price,
-                "seller1_min_price": seller1_min_price,
-                "seller2_min_price": seller2_min_price,
-                "product_info": product_info,
-                "model": get_model_name(model),
-            })
+            product_info_out = info.get("product_info", {})
+            results.update(
+                {
+                    "status": info.get("status", "unknown"),
+                    "success": terminated,
+                    "selected_buyer": info.get("selected_buyer"),
+                    "selected_seller": info.get("selected_seller"),
+                    "final_deal_price": info.get("final_deal_price"),
+                    "b1s1_buyer_price": info.get("b1s1_buyer_price"),
+                    "b1s1_seller_price": info.get("b1s1_seller_price"),
+                    "b1s2_buyer_price": info.get("b1s2_buyer_price"),
+                    "b1s2_seller_price": info.get("b1s2_seller_price"),
+                    "b2s1_buyer_price": info.get("b2s1_buyer_price"),
+                    "b2s1_seller_price": info.get("b2s1_seller_price"),
+                    "b2s2_buyer_price": info.get("b2s2_buyer_price"),
+                    "b2s2_seller_price": info.get("b2s2_seller_price"),
+                    "total_rounds": info.get("round", 0),
+                    "total_reward": float(reward) if reward is not None else None,
+                    "buyer1_reward": info.get("buyer1_reward"),
+                    "buyer2_reward": info.get("buyer2_reward"),
+                    "seller1_reward": info.get("seller1_reward"),
+                    "seller2_reward": info.get("seller2_reward"),
+                    "global_score": info.get("global_score"),
+                    "buyer_score": info.get("buyer_score"),
+                    "seller_score": info.get("seller_score"),
+                    "termination_reason": info.get("termination_reason"),
+                    "elapsed_time": elapsed_time,
+                    "buyer1_max_price": buyer1_max_price,
+                    "buyer2_max_price": buyer2_max_price,
+                    "seller1_min_price": seller1_min_price,
+                    "seller2_min_price": seller2_min_price,
+                    "product_info": product_info_out,
+                    "model": get_model_name(model),
+                }
+            )
             break
     
     # Close environment

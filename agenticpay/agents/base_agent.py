@@ -137,6 +137,8 @@ Please respond naturally as {self.name} would. Be strategic but realistic in you
             role = msg.get('role', 'unknown').upper()
             content = msg.get('content', '')
             round_num = msg.get('round', 0)
-            history_str += f"[Round {round_num}] {role}: {content}\n"
+            thread_label = msg.get('thread_label')
+            thread_prefix = f"[{thread_label}]" if thread_label else ""
+            history_str += f"[Round {round_num}]{thread_prefix} {role}: {content}\n"
         return history_str
 

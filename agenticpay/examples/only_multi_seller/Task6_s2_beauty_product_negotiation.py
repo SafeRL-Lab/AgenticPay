@@ -1,7 +1,8 @@
 """Task6 Scenario 2: Beauty Product - Sequential Two-Seller Negotiation
 
-Two sellers offering NOU Oriental Eau de Toilette (men's fragrance) on Amazon.
-Buyer compares offers and chooses which seller to negotiate with each round.
+The buyer asks to purchase one product (same SKU) from the marketplace. Product info is a single
+item listing without per-seller details; two independent sellers each negotiate that same item with
+different confidential floor (minimum) prices.
 Category: Daily Life Consumption
 """
 
@@ -9,6 +10,7 @@ import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -26,7 +28,6 @@ from agenticpay.models.qwen3_vl import Qwen3VL
 from agenticpay.models.vllm_lm import VLLMLLM
 from agenticpay.models.sglang_vlm import SGLangVLM
 from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-import re
 
 
 def get_model_name(model):
@@ -59,54 +60,48 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
+def _run_buyer_routing(
+    buyer,
+    combined_history: list,
+    observation: dict,
+    routing_instruction: str,
+):
+    """Align with only_multi_buyer Task5: structured ``<selected_seller>`` + retries + random fallback."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    buyer_response = None
+    selected_seller = None
+    while True:
+        buyer_response = buyer.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_sellers": 2,
+            },
+        )
+        selected_seller = buyer.last_selected_seller
+        if selected_seller is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_seller>; retrying buyer response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+        )
+    if selected_seller is None:
+        selected_seller = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_seller> after retries; "
+            f"randomly selecting Seller {selected_seller}."
+        )
+    return buyer_response, selected_seller
 
 
 def main(model_name=None):
@@ -126,7 +121,7 @@ def main(model_name=None):
         return
     
     # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (image + text)
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    model_name = model_name or "gpt-5.4"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
 
     # Alternative: CustomLLM for text-only models
@@ -151,12 +146,11 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Same product (SKU) from two listings: each seller has a different confidential floor price
     print("Creating agents...")
-    # NOU Oriental Eau de Toilette: pricing $21.95
-    buyer_max_price = 20.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller1_min_price = 14.0  # Minimum acceptable selling price for seller1 (confidential)
-    seller2_min_price = 15.0  # Minimum acceptable selling price for seller2 (confidential, slightly higher than seller1)
+    buyer_max_price = 20.00  # Maximum acceptable purchase price for buyer (confidential)
+    seller1_min_price = 14.25  # Seller 1 floor (confidential; lower cost / willing to go lower)
+    seller2_min_price = 15.10  # Seller 2 floor (confidential; higher than seller 1)
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
@@ -169,24 +163,22 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=21.95,  # Initial price offered by seller1 (product list price)
-        initial_seller2_price=22.95,  # Initial price offered by seller2 (slightly higher)
+        initial_seller1_price=21.95,  # Opening ask — same item, different listing
+        initial_seller2_price=22.55,  # Opening ask — same item, different listing
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "seller1_name": "AmTm Cosmetics",
-            "seller2_name": "Fragrance World",  # Both sell same NOU fragrance
-            "availability_status": "In Stock",
+            "note": "Multiple third-party offers exist for the same product listing.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Style-conscious buyer interested in men's fragrances. Values natural ingredients and essential oils. Prefers woody, oriental scents with good reviews."
+    # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
+    user_profile = "Wants a fair price on a men's fragrance; open to comparing offers for the same product."
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -197,8 +189,8 @@ def main(model_name=None):
     #     print("No requirement entered, using default requirement...")
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
-    # Use default requirement for automatic running
-    user_requirement = "I'm looking for a men's oriental woody fragrance with essential oils, preferably natural ingredients, good for daily wear. Budget around $22."
+    # One-product user query: concise, natural English (simulated search / assistant request)
+    user_requirement = "I want to buy NOU Oliban Oriental Eau de Toilette for Men (1.7 Fl Oz), new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -206,23 +198,24 @@ def main(model_name=None):
     print("Starting new sequential negotiation with two sellers...")
     print("="*60)
     
-    # Product from sampled_products2.jsonl - NOU Oriental Eau de Toilette (men's fragrance)
+    # Product image for VLM: URL or local path (OpenAIVLM supports both)
     product_image_url = "https://m.media-amazon.com/images/I/51gDhcURgKL.jpg"
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
             "name": "Oriental Eau de Toilette – Natural Eau de Toilette for Men Woody Eau de Toilette Infused with Essential Oils Fragrance for Men with Oriental Woody Tones NOU Oliban Eau de Toilette for Men – 1.7 Fl Oz",
             "condition": "New",
-            "brand": "Brand: nou",
+            "brand": "nou",
+            "size": "1.7 Fl Oz",
             "original_price": 21.95,
+            "availability_quantity": 12,
             "availability_status": "In Stock.",
             "product_category": "Beauty & Personal Care › Fragrance",
-            "average_rating": 4,
+            "average_rating": 4.0,
             "total_reviews": 6,
-            "seller_name": "AmTm Cosmetics",
             "asin": "B08XQWJX8P",
             "full_description": "NOU OLIBAN ORIENTAL SCENT FOR MEN – this fragrance for men has been perfectly blended and infused with essential oils, resulting in an intriguing, mysterious scent that is powerful and appealing to women. ORIENTAL EAU DE TOILETTE CRAFTED BY FRENCH PERFUMERS – expertly crafted by French perfumers, this natural fragrance for men is created with pure and natural ingredients and infused with aromatic essential oils. OLIBAN WOODY FRAGRANCE NOTES – this natural Eau de Toilette for men features elemi and olibanum, toned down by the relaxing scent of chamomile. The heart notes are patchouli and cistus, with raised notes of sandalwood, leather, vanilla and benzoin resulting in a masculine, powerful fragrance for men.",
-            "image_url": product_image_url,
+            "image_url": product_image_url,  # For VLM: product image (image + text)
         },
         user_profile=user_profile,  # Pass user profile
     )
@@ -252,30 +245,27 @@ def main(model_name=None):
         for msg in observation.get("conversation_history_seller1", []):
             combined_history.append({
                 **msg,
-                "content": f"[Seller 1] {msg['content']}"
+                "thread_label": "Talk with Seller 1",
             })
         # Add seller2 messages with prefix
         for msg in observation.get("conversation_history_seller2", []):
             combined_history.append({
                 **msg,
-                "content": f"[Seller 2] {msg['content']}"
+                "thread_label": "Talk with Seller 2",
             })
         
-        # Get buyer's response - buyer should indicate which seller they want to negotiate with
-        buyer_response = buyer.respond(
-            conversation_history=combined_history,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        # Get buyer's response - buyer should choose a seller via a structured <selected_seller> block
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>."
         )
-        
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+        buyer_response, selected_seller = _run_buyer_routing(
+            buyer, combined_history, observation, routing_instruction
+        )
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
-        # Use buyer's full response as the negotiation message
-        # The response may include the choice statement, which is fine as it's buyer's natural expression
+        # BuyerAgent returns only the <message> block as the negotiation message.
         buyer_action = buyer_response
         
         # Get the conversation history for the selected seller
@@ -456,13 +446,16 @@ def main(model_name=None):
                 "product_info": {
                     "name": "Oriental Eau de Toilette – Natural Eau de Toilette for Men Woody Eau de Toilette Infused with Essential Oils Fragrance for Men with Oriental Woody Tones NOU Oliban Eau de Toilette for Men – 1.7 Fl Oz",
                     "condition": "New",
-                    "brand": "Brand: nou",
+                    "brand": "nou",
+                    "size": "1.7 Fl Oz",
                     "original_price": 21.95,
+                    "availability_quantity": 12,
+                    "availability_status": "In Stock.",
                     "product_category": "Beauty & Personal Care › Fragrance",
-                    "average_rating": 4,
+                    "average_rating": 4.0,
                     "total_reviews": 6,
                     "asin": "B08XQWJX8P",
-                    "image_url": "https://m.media-amazon.com/images/I/51gDhcURgKL.jpg",
+                    "image_url": product_image_url,
                 },
                 "model": get_model_name(model),
             })

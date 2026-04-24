@@ -1,9 +1,10 @@
-"""Task16 Scenario 12: NYC Taxi Ride - Sequential Two-Driver Negotiation (Union Sq to Lenox Hill West)
+"""Task16 Scenario 12: NYC Taxi Ride - Sequential Two-Seller Negotiation (Union Sq to Lenox Hill West)
 
-Two drivers offering a taxi ride from Union Sq to Lenox Hill West (from yellow_tripdata_2026-02_sample_10.jsonl line 1).
-Short-distance yellow taxi ride fare negotiation in Manhattan, NYC.
-Buyer compares service level and pricing, choosing which driver to negotiate with each round.
+The buyer asks to purchase one product (same route / offering) from the marketplace. Product info is a single
+listing without per-seller details; two independent sellers each negotiate that same ride with different
+confidential floor (minimum) prices.
 Category: Daily Life Consumption
+Tests agent multi-seller negotiation with route image (image + text).
 """
 
 import os
@@ -11,6 +12,7 @@ import sys
 import json
 import time
 import argparse
+import random
 from pathlib import Path
 from datetime import datetime
 
@@ -27,7 +29,6 @@ from agenticpay.models.qwen3_vl import Qwen3VL
 from agenticpay.models.vllm_lm import VLLMLLM
 from agenticpay.models.sglang_vlm import SGLangVLM
 from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-import re
 
 
 def get_model_name(model):
@@ -60,55 +61,6 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
-
 
 def main(model_name=None):
     """Main function: Demonstrates sequential multi-seller negotiation flow
@@ -126,8 +78,8 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
 
-    # Use OpenAIVLM (Vision Language Model) for multi-seller negotiation with images (image + text)
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    # Use OpenAIVLM (Vision Language Model) for route map + text (image + text)
+    model_name = model_name or "gpt-5.4"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
 
     # Build absolute path to model directory
@@ -149,14 +101,11 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 12: Union Sq -> Lenox Hill West sample trip. buyer_max_price is historical total,
-    # seller1_min_price is standard driver's minimum (fixed costs + minimum profit),
-    # seller2_min_price is premium driver's minimum (newer car, expedited service).
+    # Same ride (route): buyer_max_price from historical total; each seller has a different confidential floor
     buyer_max_price = 20.58   # Maximum acceptable total fare for buyer (confidential)
-    seller1_min_price = 17.38 # Minimum acceptable total fare for seller1 - standard driver (confidential)
-    seller2_min_price = 18.88 # Minimum acceptable total fare for seller2 - premium driver (confidential)
+    seller1_min_price = 17.38  # Seller 1 floor (confidential; lower cost / willing to go lower)
+    seller2_min_price = 18.88  # Seller 2 floor (confidential; higher than seller 1)
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
@@ -169,23 +118,22 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=26.00,  # Initial price offered by seller1 (standard driver)
-        initial_seller2_price=28.00,  # Initial price offered by seller2 (premium driver, higher ask)
+        initial_seller1_price=26.00,  # Opening ask — same ride, different offer
+        initial_seller2_price=28.00,  # Opening ask — same ride, different offer
         buyer_max_price=buyer_max_price,    # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
         environment_info={
-            "platform": "NYC Street Hail",
-            "market_type": "Service Negotiation (Ride Fare)",
-            "time_window": "Late night",
-            "traffic_context": "Dense Manhattan local roads"
+            "platform": "NYC Street Hail / Ride Apps",
+            "market_type": "B2C",
+            "note": "Multiple third-party offers exist for the same route and service.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Price-sensitive rider who believes short trips should be cheap. Focuses on total out-of-pocket cost and dislikes hidden fees."
+    # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
+    user_profile = "Wants a fair all-in fare on this route; open to comparing offers for the same ride."
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -194,15 +142,15 @@ def main(model_name=None):
     # user_requirement = input("> ").strip()
     # if not user_requirement:
     #     print("No requirement entered, using default requirement...")
-    #     user_requirement = "I need a high-quality winter jacket for cold weather"
+    #     user_requirement = "I want one direct taxi ride from Union Sq to Lenox Hill West at an all-in flat fare."
     #     print(f"Using default requirement: {user_requirement}")
-    # Use default requirement for automatic running
-    user_requirement = "I need a direct ride from Union Sq to Lenox Hill West. The trip is under two miles, so I want a reasonable all-in flat fare with no surprise charges."
+    # One-product user query: concise, natural English (simulated search / assistant request)
+    user_requirement = "One yellow cab from Union Square to Lenox Hill West, all-in flat fare."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
     print("\n" + "="*60)
-    print("Starting new sequential negotiation with two drivers (Union Sq to Lenox Hill West)...")
+    print("Starting new sequential negotiation with two sellers...")
     print("="*60)
     
     # Route image for VLM: local screenshot path
@@ -219,28 +167,24 @@ def main(model_name=None):
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "Service Name": "Point-to-Point Taxi Ride (Flat Rate Negotiation)",
-            "Service Category": "Transportation & Mobility",
-            "Pickup Location": "Union Sq, Manhattan, New York, NY",
-            "Dropoff Location": "Lenox Hill West, Manhattan, New York, NY",
-            "Historical Trip Distance": "1.93 miles",
-            "Historical Trip Time": "Around 10-15 minutes (traffic dependent)",
-            "VendorID": 7,
-            "RatecodeID": 1,
-            "Passenger Count": 1,
-            "Historical Fare Amount": 11.4,
-            "Historical Total Amount": 20.58,
-            "Mandatory Surcharges (Driver MUST pay to city)": [
+            "name": "NYC yellow taxi: Union Square → Lenox Hill West (all-in flat fare)",
+            "product_category": "Transportation & Mobility › Taxi › Manhattan",
+            "pickup_location": "Union Sq, Manhattan, New York, NY",
+            "dropoff_location": "Lenox Hill West, Manhattan, New York, NY",
+            "trip_distance": "1.93 miles",
+            "trip_time_estimate": "Around 10-15 minutes (traffic dependent)",
+            "passenger_count": 1,
+            "historical_fare_amount": 11.4,
+            "reference_total_amount": 20.58,
+            "mandatory_surcharges": [
                 "$2.50 (Congestion Surcharge for driving below 96th St in Manhattan)",
                 "$0.75 (CBD Congestion Fee)",
                 "$1.00 (Improvement Surcharge)",
-                "$0.50 (MTA State Tax)"
+                "$0.50 (MTA State Tax)",
             ],
-            "Tolls": "$0.00",
-            "Pricing Rules": "The negotiated price (### BUYER_PRICE($X) ### or ### SELLER_PRICE($Y) ###) MUST be the TOTAL final amount the passenger pays. It MUST include the driver's base fare PLUS all mandatory surcharges and taxes listed above. No fees can be added later.",
-            "Map Reference": "Check the attached route image for the exact route, estimated distance, and dense Manhattan traffic context.",
-            "seller1_condition": "Standard taxi service, metered fare",
-            "seller2_condition": "Premium taxi service, cleaner vehicle, expedited pick-up",
+            "tolls": "$0.00",
+            "pricing_rules": "The negotiated price (### BUYER_PRICE($X) ### or ### SELLER_PRICE($Y) ###) MUST be the TOTAL final amount the passenger pays. It MUST include the driver's base fare PLUS all mandatory surcharges and taxes listed above. No fees can be added later.",
+            "route_note": "See the attached route image for distance and Manhattan traffic context.",
             "image_url": product_image_url,
         },
         user_profile=user_profile,  # Pass user profile
@@ -252,9 +196,7 @@ def main(model_name=None):
     
     # Initialize results dictionary
     results = {
-        "task": "Task16_s12_taxi_2_negotiation",
-        "category": "Daily Life Consumption",
-        "scenario": "Union Sq to Lenox Hill West taxi ride fare negotiation (two drivers)",
+        "task": "Task16_s12_taxi_2",
         "timestamp": datetime.now().isoformat(),
         "user_requirement": user_requirement,
         "user_profile": user_profile,
@@ -273,30 +215,53 @@ def main(model_name=None):
         for msg in observation.get("conversation_history_seller1", []):
             combined_history.append({
                 **msg,
-                "content": f"[Seller 1] {msg['content']}"
+                "thread_label": "Talk with Seller 1",
             })
         # Add seller2 messages with prefix
         for msg in observation.get("conversation_history_seller2", []):
             combined_history.append({
                 **msg,
-                "content": f"[Seller 2] {msg['content']}"
+                "thread_label": "Talk with Seller 2",
             })
-        
-        # Get buyer's response - buyer should indicate which seller they want to negotiate with
+        # Get buyer's response - buyer should choose a seller via a structured <selected_seller> block
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>."
+        )
         buyer_response = buyer.respond(
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
+                "instruction": routing_instruction
             }
         )
-        
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+
+        # Routing relies on the structured <selected_seller> block.
+        # If parsing fails, retry a few times; if still missing, fallback to random seller.
+        selected_seller = buyer.last_selected_seller
+        max_selection_retries = 2
+        retry_count = 0
+        while selected_seller is None and retry_count < max_selection_retries:
+            retry_count += 1
+            print(f"\n[Warning] Missing <selected_seller>; retrying buyer response ({retry_count}/{max_selection_retries})...")
+            buyer_response = buyer.respond(
+                conversation_history=combined_history,
+                current_state={
+                    **observation,
+                    "instruction": (
+                        routing_instruction
+                        + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+                    )
+                }
+            )
+            selected_seller = buyer.last_selected_seller
+        if selected_seller is None:
+            selected_seller = random.choice([1, 2])
+            print(f"\n[Warning] Failed to parse <selected_seller> after retries; randomly selecting Seller {selected_seller}.")
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
-        # Use buyer's full response as the negotiation message
-        # The response may include the choice statement, which is fine as it's buyer's natural expression
+        # BuyerAgent returns only the <message> block as the negotiation message.
         buyer_action = buyer_response
         
         # Get the conversation history for the selected seller
@@ -475,17 +440,16 @@ def main(model_name=None):
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
                 "product_info": {
-                    "Service Name": "Point-to-Point Taxi Ride (Flat Rate Negotiation)",
-                    "Service Category": "Transportation & Mobility",
-                    "Pickup Location": "Union Sq, Manhattan, New York, NY",
-                    "Dropoff Location": "Lenox Hill West, Manhattan, New York, NY",
-                    "Historical Trip Distance": "1.93 miles",
-                    "Historical Trip Time": "Around 10-15 minutes (traffic dependent)",
-                    "VendorID": 7,
-                    "RatecodeID": 1,
-                    "Passenger Count": 1,
-                    "Historical Fare Amount": 11.4,
-                    "Historical Total Amount": 20.58,
+                    "name": "NYC yellow taxi: Union Square → Lenox Hill West (all-in flat fare)",
+                    "product_category": "Transportation & Mobility › Taxi › Manhattan",
+                    "pickup_location": "Union Sq, Manhattan, New York, NY",
+                    "dropoff_location": "Lenox Hill West, Manhattan, New York, NY",
+                    "trip_distance": "1.93 miles",
+                    "trip_time_estimate": "Around 10-15 minutes (traffic dependent)",
+                    "passenger_count": 1,
+                    "historical_fare_amount": 11.4,
+                    "reference_total_amount": 20.58,
+                    "image_url": product_image_url,
                 },
                 "model": get_model_name(model),
             })
@@ -525,7 +489,7 @@ def main(model_name=None):
         output_file = run_dir / "Task16_s12_taxi_2_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task16 Scenario 12: NYC Taxi Ride - Sequential Two-Driver Negotiation Results\n")
+            f.write("Task16 Scenario 12: NYC Taxi Ride - Sequential Two-Seller Negotiation Results\n")
             f.write("Category: Daily Life Consumption\n")
             f.write("Scenario: Union Sq to Lenox Hill West taxi ride fare negotiation\n")
             f.write("="*80 + "\n\n")
@@ -583,7 +547,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task16 Scenario 12: NYC Taxi Ride - Sequential Two-Driver Negotiation (Union Sq to Lenox Hill West)")
+    parser = argparse.ArgumentParser(description="Task16 Scenario 12: NYC Taxi Ride - Sequential Two-Seller Negotiation (Union Sq to Lenox Hill West)")
     parser.add_argument(
         "--model",
         type=str,

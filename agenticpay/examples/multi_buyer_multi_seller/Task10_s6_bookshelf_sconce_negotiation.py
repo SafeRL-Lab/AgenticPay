@@ -1,7 +1,8 @@
-"""Task10 Scenario 6: Bookshelf & Wall Sconce - Sequential Two-Buyer Two-Seller Negotiation
+"""Task10 Scenario 6: Bookshelf & Wall Sconce - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two buyers negotiating with two sellers: Seller1 offers 4-Tier Bookshelf (Kcelarec), Seller2 offers Fanyate Wall Sconce.
-Each buyer chooses one seller per round to negotiate with.
+Two marketplace listings in one session: listing A is a 4-tier ladder bookshelf; listing B is a 2-light wall
+sconce. The visible product info has no per-seller identity; two sellers each have a different confidential floor.
+Two buyers each pick one seller per round (structured routing).
 Category: Home & Kitchen / Tools & Home Improvement
 """
 
@@ -9,6 +10,7 @@ import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -20,29 +22,16 @@ sys.path.insert(0, project_root)
 from agenticpay.envs.multi_buyer_multi_seller.Task3_sequential_two_buyer_two_seller_negotiation import Task3SequentialTwoBuyerTwoSellerNegotiation
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
-from agenticpay.models.custom_llm import CustomLLM
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    max_rounds = 20
-    price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
     """Extract model name from model object
-    
+
     Args:
         model: Model object (CustomLLM, VLLMLLM, etc.)
-    
+
     Returns:
         str: Model name
     """
@@ -51,113 +40,89 @@ def get_model_name(model):
     elif hasattr(model, 'model_id'):
         return model.model_id
     elif hasattr(model, 'model_path'):
-        # Extract model name from path
         model_path = model.model_path
         return os.path.basename(model_path) if model_path else str(model)
     else:
-        # Fallback to string representation, but try to extract model name
         model_str = str(model)
-        # Try to extract model name from string like "CustomLLM(model=qwen3-8b)"
         if "model=" in model_str:
             try:
                 return model_str.split("model=")[1].split(")")[0]
-            except:
+            except Exception:
                 return model_str
         else:
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict, buyer_id: int) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        buyer_id: Buyer ID (1 or 2)
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    # Get prices for this buyer
-    if buyer_id == 1:
-        seller1_price = observation.get("b1s1_seller_price")
-        seller2_price = observation.get("b1s2_seller_price")
-    else:  # buyer_id == 2
-        seller1_price = observation.get("b2s1_seller_price")
-        seller2_price = observation.get("b2s2_seller_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
+def _run_buyer_routing(buyer, combined_history: list, observation: dict, routing_instruction: str):
+    """Structured ``<selected_seller>`` + retries + random fallback (aligned with Task5)."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    buyer_response = None
+    selected_seller = None
+    while True:
+        buyer_response = buyer.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_sellers": 2,
+            },
+        )
+        selected_seller = buyer.last_selected_seller
+        if selected_seller is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_seller>; retrying buyer response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+        )
+    if selected_seller is None:
+        selected_seller = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_seller> after retries; "
+            f"randomly selecting Seller {selected_seller}."
+        )
+    return buyer_response, selected_seller
 
 
 def main(model_name=None):
     """Main function: Demonstrates sequential multi-buyer multi-seller negotiation flow
-    
+
     Args:
         model_name: Optional model name. If None, uses default model.
     """
-    
+
     print("Initializing model...")
-    
-    # OpenVLM via OpenAI-compatible API
+
     api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
-    openvlm_base_url = os.getenv("OPENAI_URL") or os.getenv("OPENVLM_BASE_URL", "http://localhost:8000/v1")
-    openvlm_model = os.getenv("OPENVLM_MODEL", "openvlm")
-    
-    model = OpenAIVLM(
-        model=model_name or openvlm_model,
-        api_key=api_key,
-        base_url=openvlm_base_url,
-    )
-    
+    if not api_key:
+        print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
+        print("You can set it with: export OPENAI_API_KEY='your-key-here'")
+        return
+
+    model_name = model_name or "gpt-5.4"
+    model = OpenAIVLM(model=model_name, api_key=api_key)
+
     print(f"✓ Successfully initialized: {model}")
-    
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+
     print("Creating agents...")
-    buyer1_max_price = 35.0  # Maximum acceptable price for buyer1 (confidential)
-    buyer2_max_price = 34.0  # Maximum acceptable price for buyer2 (confidential)
-    seller1_min_price = 28.0  # Minimum acceptable price for seller1 - Bookshelf (confidential)
-    seller2_min_price = 95.0  # Minimum acceptable price for seller2 - Wall Sconce (confidential)
-    
+    buyer1_max_price = 35.0
+    buyer2_max_price = 34.0
+    seller1_min_price = 28.0  # Listing A (bookshelf) — lower floor
+    seller2_min_price = 95.0  # Listing B (sconce) — higher floor
+
     buyer1 = BuyerAgent(model=model, buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, buyer_max_price=buyer2_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
     seller2 = SellerAgent(model=model, seller_min_price=seller2_min_price)
-    
-    # Create environment
+
     print("Creating sequential multi-buyer multi-seller negotiation environment...")
     env = Task3SequentialTwoBuyerTwoSellerNegotiation(
         buyer1_agent=buyer1,
@@ -165,71 +130,56 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=36.94,  # Initial price offered by seller1 - Bookshelf
-        initial_seller2_price=113.99,  # Initial price offered by seller2 - Wall Sconce
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        initial_seller1_price=36.94,
+        initial_seller2_price=113.99,
+        buyer1_max_price=buyer1_max_price,
+        buyer2_max_price=buyer2_max_price,
+        seller1_min_price=seller1_min_price,
+        seller2_min_price=seller2_min_price,
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "seller1_listing_age": "3 days",
-            "seller2_listing_age": "2 weeks",
+            "note": "Multiple third-party offers exist for the listings shown in this session.",
         },
-        price_tolerance=0,
-        reward_weights=reward_weights,  # Reward weights configuration
+        price_tolerance=price_tolerance,
+        reward_weights=reward_weights,
     )
-    
-    # Create user profile (text description of personal preferences)
-    user_profile = "Home office organizer looking for practical storage solutions. Values sturdy construction, easy assembly, and good value. For lighting, prefers wall sconces with clear glass shade for bathroom, living room, or dining room."
+
+    user_profile = "Home office and lighting shopper; wants sturdy storage or a bronze sconce with clear glass, good value."
     print(f"User Profile: {user_profile}")
-    
-    # Get user requirement
-    # Use default requirement for automatic running
-    user_requirement = "I'm looking for either a 4-tier ladder bookshelf for home office, or a wall sconce with clear glass shade for bathroom, living room, or dining room. Prefer iron/metal construction, oil rubbed bronze vanity light fixture."
+
+    user_requirement = "I need either a black 4-tier iron ladder bookshelf or a 2-pack oil-rubbed bronze wall sconce with clear glass, new."
     print(f"Using default requirement: {user_requirement}")
-    
-    # Reset environment
-    # Product 1: 4-Tier Bookshelf (from Task9_s6_bookshelf_negotiation example)
-    # Product 2: Fanyate Wall Sconce (from sampled_products2.jsonl line 6)
-    print("\n" + "="*60)
-    print("Starting new sequential negotiation with two buyers and two sellers (Seller1: Bookshelf, Seller2: Wall Sconce)...")
-    print("="*60)
-    
+
+    print("\n" + "=" * 60)
+    print("Starting new sequential negotiation with two buyers and two sellers...")
+    print("=" * 60)
+
+    product_image_url = "https://m.media-amazon.com/images/I/41Tbj+f2soL.jpg"
+
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "name": "Home & Kitchen / Tools & Home Improvement",
-            "scope_seller1": "4-Tier Ladder Bookshelf Organizer, Iron Open Bookcase Organizer (Black) - Kcelarec. Made of high quality iron. 44-88 lbs strong bearing capacity. Easy to install.",
-            "scope_seller2": "Fanyate Antique Industrial Wall Sconce, 2-Light Bathroom Light Fixture Oil Rubbed Bronze Vanity Light with Clear Glass Shade Suitable for Bathroom Living Room Hallway ORB, 2 Pack.",
-            "timeline_seller1": "In Stock",
-            "timeline_seller2": "In Stock",
-            "warranty_seller1": "New condition",
-            "warranty_seller2": "New condition",
-            "rating_seller1": "5.0/5 (1 review)",
-            "rating_seller2": "4.7/5 (55 reviews)",
-            "price_seller1": 36.94,
-            "price_seller2": 113.99,
-            "brand_seller1": "Kcelarec",
-            "brand_seller2": "Fanyate",
-            "product_category_seller1": "Home & Kitchen › Furniture › Home Office Furniture › Bookcases",
-            "product_category_seller2": "Tools & Home Improvement › Lighting & Ceiling Fans › Wall Lights › Wall Lamps & Sconces",
-            "asin_seller1": "B088WSDHTW",
-            "asin_seller2": "B0928LGTVF",
-            "full_description_seller1": "If you are looking for a practical bookshelf, you can't miss this Widen 4 Tiers Bookshelf. This bookshelf is made of high quality material, which is stable, sturdy and durable. Its design of 4 tiers can hold a lot of books, and its strong bearing capacity can bear 44-88 lbs. You can put books in this bookshelf, and also place many other items like potting, decoration, etc. Made of high quality iron. Stable, sturdy and durable. Practical, design of 4 tiers can hold a lot of items. 44-88 lbs strong bearing capacity. Easy to install. Dimensions: (23.62 x 13.78 x 57.87) inches.",
-            "full_description_seller2": "【ANTIQUE INDUSTRIAL STYLE】Unique Oil Rubbed Bronze painting finished metal lamp body mated with clear glass shade, adding more antique and industrial atmosphere and bringing a quiet and comfortable feeling to your life. 【PRODUCT INSPECTION】The width of this light is 13.8'', the depth is 6.6,'' and the height is 9.8''. Compatible with E26 base bulb. The max wattage of the bulb is 60W. (Bulb is not included.) 【EASY INSTALLATION】Easy installation to save your time. The installation instruction and mounting screws are included in the package for your quick installation. 【APPLICABLE SPACE】These wall lights are suitable for any space you want to decorate. Not only suitable for bathroom, also living room, study, porch, kitchen, dining room, cafe, bar, bedroom, shop, lounge decoration. 【GORGEOUS SHOPPING EXPERIENCE】You can get not only good value from this lamp but also our services and a 1-year warranty that will guarantee your complete satisfaction with your purchase.",
-            "image_url_seller1": "https://m.media-amazon.com/images/I/41Tbj+f2soL.jpg",
-            "image_url_seller2": "https://m.media-amazon.com/images/I/41icQciKVIS.jpg",
+            "name": "4-Tier Ladder Bookshelf Organizer, Iron Open Bookcase (Black)",
+            "condition": "New",
+            "brand": "Kcelarec",
+            "material": "Iron; 44–88 lb load; easy install",
+            "dimensions_inches": "23.62 x 13.78 x 57.87",
+            "original_price": 36.94,
+            "availability_status": "In Stock",
+            "average_rating": 5.0,
+            "total_reviews": 1,
+            "product_category": "Home & Kitchen › Furniture › Home Office Furniture › Bookcases",
+            "asin": "B088WSDHTW",
+            "full_description": "Four-tier iron bookshelf; stable and durable; strong bearing capacity; suitable for books, plants, and decor.",
+            "image_url": product_image_url,
         },
-        user_profile=user_profile,  # Pass user profile
+        user_profile=user_profile,
     )
-    
-    # Start negotiation loop
+
     done = False
     start_time = time.time()
-    
-    # Initialize results dictionary
+
     results = {
         "task": "Task10_s6_bookshelf_sconce_negotiation",
         "timestamp": datetime.now().isoformat(),
@@ -239,73 +189,38 @@ def main(model_name=None):
         "success": False,
         "error": None,
     }
-    
+
     while not done:
-        # Each round, each buyer chooses one seller to negotiate with
-        # Let buyers decide which seller to negotiate with and provide negotiation message
-        
-        # Build combined conversation history for buyer1 (includes both sellers' conversations)
         combined_history_b1 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b1s1", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b1s2", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
-        
-        # Build combined conversation history for buyer2 (includes both sellers' conversations)
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 2"})
+
         combined_history_b2 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b2s1", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b2s2", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
-        
-        # Get buyer1's response - buyer should indicate which seller they want to negotiate with
-        buyer1_response = buyer1.respond(
-            conversation_history=combined_history_b1,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers: Seller1 offers a 4-Tier Bookshelf (Kcelarec), Seller2 offers a Fanyate Wall Sconce. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 2"})
+
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>."
         )
-        
-        # Get buyer2's response - buyer should indicate which seller they want to negotiate with
-        buyer2_response = buyer2.respond(
-            conversation_history=combined_history_b2,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers: Seller1 offers a 4-Tier Bookshelf (Kcelarec), Seller2 offers a Fanyate Wall Sconce. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        buyer1_response, buyer1_selected_seller = _run_buyer_routing(
+            buyer1, combined_history_b1, observation, routing_instruction
         )
-        
-        # Extract seller choice from each buyer's response
-        buyer1_selected_seller = extract_seller_choice(buyer1_response, observation, buyer_id=1)
-        buyer2_selected_seller = extract_seller_choice(buyer2_response, observation, buyer_id=2)
-        
+        buyer2_response, buyer2_selected_seller = _run_buyer_routing(
+            buyer2, combined_history_b2, observation, routing_instruction
+        )
+
         print(f"\n[Buyer 1 chooses to negotiate with Seller {buyer1_selected_seller} this round]")
         print(f"[Buyer 2 chooses to negotiate with Seller {buyer2_selected_seller} this round]")
-        
-        # Use buyer's full response as the negotiation message
+
         buyer1_action = buyer1_response
         buyer2_action = buyer2_response
-        
-        # Get the conversation history for each buyer-seller pair
-        # Create updated conversation histories that include buyers' responses
-        # So sellers can see buyers' messages before responding
+
         if buyer1_selected_seller == 1:
             conversation_history_b1s1 = observation["conversation_history_b1s1"].copy()
             if buyer1_action:
@@ -324,7 +239,7 @@ def main(model_name=None):
                     "content": buyer1_action,
                     "round": current_round
                 })
-        
+
         if buyer2_selected_seller == 1:
             conversation_history_b2s1 = observation["conversation_history_b2s1"].copy()
             if buyer2_action:
@@ -343,13 +258,12 @@ def main(model_name=None):
                     "content": buyer2_action,
                     "round": current_round
                 })
-        
-        # Get the selected sellers' responses (sellers can now see buyers' messages)
+
         seller1_action_buyer1 = None
         seller1_action_buyer2 = None
         seller2_action_buyer1 = None
         seller2_action_buyer2 = None
-        
+
         if buyer1_selected_seller == 1:
             seller1_action_buyer1 = seller1.respond(
                 conversation_history=conversation_history_b1s1,
@@ -360,7 +274,7 @@ def main(model_name=None):
                 conversation_history=conversation_history_b1s2,
                 current_state=observation
             )
-        
+
         if buyer2_selected_seller == 1:
             seller1_action_buyer2 = seller1.respond(
                 conversation_history=conversation_history_b2s1,
@@ -371,8 +285,7 @@ def main(model_name=None):
                 conversation_history=conversation_history_b2s2,
                 current_state=observation
             )
-        
-        # Execute step with selected sellers and actions
+
         observation, reward, terminated, truncated, info = env.step(
             buyer1_selected_seller=buyer1_selected_seller,
             buyer2_selected_seller=buyer2_selected_seller,
@@ -384,16 +297,12 @@ def main(model_name=None):
             seller2_action_buyer2=seller2_action_buyer2
         )
         done = terminated or truncated
-        
-        # Render current state (includes all print information)
+
         env.render()
-        
-        # Flush output to ensure complete display
         sys.stdout.flush()
-        
-        # Display step rewards for each round with detailed calculation
+
         if ('step_buyer1_reward' in info or 'step_buyer2_reward' in info or
-            'step_seller1_reward' in info or 'step_seller2_reward' in info):
+                'step_seller1_reward' in info or 'step_seller2_reward' in info):
             print(f"\n[Step Rewards] ", end="")
             if 'step_buyer1_reward' in info:
                 print(f"Buyer1: {info['step_buyer1_reward']:.3f}", end="")
@@ -410,93 +319,76 @@ def main(model_name=None):
                     print(f" | ", end="")
                 print(f"Seller2: {info['step_seller2_reward']:.3f}", end="")
             print()
-            
-            # Display detailed calculation with weights
+
             round_cost = -info['round']
             weights = env.reward_weights
-            
-            # Buyer1 step reward details
+
             if 'step_buyer1_reward' in info:
                 buyer_price = None
                 if info.get('buyer1_selected_seller') == 1:
                     buyer_price = info.get('b1s1_buyer_price')
                 elif info.get('buyer1_selected_seller') == 2:
                     buyer_price = info.get('b1s2_buyer_price')
-                
+
                 if buyer_price is not None and env.buyer1_max_price is not None:
                     buyer_savings = env.buyer1_max_price - buyer_price
-                    weighted_savings = buyer_savings * weights["buyer_savings"]
-                    weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Buyer1 Step Reward = buyer_savings({buyer_savings:.2f} * {weights['buyer_savings']:.2f}) + round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {info['step_buyer1_reward']:.2f} (buyer1_max={env.buyer1_max_price}, buyer_price={buyer_price:.2f}, round={info['round']})")
                 else:
                     weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Buyer1 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (buyer_price not specified, round={info['round']})")
-            
-            # Buyer2 step reward details
+
             if 'step_buyer2_reward' in info:
                 buyer_price = None
                 if info.get('buyer2_selected_seller') == 1:
                     buyer_price = info.get('b2s1_buyer_price')
                 elif info.get('buyer2_selected_seller') == 2:
                     buyer_price = info.get('b2s2_buyer_price')
-                
+
                 if buyer_price is not None and env.buyer2_max_price is not None:
                     buyer_savings = env.buyer2_max_price - buyer_price
-                    weighted_savings = buyer_savings * weights["buyer_savings"]
-                    weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Buyer2 Step Reward = buyer_savings({buyer_savings:.2f} * {weights['buyer_savings']:.2f}) + round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {info['step_buyer2_reward']:.2f} (buyer2_max={env.buyer2_max_price}, buyer_price={buyer_price:.2f}, round={info['round']})")
                 else:
                     weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Buyer2 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (buyer_price not specified, round={info['round']})")
-            
-            # Seller1 step reward details
+
             if 'step_seller1_reward' in info:
                 seller1_price = None
-                # Get price from whichever buyer selected seller1
                 if info.get('buyer1_selected_seller') == 1 and info.get('b1s1_seller_price') is not None:
                     seller1_price = info.get('b1s1_seller_price')
                 elif info.get('buyer2_selected_seller') == 1 and info.get('b2s1_seller_price') is not None:
                     seller1_price = info.get('b2s1_seller_price')
-                # If both selected seller1, prefer higher price
                 if (info.get('buyer1_selected_seller') == 1 and info.get('buyer2_selected_seller') == 1 and
-                    info.get('b1s1_seller_price') is not None and info.get('b2s1_seller_price') is not None):
+                        info.get('b1s1_seller_price') is not None and info.get('b2s1_seller_price') is not None):
                     seller1_price = max(info.get('b1s1_seller_price'), info.get('b2s1_seller_price'))
-                
+
                 if seller1_price is not None and env.seller1_min_price is not None:
                     seller1_profit = seller1_price - env.seller1_min_price
-                    weighted_seller1_profit = seller1_profit * weights["seller_profit"]
-                    weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Seller1 Step Reward = seller_profit({seller1_profit:.2f} * {weights['seller_profit']:.2f}) + round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {info['step_seller1_reward']:.2f} (seller1_price={seller1_price:.2f}, seller1_min={env.seller1_min_price}, round={info['round']})")
                 else:
                     weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Seller1 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (seller1_price not specified, round={info['round']})")
-            
-            # Seller2 step reward details
+
             if 'step_seller2_reward' in info:
                 seller2_price = None
-                # Get price from whichever buyer selected seller2
                 if info.get('buyer1_selected_seller') == 2 and info.get('b1s2_seller_price') is not None:
                     seller2_price = info.get('b1s2_seller_price')
                 elif info.get('buyer2_selected_seller') == 2 and info.get('b2s2_seller_price') is not None:
                     seller2_price = info.get('b2s2_seller_price')
-                # If both selected seller2, prefer higher price
                 if (info.get('buyer1_selected_seller') == 2 and info.get('buyer2_selected_seller') == 2 and
-                    info.get('b1s2_seller_price') is not None and info.get('b2s2_seller_price') is not None):
+                        info.get('b1s2_seller_price') is not None and info.get('b2s2_seller_price') is not None):
                     seller2_price = max(info.get('b1s2_seller_price'), info.get('b2s2_seller_price'))
-                
+
                 if seller2_price is not None and env.seller2_min_price is not None:
                     seller2_profit = seller2_price - env.seller2_min_price
-                    weighted_seller2_profit = seller2_profit * weights["seller_profit"]
-                    weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Seller2 Step Reward = seller_profit({seller2_profit:.2f} * {weights['seller_profit']:.2f}) + round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {info['step_seller2_reward']:.2f} (seller2_price={seller2_price:.2f}, seller2_min={env.seller2_min_price}, round={info['round']})")
                 else:
                     weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Seller2 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (seller2_price not specified, round={info['round']})")
-        
+
         if done:
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("Negotiation Ended")
-            print("="*60)
+            print("=" * 60)
             print(f"Status: {info['status']}")
             if info.get('selected_buyer') and info.get('selected_seller'):
                 print(f"Selected Deal: Buyer {info['selected_buyer']} - Seller {info['selected_seller']}")
@@ -505,12 +397,10 @@ def main(model_name=None):
             print(f"Buyer1-Seller2 Prices: Buyer=${info.get('b1s2_buyer_price', 0) or 0:.2f} | Seller=${info.get('b1s2_seller_price', 0) or 0:.2f}")
             print(f"Buyer2-Seller1 Prices: Buyer=${info.get('b2s1_buyer_price', 0) or 0:.2f} | Seller=${info.get('b2s1_seller_price', 0) or 0:.2f}")
             print(f"Buyer2-Seller2 Prices: Buyer=${info.get('b2s2_buyer_price', 0) or 0:.2f} | Seller=${info.get('b2s2_seller_price', 0) or 0:.2f}")
-            # Print score calculations after Step Rewards
             env._print_global_score_details()
             env._print_buyer_score_details()
             env._print_seller_score_details()
-            
-            # current_round has been incremented to reflect the completed round
+
             actual_rounds = info['round']
             print(f"Total Rounds: {actual_rounds}")
             print(f"Global Reward: {reward:.3f}")
@@ -530,9 +420,8 @@ def main(model_name=None):
                 print(f"SellerScore: {info['seller_score']:.3f}")
             if info.get('termination_reason'):
                 print(f"Reason: {info['termination_reason']}")
-            print("="*60)
-            
-            # Collect results
+            print("=" * 60)
+
             elapsed_time = time.time() - start_time
             product_info = info.get('product_info', {})
             results.update({
@@ -549,7 +438,6 @@ def main(model_name=None):
                 "b2s1_seller_price": info.get('b2s1_seller_price'),
                 "b2s2_buyer_price": info.get('b2s2_buyer_price'),
                 "b2s2_seller_price": info.get('b2s2_seller_price'),
-                # current_round has been incremented to reflect the completed round
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer1_reward": info.get('buyer1_reward'),
@@ -569,44 +457,35 @@ def main(model_name=None):
                 "model": get_model_name(model),
             })
             break
-    
-    # Close environment
+
     env.close()
     print("\nSequential multi-buyer multi-seller negotiation completed!")
-    
-    # Ensure elapsed_time is set even if negotiation didn't complete normally
+
     if "elapsed_time" not in results:
         results["elapsed_time"] = time.time() - start_time
-    
-    # Save results to file
+
     try:
-        # Create results directory structure
         results_dir = Path(project_root) / "agenticpay" / "results" / "multi_buyer_multi_seller"
         results_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Get model name for directory (sanitize for filesystem)
-        model_name = get_model_name(model)
-        model_name_safe = model_name.replace("/", "_").replace("\\", "_").replace(":", "_")
+
+        model_name_safe = get_model_name(model).replace("/", "_").replace("\\", "_").replace(":", "_")
         model_dir = results_dir / model_name_safe
         model_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create timestamped subdirectory for this run
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         run_dir = model_dir / f"batch_evaluation_{timestamp}"
         run_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Save summary JSON
+
         summary_file = run_dir / "summary.json"
         with open(summary_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
-        
-        # Save output text
+
         output_file = run_dir / "Task10_s6_bookshelf_sconce_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
-            f.write("="*80 + "\n")
+            f.write("=" * 80 + "\n")
             f.write("Task10 Scenario 6: Bookshelf & Wall Sconce - Sequential Two-Buyer Two-Seller Negotiation Results\n")
-            f.write("Category: Home & Kitchen\n")
-            f.write("="*80 + "\n\n")
+            f.write("Category: Home & Kitchen / Tools & Home Improvement\n")
+            f.write("=" * 80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
             f.write(f"Model: {results['model']}\n")
             f.write(f"User Requirement: {results['user_requirement']}\n")
@@ -629,9 +508,10 @@ def main(model_name=None):
             f.write(f"  Buyer2-Seller2: Buyer=${results['b2s2_buyer_price']:.2f} | Seller=${results['b2s2_seller_price']:.2f}" if results.get('b2s2_buyer_price') is not None and results.get('b2s2_seller_price') is not None else "  Buyer2-Seller2: Not specified")
             f.write("\n\n")
             product_info = results.get('product_info', {})
-            f.write("Products:\n")
-            f.write(f"  Seller1: {product_info.get('scope_seller1', 'N/A')} - ${product_info.get('price_seller1', 0):.2f}\n")
-            f.write(f"  Seller2: {product_info.get('scope_seller2', 'N/A')} - ${product_info.get('price_seller2', 0):.2f}\n")
+            f.write("Product:\n")
+            f.write(f"  Name: {product_info.get('name', 'N/A')}\n")
+            f.write(f"  Brand: {product_info.get('brand', 'N/A')}\n")
+            f.write(f"  Price: ${product_info.get('price', product_info.get('original_price', 0)):.2f}\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
@@ -657,7 +537,7 @@ def main(model_name=None):
                 f.write(f"Termination Reason: {results['termination_reason']}\n")
             if results.get('error'):
                 f.write(f"\nError: {results['error']}\n")
-        
+
         print(f"\nResults saved to: {run_dir}")
         print(f"  - Summary JSON: {summary_file}")
         print(f"  - Output Text: {output_file}")
@@ -673,8 +553,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         default=None,
-        help="OpenVLM model name. Set OPENAI_URL/OPENVLM_BASE_URL for API endpoint, OPENVLM_MODEL for default model name."
+        help="Model name to use (e.g., 'gpt-5.4'). If not provided, uses default model.",
     )
     args = parser.parse_args()
     main(model_name=args.model)
-

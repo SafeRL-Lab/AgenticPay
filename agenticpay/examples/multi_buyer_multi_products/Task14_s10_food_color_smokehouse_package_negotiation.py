@@ -1,8 +1,7 @@
-"""Task14 Scenario 10: Food Color & Smokehouse Treat Package - Sequential Two-Buyer Two-Product Negotiation
+"""Task14 Scenario 10: Food Color & Smokehouse Treat Package - Sequential Two-Buyer Two-Product Negotiation (image + text)
 
-One seller negotiating with two buyers for grocery package (AmeriColor Food Color + Burgers' Smokehouse Treat).
-Seller chooses one buyer per round to negotiate with.
-Prices represent total price for the package.
+One seller negotiating with two buyers for the same two-item grocery bundle (total price).
+Seller chooses which buyer to negotiate with each round (aligned with Task5 / Task3).
 Category: Grocery
 """
 
@@ -10,6 +9,7 @@ import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -22,19 +22,7 @@ from agenticpay.envs.multi_buyer_multi_products.Task3_sequential_two_buyer_two_p
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    max_rounds = 20
-    price_tolerance = 1.0
-    OPENAI_API_KEY = None
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -61,62 +49,54 @@ def get_model_name(model):
         if "model=" in model_str:
             try:
                 return model_str.split("model=")[1].split(")")[0]
-            except:
+            except Exception:
                 return model_str
         else:
             return model_str
 
 
-def extract_buyer_choice(seller_response: str, observation: dict) -> int:
-    """Extract buyer choice from seller's response
-    
-    Seller should indicate which buyer they want to negotiate with.
-    Look for patterns like "buyer 1", "buyer1", "first buyer", etc.
-    
-    Args:
-        seller_response: Seller's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which buyer seller wants to negotiate with
-    """
-    response_lower = seller_response.lower()
-    
-    # Look for explicit buyer mentions
-    if re.search(r'buyer\s*[12]|first\s+buyer|buyer\s*one', response_lower):
-        if re.search(r'buyer\s*2|second\s+buyer|buyer\s*two', response_lower):
-            return 2
-        elif re.search(r'buyer\s*1|first\s+buyer|buyer\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if seller mentions prices or other indicators
-    buyer1_price = observation.get("buyer1_price")
-    buyer2_price = observation.get("buyer2_price")
-    seller_price_buyer1 = observation.get("seller_price_buyer1")
-    seller_price_buyer2 = observation.get("seller_price_buyer2")
-    
-    # If seller mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', seller_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller_price_buyer1 is not None and abs(mentioned_price - seller_price_buyer1) < 5:
-            return 1
-        elif seller_price_buyer2 is not None and abs(mentioned_price - seller_price_buyer2) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which buyer has been negotiated with more
-    # or which has a better price (higher buyer price is better for seller)
-    if buyer1_price is not None and buyer2_price is not None:
-        # Choose the one with higher price if both available
-        return 1 if buyer1_price >= buyer2_price else 2
-    elif buyer1_price is not None:
-        return 1
-    elif buyer2_price is not None:
-        return 2
-    
-    # Final default: buyer1
-    return 1
+def _run_seller_routing(
+    seller,
+    combined_history: list,
+    observation: dict,
+    routing_instruction: str,
+):
+    """Structured ``<selected_buyer>`` + retries + random fallback (aligned with Task5)."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    seller_response = None
+    selected_buyer = None
+    while True:
+        seller_response = seller.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_buyers": 2,
+            },
+        )
+        selected_buyer = seller.last_selected_buyer
+        if selected_buyer is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_buyer>; retrying seller response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_buyer> block with only 1 or 2."
+        )
+    if selected_buyer is None:
+        selected_buyer = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_buyer> after retries; "
+            f"randomly selecting Buyer {selected_buyer}."
+        )
+    return seller_response, selected_buyer
 
 
 def main(model_name=None):
@@ -128,15 +108,13 @@ def main(model_name=None):
     
     print("Initializing model...")
     
-    # Check API key
     api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     if not api_key:
         print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
-    
-    # Use OpenAIVLM (Vision Language Model) for product negotiation with product images
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+
+    model_name = model_name or "gpt-5.4"
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
     print(f"✓ Successfully initialized: {model}")
@@ -165,16 +143,21 @@ def main(model_name=None):
         seller_min_price=seller_min_price,  # Seller total min price (confidential, for package)
         environment_info={
             "platform": "Amazon",
-            "seller_verified": True,
-            "availability_status": "In Stock.",
             "market_type": "B2C",
+            "listing_age": "3 days",
+            "availability_status": "In Stock.",
+            "bundle_context": (
+                "Several sellers list this exact two-item bundle; offers are for the bundle total. "
+                "Each seller has a different internal floor for the pair; buyers only see product facts, not seller identities."
+            ),
         },
-        price_tolerance=0,  # Set price_tolerance to 0
-        reward_weights=reward_weights,  # Reward weights configuration
+        price_tolerance=price_tolerance,
+        reward_weights=reward_weights,
     )
-    
-    # Create user profile (text description of personal preferences)
-    user_profile = "Two buyers competing for grocery package. Buyer1 is home baker focused on quality food coloring. Buyer2 is host who values convenient appetizer options for entertaining."
+
+    user_profile = (
+        "Home cook bundling airbrush food color and a smoked sausage & cheese gift pack; wants one checkout total."
+    )
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices (from example Task13 + jsonl sampled_products2 line 10)
@@ -194,21 +177,19 @@ def main(model_name=None):
                 "product_category": "Grocery & Gourmet Food › Pantry Staples › Cooking & Baking › Food Coloring",
                 "average_rating": 5.0,
                 "total_reviews": 1,
-                "seller_name": "AmeriColor Corp.",
                 "asin": "B00FBPHZKC",
                 "full_description": "AmeriMist is a super-strength, highly concentrated spray-on air brush food color that is extremely effective—even on hard to color non-dairy whipped toppings and icings. AmeriMist air brush colors prevent the need to over-spray, eliminating water spots and preventing icing from breaking down.",
                 "image_url": "https://m.media-amazon.com/images/I/41p+jdUZTJL.jpg",
             },
             {
                 "name": "The Smokehouse Treat by Burgers' Smokehouse",
-                "brand": "Visit the Burgers' Smokehouse Store",
+                "brand": "Burgers' Smokehouse",
                 "price": 62.0,
                 "pricing": "$62.00",
                 "availability_status": "In stock. Usually ships within 4 to 5 days.",
                 "product_category": "Grocery & Gourmet Food › Food & Beverage Gifts › Meat & Seafood Gifts",
                 "average_rating": 5,
                 "total_reviews": 1,
-                "seller_name": "Burgers Smokehouse",
                 "asin": "B01LA37T1S",
                 "full_description": "This pack offers fine smoked sausage and cheeses. It is great to serve to guests or to give as a gift for any occasion. Contains: One 12 oz. Smoked Ozark Sausage One 12 oz. Beef Sausage One 11 oz. Smoked Cheddar Cheese One 10 oz. Baby Swiss Cheese",
                 "small_description": ["The Best Cheese and Summer Sausages", "Ready to Slice for Appetizers and Hor d'oeuvres", "Makes Entertaining Easy"],
@@ -225,14 +206,15 @@ def main(model_name=None):
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
     # Get user requirement
-    user_requirement = "Looking for AmeriColor food color for cake decorating and Smokehouse Treat gift pack for entertaining. Need quality products for home baking and hosting."
+    user_requirement = (
+        "AmeriMist lemon-yellow airbrush color (.65oz) and the Smokehouse sausage & cheese gift pack—one total."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
-    print("\n" + "="*60)
-    print("Starting new sequential negotiation for grocery package...")
-    print("Seller choosing between two buyers for Food Color & Smokehouse Treat Package")
-    print("="*60)
+    print("\n" + "=" * 60)
+    print("Starting sequential negotiation for the two-item food-color & smokehouse bundle...")
+    print("=" * 60)
     
     observation, info = env.reset(
         user_requirement=user_requirement,
@@ -255,78 +237,97 @@ def main(model_name=None):
         "error": None,
     }
     
+    routing_instruction = (
+        "You are negotiating with two buyers for the SAME two-product bundle; all prices are the TOTAL for both items. "
+        "Each round, choose exactly ONE buyer and output that choice in a dedicated <selected_buyer> block containing only "
+        "the digit 1 or 2. Follow the required <mental_model> / <message> format and include "
+        "### SELLER_PRICE($X) ### in <message>."
+    )
+
     while not done:
-        # Each round: seller chooses one buyer to negotiate with, then buyer responds first, then seller responds
-        # Seller can see both buyers' information in the observation
-        # Let seller decide which buyer to negotiate with
-        # We'll use a combined conversation history that includes both buyers' conversations
-        combined_history = []
-        # Add buyer1 messages with prefix
-        for msg in observation.get("conversation_history_buyer1", []):
-            combined_history.append({
-                **msg,
-                "content": f"[Buyer 1] {msg['content']}"
-            })
-        # Add buyer2 messages with prefix
-        for msg in observation.get("conversation_history_buyer2", []):
-            combined_history.append({
-                **msg,
-                "content": f"[Buyer 2] {msg['content']}"
-            })
-        
-        # Get seller's choice - seller should indicate which buyer they want to negotiate with
-        seller_choice_response = seller.respond(
-            conversation_history=combined_history,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two buyers for two products. Each round, you need to choose ONE buyer to negotiate with. Please clearly indicate which buyer (1 or 2) you want to negotiate with, for example: 'I want to negotiate with buyer 1' or 'Let me talk to buyer 2'. Prices represent total price for both products."
-            }
-        )
-        
-        # Extract buyer choice from seller's response
-        selected_buyer = extract_buyer_choice(seller_choice_response, observation)
-        print(f"\n[Seller chooses to negotiate with Buyer {selected_buyer} this round]")
-        
-        # Get the conversation history for the selected buyer
-        if selected_buyer == 1:
-            conversation_history = observation["conversation_history_buyer1"]
-        else:
-            conversation_history = observation["conversation_history_buyer2"]
-        
-        # Get the selected buyer's response first (buyer responds based on current history)
-        if selected_buyer == 1:
-            buyer_action = buyer1.respond(
-                conversation_history=conversation_history,
-                current_state=observation
+        current_round = observation.get("current_round", 0)
+
+        if current_round == 0:
+            buyer1_action = buyer1.respond(
+                conversation_history=observation["conversation_history_buyer1"],
+                current_state=observation,
             )
-        else:
-            buyer_action = buyer2.respond(
-                conversation_history=conversation_history,
-                current_state=observation
+            buyer2_action = buyer2.respond(
+                conversation_history=observation["conversation_history_buyer2"],
+                current_state=observation,
             )
-        
-        # Create updated conversation history that includes buyer's response
-        # So seller can see buyer's message before responding
-        updated_conversation_history = conversation_history.copy()
-        if buyer_action:
-            current_round = observation.get("current_round", 0)
-            updated_conversation_history.append({
-                "role": "buyer",
-                "content": buyer_action,
-                "round": current_round
-            })
-        
-        # Get seller's negotiation response (seller can now see buyer's message)
-        seller_action = seller.respond(
-            conversation_history=updated_conversation_history,
-            current_state=observation
-        )
-        
-        # Execute step with selected buyer and actions (order: buyer -> seller)
+
+            updated_conversation_history_buyer1 = observation["conversation_history_buyer1"].copy()
+            updated_conversation_history_buyer2 = observation["conversation_history_buyer2"].copy()
+
+            if buyer1_action:
+                updated_conversation_history_buyer1.append({
+                    "role": "buyer",
+                    "content": buyer1_action,
+                    "round": current_round,
+                })
+            if buyer2_action:
+                updated_conversation_history_buyer2.append({
+                    "role": "buyer",
+                    "content": buyer2_action,
+                    "round": current_round,
+                })
+
+            combined_history = []
+            for msg in updated_conversation_history_buyer1:
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 1"})
+            for msg in updated_conversation_history_buyer2:
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 2"})
+
+            seller_response, selected_buyer = _run_seller_routing(
+                seller, combined_history, observation, routing_instruction
+            )
+            print(f"\n[Seller chooses to negotiate with Buyer {selected_buyer} this round]")
+
+            seller_action = seller_response
+            buyer_action = buyer1_action if selected_buyer == 1 else buyer2_action
+        else:
+            combined_history = []
+            for msg in observation.get("conversation_history_buyer1", []):
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 1"})
+            for msg in observation.get("conversation_history_buyer2", []):
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 2"})
+
+            seller_response, selected_buyer = _run_seller_routing(
+                seller, combined_history, observation, routing_instruction
+            )
+            print(f"\n[Seller chooses to negotiate with Buyer {selected_buyer} this round]")
+
+            seller_action = seller_response
+
+            if selected_buyer == 1:
+                conversation_history = observation["conversation_history_buyer1"]
+            else:
+                conversation_history = observation["conversation_history_buyer2"]
+
+            updated_conversation_history = conversation_history.copy()
+            if seller_action:
+                updated_conversation_history.append({
+                    "role": "seller",
+                    "content": seller_action,
+                    "round": current_round,
+                })
+
+            if selected_buyer == 1:
+                buyer_action = buyer1.respond(
+                    conversation_history=updated_conversation_history,
+                    current_state=observation,
+                )
+            else:
+                buyer_action = buyer2.respond(
+                    conversation_history=updated_conversation_history,
+                    current_state=observation,
+                )
+
         observation, reward, terminated, truncated, info = env.step(
             selected_buyer=selected_buyer,
+            buyer_action=buyer_action,
             seller_action=seller_action,
-            buyer_action=buyer_action
         )
         done = terminated or truncated
         
@@ -560,12 +561,14 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task14 Scenario 10: Food Color & Smokehouse Treat Package - Sequential Two-Buyer Two-Product Negotiation")
+    parser = argparse.ArgumentParser(
+        description="Task14 Scenario 10: Food Color & Smokehouse - Sequential Two-Buyer Two-Product Negotiation (image + text)"
+    )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name to use (e.g., 'gemini-3-pro-all', 'gpt-5.2', 'claude-sonnet-4-5-20250929'). If not provided, uses default model."
+        help="Model name to use. If not provided, uses default model.",
     )
     args = parser.parse_args()
     main(model_name=args.model)

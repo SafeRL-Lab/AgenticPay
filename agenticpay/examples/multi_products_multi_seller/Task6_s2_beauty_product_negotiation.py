@@ -1,7 +1,7 @@
-"""Task6 Scenario 2: Beauty Product - Sequential Two-Seller Per One Product Negotiation
+"""Task6 Scenario 2: Beauty/oral-care bundle — sequential two-seller negotiation
 
-Buyer negotiating with two sellers: Seller1 offers ARM & HAMMER Toothpaste, Seller2 offers BFWood hair brush.
-Buyer chooses one seller per round to negotiate with.
+Same two products (toothpaste + hair brush) from both sellers; buyer negotiates total bundle price.
+Each seller has a different floor price and opening offer.
 Category: Daily Life Consumption
 """
 
@@ -21,7 +21,6 @@ from agenticpay.envs.multi_products_multi_seller.Task3_sequential_two_seller_per
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
 
 # Import configuration parameters
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -66,55 +65,6 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-        return 2
-    elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-        return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
-
-
 def main(model_name=None):
     """Main function: Demonstrates sequential multi-seller negotiation flow with different products
     
@@ -137,12 +87,10 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Seller1: Toothpaste $16, Seller2: BFWood hair brush $6.48
-    buyer_max_price = 6.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller1_min_price = 12.0  # Minimum acceptable selling price for seller1 - Toothpaste (confidential)
-    seller2_min_price = 4.0  # Minimum acceptable selling price for seller2 - Hair brush (confidential)
+    buyer_max_price = 21.0
+    seller1_min_price = 19.0
+    seller2_min_price = 18.0
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
@@ -155,8 +103,8 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=16.0,  # Initial price offered by seller1 (Toothpaste)
-        initial_seller2_price=6.48,  # Initial price offered by seller2 (BFWood hair brush)
+        initial_seller1_price=23.2,
+        initial_seller2_price=22.75,
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
@@ -173,51 +121,52 @@ def main(model_name=None):
     user_profile = "Health-conscious buyer interested in oral care and hair care. Values natural ingredients, good reviews. Prefers quality products from Beauty & Personal Care category."
     print(f"User Profile: {user_profile}")
     
-    # Get user requirement
-    # Use default requirement for automatic running
-    user_requirement = "Looking for either ARM & HAMMER toothpaste for oral care or a quality wooden hair brush for scalp massage. Budget around $18."
+    user_requirement = "I need the ARM & HAMMER Peroxicare pack and the BFWood paddle brush—best total for both?"
     print(f"Using default requirement: {user_requirement}")
     
-    # Reset environment with different products for each seller
-    # Seller1: Product from Task5_s2_toothpaste_negotiation (example)
-    # Seller2: Product from sampled_products2.jsonl line 2 (BFWood hair brush)
+    bundle_product_info = {
+        "products": [
+            {
+                "name": "ARM & HAMMER Peroxicare Toothpaste – Clean Mint- Fluoride Toothpaste , 6 Ounce (Pack of 6)",
+                "condition": "New",
+                "brand": "Arm & Hammer",
+                "size": "6 Ounce (Pack of 6)",
+                "price": 16.0,
+                "original_price": 16.0,
+                "availability_status": "In Stock",
+                "product_category": "Beauty & Personal Care › Oral Care › Toothpaste",
+                "average_rating": 4.8,
+                "total_reviews": 538,
+                "asin": "B001E77OCU",
+                "full_description": "Arm & Hammer PeroxiCare Deep Clean Toothpaste: deep cleaning, whitens safely, fluoride cavity protection and enamel strengthening, baking soda formula.",
+                "image_url": "https://m.media-amazon.com/images/I/41-M-nTTsGL.jpg",
+            },
+            {
+                "name": "BFWood Wooden Paddle Hair Brush – Black Walnut Hairbrush for Massaging Scalp",
+                "condition": "New",
+                "brand": "BFWood",
+                "price": 6.48,
+                "original_price": 6.48,
+                "availability_status": "In Stock.",
+                "product_category": "Beauty & Personal Care › Hair Care › Styling Tools & Appliances › Hair Brushes",
+                "average_rating": 4.5,
+                "total_reviews": 1652,
+                "asin": "B083TZ4JSR",
+                "full_description": "Natural beech bristles, cushioned base with air hole, black walnut handle; suitable for all hair types.",
+                "image_url": "https://m.media-amazon.com/images/I/51bE06+44SL.jpg",
+            },
+        ]
+    }
+    
     print("\n" + "="*60)
-    print("Starting new sequential negotiation with two sellers (Seller1: Toothpaste, Seller2: Hair brush)...")
+    print("Sequential negotiation: same toothpaste + brush bundle, two sellers...")
     print("="*60)
     
     observation, info = env.reset(
         user_requirement=user_requirement,
-        seller1_product_info={
-            "name": "ARM & HAMMER Peroxicare Toothpaste – Clean Mint- Fluoride Toothpaste , 6 Ounce (Pack of 6)",
-            "condition": "New",
-            "brand": "Visit the Arm & Hammer Store",
-            "size": "6 Ounce (Pack of 6)",
-            "original_price": 16.0,
-            "price": 16.0,
-            "availability_status": "In Stock",
-            "product_category": "Beauty & Personal Care › Oral Care › Toothpaste",
-            "average_rating": 4.8,
-            "total_reviews": 538,
-            "asin": "B001E77OCU",
-            "full_description": "Arm & Hammer PeroxiCare Deep Clean Toothpaste is the ultimate deep cleaning formula that cleans and whitens safely, gently and effectively. The fluoride cavity protection and enamel strengthening formula removes more plaque in hard to reach places than a non-baking soda toothpaste.",
-            "image_url": "https://m.media-amazon.com/images/I/41-M-nTTsGL.jpg",
-        },
-        seller2_product_info={
-            "name": "BFWood Wooden Paddle Hair Brush – Black Walnut Hairbrush for Massaging Scalp",
-            "condition": "New",
-            "brand": "Visit the BFWood Store",
-            "original_price": 6.48,
-            "price": 6.48,
-            "availability_status": "In Stock.",
-            "product_category": "Beauty & Personal Care › Hair Care › Styling Tools & Appliances › Hair Brushes",
-            "average_rating": 4.5,
-            "total_reviews": 1652,
-            "seller_name": "BFWood",
-            "asin": "B083TZ4JSR",
-            "full_description": "BFWood hair brush bristles are made of natural beech; They make your hair silky and shiny by distributing oil from your scalp. RELAXATION AND COMFORT: The cushioned base has an air hole which allows compression when you brush; The beech bristles massage your scalp. SUITABLE FOR ALL HAIR TYPES: Designed with soft tips and wide gaps. NEW DESIGN GRIP: Black walnut handle with curved sides, ergonomic design. IDEAL GIFT: Comes with a black walnut wooden brush and a canvas bag.",
-            "image_url": "https://m.media-amazon.com/images/I/51bE06+44SL.jpg",
-        },
-        user_profile=user_profile,  # Pass user profile
+        seller1_product_info=bundle_product_info,
+        seller2_product_info=bundle_product_info,
+        user_profile=user_profile,
     )
     
     # Start negotiation loop
@@ -259,12 +208,13 @@ def main(model_name=None):
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers: Seller1 offers ARM & HAMMER Toothpaste, Seller2 offers BFWood hair brush. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
+                "instruction": "Two sellers offer the SAME two products as one bundle. Each round pick ONE seller (use <selected_seller>) and negotiate the TOTAL bundle price for both items together."
             }
         )
         
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+        selected_seller = Task3SequentialTwoSellerPerOneProductNegotiation.resolve_selected_seller(
+            buyer_response, observation, buyer.last_selected_seller
+        )
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
         # Use buyer's full response as the negotiation message
@@ -397,12 +347,12 @@ def main(model_name=None):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
                 # Display product info for selected seller
-                if info['selected_seller'] == 1:
-                    product_info = info.get('seller1_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
-                elif info['selected_seller'] == 2:
-                    product_info = info.get('seller2_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
+                bundle = info.get('seller1_product_info', {}) or {}
+                plist = bundle.get('products') or []
+                if len(plist) >= 2:
+                    print(f"Bundle: (1) {plist[0].get('name', 'N/A')} | (2) {plist[1].get('name', 'N/A')}")
+                elif plist:
+                    print(f"Selected bundle item: {plist[0].get('name', 'N/A')}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -497,7 +447,7 @@ def main(model_name=None):
         output_file = run_dir / "Task6_s2_beauty_product_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task6 Scenario 2: Beauty Product - Sequential Two-Seller Per One Product Negotiation Results\n")
+            f.write("Task6 Scenario 2: Beauty bundle — sequential two-seller negotiation results\n")
             f.write("Category: Daily Life Consumption\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -512,8 +462,10 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n")
-                selected_product = results.get('seller1_product_info' if results['selected_seller'] == 1 else 'seller2_product_info', {})
-                f.write(f"Selected Product: {selected_product.get('name', 'N/A')} by {selected_product.get('brand', 'N/A')}\n\n")
+                binfo = results.get('seller1_product_info', {}) or {}
+                pl = binfo.get('products') or []
+                if len(pl) >= 2:
+                    f.write(f"Bundle: {pl[0].get('name', 'N/A')} + {pl[1].get('name', 'N/A')}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -523,11 +475,11 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
-            f.write("Products:\n")
-            seller1_product = results.get('seller1_product_info', {})
-            f.write(f"  Seller1 Product: {seller1_product.get('name', 'N/A')} by {seller1_product.get('brand', 'N/A')} (${seller1_product.get('price', 0):.2f})\n")
-            seller2_product = results.get('seller2_product_info', {})
-            f.write(f"  Seller2 Product: {seller2_product.get('name', 'N/A')} by {seller2_product.get('brand', 'N/A')} (${seller2_product.get('price', 0):.2f})\n")
+            f.write("Products (same bundle for both sellers):\n")
+            shared = results.get('seller1_product_info', {}) or {}
+            for i, p in enumerate(shared.get('products') or [], 1):
+                pr = p.get('price', p.get('original_price', 0))
+                f.write(f"  {i}. {p.get('name', 'N/A')} (${float(pr):.2f})\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
@@ -562,7 +514,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task6 Scenario 2: Beauty Product - Sequential Two-Seller Per One Product Negotiation")
+    parser = argparse.ArgumentParser(description="Task6 Scenario 2: Beauty bundle — sequential two-seller negotiation")
     parser.add_argument(
         "--model",
         type=str,

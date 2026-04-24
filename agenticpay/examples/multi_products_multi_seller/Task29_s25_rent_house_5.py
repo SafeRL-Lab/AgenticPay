@@ -1,8 +1,8 @@
-"""Task29 Scenario 25: Rent House 5 — Sequential Two-Seller Rental Negotiation
+"""Task29 Scenario 25: Rent House 5 — same two-rental bundle, sequential two-landlord negotiation (image + text)
 
+Tenant wants the same two listed units as one package and negotiates TOTAL monthly rent for both.
+Both landlords list identical line items; each has a different floor price and opening offer.
 Category: Real Estate
-Scenario: Tenant negotiates monthly rent with two landlords offering different Airbnb-style listings (data from ``airbnb_embeddings_sample10.jsonl``).
-Buyer chooses one seller per round. Prices are framed as monthly rent; ``seller*_min_price < buyer_max_price`` for overlapping acceptable ranges.
 """
 
 import os
@@ -21,7 +21,6 @@ from agenticpay.envs.multi_products_multi_seller.Task3_sequential_two_seller_per
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
 
 # Import configuration parameters
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,15 +32,15 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
     """Extract model name from model object
-    
+
     Args:
         model: Model object (CustomLLM, VLLMLLM, etc.)
-    
+
     Returns:
         str: Model name
     """
@@ -60,177 +59,116 @@ def get_model_name(model):
         if "model=" in model_str:
             try:
                 return model_str.split("model=")[1].split(")")[0]
-            except:
+            except Exception:
                 return model_str
         else:
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-        return 2
-    elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-        return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
-
-
 def main(model_name=None):
-    """Main function: Demonstrates sequential multi-seller negotiation flow with different products
-    
-    Args:
-        model_name: Optional model name. If None, uses default model.
-    """
-    
+    """Sequential two-seller negotiation for the same two-rental bundle (total monthly rent)."""
+
     print("Initializing model...")
 
-    # Check API key
     api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
     if not api_key:
         print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
 
-    # Use OpenAIVLM (Vision Language Model) for negotiation with product images (image + text)
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    model_name = model_name or "gpt-4o-mini"
     model = OpenAIVLM(model=model_name, api_key=api_key)
 
     print(f"✓ Successfully initialized: {model}")
-    
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+
+    # Bundle total monthly rent; line items 1050 + 2190 = 3240
     print("Creating agents...")
-    buyer_max_price = 2300.0  # Tenant max acceptable monthly rent (confidential); > both landlord floors
-    seller1_min_price = 820.0  # Landlord1 minimum acceptable monthly rent (confidential)
-    seller2_min_price = 1780.0  # Landlord2 minimum acceptable monthly rent (confidential)
-    
+    buyer_max_price = 3350.0
+    seller1_min_price = 3050.0
+    seller2_min_price = 3150.0
+
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
     seller2 = SellerAgent(model=model, seller_min_price=seller2_min_price)
-    
-    # Create environment
+
     print("Creating sequential multi-seller negotiation environment...")
     env = Task3SequentialTwoSellerPerOneProductNegotiation(
         buyer_agent=buyer,
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=1050.0,  # Landlord1 opening monthly rent ask
-        initial_seller2_price=2190.0,  # Landlord2 opening monthly rent ask
-        buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        initial_seller1_price=3270.0,
+        initial_seller2_price=3230.0,
+        buyer_max_price=buyer_max_price,
+        seller1_min_price=seller1_min_price,
+        seller2_min_price=seller2_min_price,
         environment_info={
-            "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
+            "platform": "Airbnb (long-term lease framing)",
             "market_type": "Residential Rental",
-            "availability_status": "Available now.",
-            "listing_age": "Listing IDs 462902 & 5127131 (airbnb_embeddings_sample10.jsonl)",
+            "comparison_enabled": True,
         },
-        price_tolerance=price_tolerance,
-        reward_weights=reward_weights,  # Reward weights configuration
+        price_tolerance=0,
+        reward_weights=reward_weights,
     )
-    
-    # Create user profile (text description of personal preferences)
-    user_profile = "Prospective tenant comparing two rental options on a fixed monthly housing budget. Cares about location fit, reviews, cleanliness, and predictable recurring rent."
+
+    user_profile = "Prospective tenant on a fixed monthly housing budget. Cares about location, reviews, and predictable total rent for a two-unit bundle."
     print(f"User Profile: {user_profile}")
-    
-    # Get user requirement
-    # Use default requirement for automatic running
-    user_requirement = "I'm deciding between two listings: 'Alugo suíte individual' (landlord Rosane) and 'Cozy one-bedroom in E Village' (landlord Nick). I'd like to negotiate the monthly rent before committing."
+
+    user_requirement = "Rio private suite + East Village 1BR—what's your best total monthly rent for both?"
     print(f"Using default requirement: {user_requirement}")
-    
-    # Reset environment with different products for each seller
-    # Product 1: AmeriColor from Task13_s10_food_color example; Product 2: Smokehouse Treat from sampled_products2.jsonl sample 10
+
+    img1 = "https://a0.muscache.com/im/pictures/37894063/4cab868f_original.jpg?aki_policy=large"
+    img2 = "https://a0.muscache.com/im/pictures/865d0101-dfa1-4267-8623-ca8b8823b073.jpg?aki_policy=large"
+
+    bundle_product_info = {
+        "products": [
+            {
+                "name": "Alugo suíte individual (Airbnb 462902)",
+                "condition": "Move-in ready",
+                "size": "1 bed · House · Private room · 1.0 bath",
+                "price": 1050.0,
+                "original_price": 1050.0,
+                "availability_status": "Available now.",
+                "product_category": "Real Estate › Rentals › House › Private room",
+                "average_rating": 4.5,
+                "total_reviews": 0,
+                "asin": "AIRBNB-462902",
+                "full_description": "Private suite with bath; shared kitchen and amenities. List reference $1050/mo as a line item toward a two-unit long-term package.",
+                "image_url": img1,
+                "listing_age": "Listing 462902",
+            },
+            {
+                "name": "Cozy one-bedroom in E Village (Airbnb 5127131)",
+                "condition": "Move-in ready",
+                "size": "1 bed · Apartment · Entire home/apt · 1.0 bath",
+                "price": 2190.0,
+                "original_price": 2190.0,
+                "availability_status": "Available now.",
+                "product_category": "Real Estate › Rentals › Apartment › Entire home/apt",
+                "average_rating": 4.45,
+                "total_reviews": 15,
+                "asin": "AIRBNB-5127131",
+                "full_description": "1-bedroom in the East Village; near bars, restaurants, and subways. List reference $2190/mo as a line item toward a two-unit long-term package.",
+                "image_url": img2,
+                "listing_age": "Listing 5127131",
+            },
+        ]
+    }
+
     print("\n" + "="*60)
-    print("Starting new sequential negotiation (two rental listings: 462902 vs 5127131)...")
+    print("Sequential negotiation: two landlords, same 2-rental bundle, different total offers...")
     print("="*60)
-    
+
     observation, info = env.reset(
         user_requirement=user_requirement,
-        seller1_product_info={'name': 'Alugo suíte individual (Airbnb listing 462902)',
- 'condition': 'Move-in ready',
- 'brand': 'Host: Rosane',
- 'color': 'N/A',
- 'size': '1 bed · House · Private room · 1.0 bath',
- 'original_price': 1050.0,
- 'price': 1050.0,
- 'availability_status': 'Available now.',
- 'product_category': 'Real Estate › Rentals › House › Private room',
- 'average_rating': 4.5,
- 'total_reviews': 0,
- 'seller_name': 'Rosane',
- 'asin': 'AIRBNB-462902',
- 'full_description': 'Suíte independente com banheiro privativo, cama de solteiro ou casal, armário embutido, '
-                     'ventilador de teto frigobar, wireless, cozinha e sala de tv compartilhada, sauna, piscina, '
-                     'churrasqueira, transportes diversos, comércio, bancos, supermercado Negotiation uses $1050/mo as '
-                     'the landlord opening monthly rent ask (long-term lease framing). Listing: '
-                     'https://www.airbnb.com/rooms/462902',
- 'image_url': 'https://a0.muscache.com/im/pictures/37894063/4cab868f_original.jpg?aki_policy=large'},
-        seller2_product_info={'name': 'Cozy one-bedroom in E Village (Airbnb listing 5127131)',
- 'condition': 'Move-in ready',
- 'brand': 'Host: Nick',
- 'color': 'N/A',
- 'size': '1 bed · Apartment · Entire home/apt · 1.0 bath',
- 'original_price': 2190.0,
- 'price': 2190.0,
- 'availability_status': 'Available now.',
- 'product_category': 'Real Estate › Rentals › Apartment › Entire home/apt',
- 'average_rating': 4.45,
- 'total_reviews': 15,
- 'seller_name': 'Nick',
- 'asin': 'AIRBNB-5127131',
- 'full_description': "Come and stay at my comfortable 1-bedroom in the heart of the East Village, New York's best "
-                     'neighborhood. Steps from the best bars, restaurants and 2 subway stops. Negotiation uses '
-                     '$2190/mo as the landlord opening monthly rent ask (long-term lease framing). Listing: '
-                     'https://www.airbnb.com/rooms/5127131',
- 'image_url': 'https://a0.muscache.com/im/pictures/865d0101-dfa1-4267-8623-ca8b8823b073.jpg?aki_policy=large'},
-        user_profile=user_profile,  # Pass user profile
+        seller1_product_info=bundle_product_info,
+        seller2_product_info=bundle_product_info,
+        user_profile=user_profile,
     )
-    
-    # Start negotiation loop
+
     done = False
     start_time = time.time()
-    
-    # Initialize results dictionary
+
     results = {
         "task": "Task29_s25_rent_house_5_negotiation",
         "timestamp": datetime.now().isoformat(),
@@ -240,51 +178,34 @@ def main(model_name=None):
         "success": False,
         "error": None,
     }
-    
+
     while not done:
-        # Each round, buyer chooses one seller to negotiate with
-        # Buyer can see both sellers' information in the observation
-        # Let buyer decide which seller to negotiate with and provide negotiation message
-        # We'll use a combined conversation history that includes both sellers' conversations
         combined_history = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_seller1", []):
-            combined_history.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history.append({**msg, "content": f"[Seller 1] {msg['content']}"})
         for msg in observation.get("conversation_history_seller2", []):
-            combined_history.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
-        
-        # Get buyer's response - buyer should indicate which seller they want to negotiate with
+            combined_history.append({**msg, "content": f"[Seller 2] {msg['content']}"})
+
         buyer_response = buyer.respond(
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers, each offering a different rental listing. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
+                "instruction": "Two landlords offer the SAME two rentals as one bundle. Each round pick ONE seller (use <selected_seller>) and negotiate the TOTAL monthly rent for both units together."
             }
         )
-        
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+
+        selected_seller = Task3SequentialTwoSellerPerOneProductNegotiation.resolve_selected_seller(
+            buyer_response, observation, buyer.last_selected_seller
+        )
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
-        
-        # Use buyer's full response as the negotiation message
-        # The response may include the choice statement, which is fine as it's buyer's natural expression
+
         buyer_action = buyer_response
-        
-        # Get the conversation history for the selected seller
+
         if selected_seller == 1:
             conversation_history = observation["conversation_history_seller1"]
         else:
             conversation_history = observation["conversation_history_seller2"]
-        
-        # Create updated conversation history that includes buyer's response
-        # So seller can see buyer's message before responding
+
         updated_conversation_history = conversation_history.copy()
         if buyer_action:
             current_round = observation.get("current_round", 0)
@@ -293,8 +214,7 @@ def main(model_name=None):
                 "content": buyer_action,
                 "round": current_round
             })
-        
-        # Get the selected seller's response (seller can now see buyer's message)
+
         if selected_seller == 1:
             seller_action = seller1.respond(
                 conversation_history=updated_conversation_history,
@@ -305,22 +225,17 @@ def main(model_name=None):
                 conversation_history=updated_conversation_history,
                 current_state=observation
             )
-        
-        # Execute step with selected seller and actions
+
         observation, reward, terminated, truncated, info = env.step(
             selected_seller=selected_seller,
             buyer_action=buyer_action,
             seller_action=seller_action
         )
         done = terminated or truncated
-        
-        # Render current state (includes all print information)
+
         env.render()
-        
-        # Flush output to ensure complete display
         sys.stdout.flush()
-        
-        # Display step rewards for each round with detailed calculation
+
         if 'step_seller1_reward' in info or 'step_seller2_reward' in info or 'step_buyer_reward' in info:
             print(f"\n[Step Rewards] ", end="")
             if 'step_buyer_reward' in info:
@@ -387,8 +302,7 @@ def main(model_name=None):
             elif 'step_seller2_reward' in info:
                 weighted_round_cost = round_cost * weights["time_cost"]
                 print(f"  Seller2 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (seller2_price not specified, round={info['round']})")
-        
-        # If this is the final round (agreed or timeout), display score calculations after Step Rewards
+
         if done:
             # Print score calculations after Step Rewards
             env._print_global_score_details()
@@ -403,12 +317,12 @@ def main(model_name=None):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
                 # Display product info for selected seller
-                if info['selected_seller'] == 1:
-                    product_info = info.get('seller1_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
-                elif info['selected_seller'] == 2:
-                    product_info = info.get('seller2_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
+                bundle = info.get('seller1_product_info', {}) or {}
+                plist = bundle.get('products') or []
+                if len(plist) >= 2:
+                    print(f"Bundle: (1) {plist[0].get('name', 'N/A')} | (2) {plist[1].get('name', 'N/A')}")
+                elif plist:
+                    print(f"Selected bundle item: {plist[0].get('name', 'N/A')}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -468,42 +382,34 @@ def main(model_name=None):
                 "model": get_model_name(model),
             })
             break
-    
-    # Close environment
+
     env.close()
     print("\nNegotiation completed!")
-    
-    # Ensure elapsed_time is set even if negotiation didn't complete normally
+
     if "elapsed_time" not in results:
         results["elapsed_time"] = time.time() - start_time
-    
-    # Save results to file
+
     try:
-        # Create results directory structure
         results_dir = Path(project_root) / "agenticpay" / "results" / "multi_products_multi_seller"
         results_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Get model name for directory (sanitize for filesystem)
+
         model_name = get_model_name(model)
         model_name_safe = model_name.replace("/", "_").replace("\\", "_").replace(":", "_")
         model_dir = results_dir / model_name_safe
         model_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create timestamped subdirectory for this run
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         run_dir = model_dir / f"batch_evaluation_{timestamp}"
         run_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Save summary JSON
+
         summary_file = run_dir / "summary.json"
         with open(summary_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
-        
-        # Save output text
+
         output_file = run_dir / "Task29_s25_rent_house_5_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task29 Scenario 25: Rent House 5 — Sequential Two-Seller Rental Negotiation Results\n")
+            f.write("Task29 Scenario 25: Rent House 5 — two-rental bundle, sequential two-landlord results\n")
             f.write("Category: Real Estate\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -518,8 +424,10 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n")
-                selected_product = results.get('seller1_product_info', {}) if results['selected_seller'] == 1 else results.get('seller2_product_info', {})
-                f.write(f"Selected Product: {selected_product.get('name', 'N/A')} by {selected_product.get('brand', 'N/A')}\n\n")
+                binfo = results.get('seller1_product_info', {}) or {}
+                pl = binfo.get('products') or []
+                if len(pl) >= 2:
+                    f.write(f"Bundle: {pl[0].get('name', 'N/A')} + {pl[1].get('name', 'N/A')}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -529,13 +437,11 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
-            f.write("Products:\n")
-            seller1_product = results.get('seller1_product_info', {})
-            p1 = seller1_product.get('price') or seller1_product.get('original_price', 0)
-            f.write(f"  Seller1 Product: {seller1_product.get('name', 'N/A')} by {seller1_product.get('brand', 'N/A')} (${p1:.2f})\n")
-            seller2_product = results.get('seller2_product_info', {})
-            p2 = seller2_product.get('price') or seller2_product.get('original_price', 0)
-            f.write(f"  Seller2 Product: {seller2_product.get('name', 'N/A')} by {seller2_product.get('brand', 'N/A')} (${p2:.2f})\n")
+            f.write("Listings (same bundle for both landlords):\n")
+            shared = results.get('seller1_product_info', {}) or {}
+            for i, p in enumerate(shared.get('products') or [], 1):
+                pr = p.get('price', p.get('original_price', 0))
+                f.write(f"  {i}. {p.get('name', 'N/A')} (${float(pr):.2f} line-item reference)\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
@@ -559,7 +465,7 @@ def main(model_name=None):
                 f.write(f"Termination Reason: {results['termination_reason']}\n")
             if results.get('error'):
                 f.write(f"\nError: {results['error']}\n")
-        
+
         print(f"\nResults saved to: {run_dir}")
         print(f"  - Summary JSON: {summary_file}")
         print(f"  - Output Text: {output_file}")
@@ -570,13 +476,12 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task29 Scenario 25: Rent House 5 — Sequential Two-Seller Rental Negotiation")
+    parser = argparse.ArgumentParser(description="Task29: two-rental bundle, sequential two-landlord negotiation")
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="Model name to use (e.g., 'gemini-3-pro-all', 'gpt-5.2', 'claude-sonnet-4-5-20250929'). If not provided, uses default model."
+        help="Model name to use. If not provided, uses default model."
     )
     args = parser.parse_args()
     main(model_name=args.model)
-

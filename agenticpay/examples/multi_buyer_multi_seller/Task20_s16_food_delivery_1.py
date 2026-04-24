@@ -1,7 +1,7 @@
-"""Task20 Scenario 16: Food Delivery — Karaage Chicken & Karaage Sliders (DoorDash)
+"""Task20 Scenario 16: Food Delivery — Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two buyers negotiate with two sellers: Seller1 offers Karaage Chicken from Izakaya; Seller2 offers
-Karaage Sliders & Fries from Sticky's Chicken (restaurantmenuchanges.csv). Each buyer chooses one seller per round.
+Two marketplace offers on the same platform: the listing text shows item details only; two fulfillment
+offers have different confidential floors. Two buyers each pick one offer per round (structured routing).
 Category: Food Delivery
 """
 
@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -21,20 +22,7 @@ from agenticpay.envs.multi_buyer_multi_seller.Task3_sequential_two_buyer_two_sel
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-from agenticpay.models.custom_llm import CustomLLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    max_rounds = 20
-    price_tolerance = 1.0
-    OPENAI_API_KEY = None
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -67,60 +55,43 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict, buyer_id: int) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        buyer_id: Buyer ID (1 or 2)
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    # Get prices for this buyer
-    if buyer_id == 1:
-        seller1_price = observation.get("b1s1_seller_price")
-        seller2_price = observation.get("b1s2_seller_price")
-    else:  # buyer_id == 2
-        seller1_price = observation.get("b2s1_seller_price")
-        seller2_price = observation.get("b2s2_seller_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
+def _run_buyer_routing(buyer, combined_history: list, observation: dict, routing_instruction: str):
+    """Structured ``<selected_seller>`` + retries + random fallback (aligned with Task5)."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    buyer_response = None
+    selected_seller = None
+    while True:
+        buyer_response = buyer.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_sellers": 2,
+            },
+        )
+        selected_seller = buyer.last_selected_seller
+        if selected_seller is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_seller>; retrying buyer response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+        )
+    if selected_seller is None:
+        selected_seller = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_seller> after retries; "
+            f"randomly selecting Seller {selected_seller}."
+        )
+    return buyer_response, selected_seller
 
 
 def main(model_name=None):
@@ -139,19 +110,16 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for negotiation with product images (image + text)
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    # Use OpenAIVLM (Vision Language Model) for food listings with item images (image + text)
+    model_name = model_name or "gpt-5.4"
     model = OpenAIVLM(model=model_name, api_key=api_key)
-    
-    # Alternative: CustomLLM for text-only models
-    # model = CustomLLM(api_key=api_key, model=model_name)
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Two offers: each has a different confidential floor (all-in order totals)
     print("Creating agents...")
-    buyer1_max_price = 12.30  # all-in order total cap — Izakaya Karaage Chicken (Task19 single)
-    buyer2_max_price = 14.80  # all-in order total cap — Sticky's Karaage Sliders & Fries (Task20 single)
+    buyer1_max_price = 12.30  # all-in cap (buyer 1)
+    buyer2_max_price = 14.80  # all-in cap (buyer 2)
     seller1_min_price = 10.80
     seller2_min_price = 13.20
     
@@ -177,80 +145,53 @@ def main(model_name=None):
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
+            "note": "Multiple item listings exist; offer copy is item-focused—each offer has a different confidential floor.",
             "availability_status": "Available for delivery.",
             "estimated_delivery_time": "25-40 minutes",
             "restaurant_price_range": "$$",
             "pricing_rule": "Negotiated price is the all-in order total (menu item + delivery + service fees).",
         },
-        price_tolerance=0,
-        reward_weights=reward_weights,  # Reward weights configuration
+        price_tolerance=price_tolerance,
+        reward_weights=reward_weights,
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Two buyers ordering dinner on DoorDash in Houston. Buyer1 wants Izakaya karaage chicken; Buyer2 wants a karaage sliders combo from Sticky's Chicken. Both focus on the final checkout total including delivery-related fees."
+    # Preferences only; no merchant identity in the listing text
+    user_profile = "Two buyers want a fair all-in food-delivery total; both are open to comparing two item offers on the same platform."
     print(f"User Profile: {user_profile}")
     
-    # Get user requirement
-    # Use default requirement for automatic running
-    user_requirement = "Buyer1 is ordering Karaage Chicken from Izakaya (all-in total with delivery and service fees). Buyer2 is ordering Karaage Sliders & Fries from Sticky's Chicken the same way. Negotiate using each restaurant's quoted DoorDash checkout total."
+    # Concise English user query (simulated search / assistant request)
+    user_requirement = "I want Japanese-style fried chicken delivered—compare the two options and the best all-in price with fees."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
     print("\n" + "="*60)
-    print("Starting new sequential negotiation (DoorDash: Izakaya Karaage Chicken vs Sticky's Karaage Sliders & Fries)...")
+    print("Starting new sequential food-delivery negotiation (two item offers, structured routing)...")
     print("="*60)
     
-    # Images from restaurantmenuchanges.csv (Karaage Chicken update row; Karaage Sliders delete row)
-    product_image_url_seller1 = "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/3fb24687-e36e-4ad6-b9d0-62ce9d9d8b2e-retina-large.JPG"
-    product_image_url_seller2 = "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/ca4c54d9-9782-406c-af50-b46333593362-96dd7bc8-5c66-48f4-b8c6-bc356758f1e6-retina-large.JPG"
+    product_image_url = "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/3fb24687-e36e-4ad6-b9d0-62ce9d9d8b2e-retina-large.JPG"
 
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "seller1_product": {
-                "name": "Karaage Chicken",
-                "condition": "Prepared fresh to order",
-                "brand": "Izakaya",
-                "flavor": "Spicy yuzu peel marmalade",
-                "size": "Single appetizer portion",
-                "original_price": 9.00,
-                "restaurant_address": "318 Gray St, Houston, TX 77002, USA",
-                "delivery_distance_miles": 3.2,
-                "delivery_distance_km": 5.1,
-                "delivery_fee": 2.49,
-                "service_fee": 1.29,
-                "quoted_total_price": 12.78,
-                "availability_status": "Available for delivery.",
-                "product_category": "Food Delivery › Japanese › Small Plates",
-                "average_rating": 4.66,
-                "total_reviews": 1041,
-                "seller_name": "Izakaya",
-                "asin": "DD-HOU-IZAKAYA-KARAAGE-CHICKEN",
-                "full_description": "Fried chicken bites with spicy yuzu peel marmalade. Menu $9.00 plus delivery/service fees; all-in quoted total $12.78 (Task19 / restaurantmenuchanges.csv).",
-                "image_url": product_image_url_seller1,
-            },
-            "seller2_product": {
-                "name": "Karaage Sliders & Fries",
-                "condition": "Prepared fresh to order",
-                "brand": "Sticky's Chicken",
-                "flavor": "Japanese-style fried chicken sliders with fries",
-                "size": "Single combo meal",
-                "original_price": 11.55,
-                "restaurant_address": "Sticky's Chicken, 2311 Edwards St Suite 190, Houston, TX 77007, USA",
-                "delivery_distance_miles": 2.6,
-                "delivery_distance_km": 4.2,
-                "delivery_fee": 2.39,
-                "service_fee": 1.21,
-                "quoted_total_price": 15.15,
-                "availability_status": "Available for delivery.",
-                "product_category": "Food Delivery › Chicken › Sliders & Fries",
-                "average_rating": 4.68,
-                "total_reviews": 405,
-                "seller_name": "Sticky's Chicken",
-                "asin": "DD-HOU-STICKYS-KARAAGE-SLIDERS-FRIES",
-                "full_description": "Karaage sliders with fries from Sticky's Chicken. Menu $11.55 plus fees; all-in quoted total $15.15 (Task20 single / restaurantmenuchanges.csv).",
-                "image_url": product_image_url_seller2,
-            },
+            "name": "Karaage Chicken",
+            "condition": "Prepared fresh to order",
+            "brand": "Izakaya",
+            "flavor": "Spicy yuzu peel marmalade",
+            "size": "Single appetizer portion",
+            "original_price": 9.00,
+            "restaurant_address": "318 Gray St, Houston, TX 77002, USA",
+            "delivery_distance_miles": 3.2,
+            "delivery_distance_km": 5.1,
+            "delivery_fee": 2.49,
+            "service_fee": 1.29,
+            "quoted_total_price": 12.78,
+            "availability_status": "Available for delivery.",
+            "product_category": "Food Delivery › Japanese › Small Plates",
+            "average_rating": 4.66,
+            "total_reviews": 1041,
+            "asin": "DD-HOU-IZAKAYA-KARAAGE-CHICKEN",
+            "full_description": "Fried chicken bites with spicy yuzu peel marmalade. Menu subtotal plus delivery and service fees; all-in checkout total as quoted.",
+            "image_url": product_image_url,
         },
         user_profile=user_profile,  # Pass user profile
     )
@@ -263,7 +204,7 @@ def main(model_name=None):
     results = {
         "task": "Task20_s16_food_delivery_1",
         "category": "Food Delivery",
-        "scenario": "Izakaya Karaage Chicken vs Sticky's Karaage Sliders & Fries",
+        "scenario": "Karaage chicken offer vs karaage sliders combo offer",
         "timestamp": datetime.now().isoformat(),
         "user_requirement": user_requirement,
         "user_profile": user_profile,
@@ -276,57 +217,29 @@ def main(model_name=None):
         # Each round, each buyer chooses one seller to negotiate with
         # Let buyers decide which seller to negotiate with and provide negotiation message
         
-        # Build combined conversation history for buyer1 (includes both sellers' conversations)
         combined_history_b1 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b1s1", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b1s2", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 2"})
         
-        # Build combined conversation history for buyer2 (includes both sellers' conversations)
         combined_history_b2 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b2s1", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b2s2", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 2"})
         
-        # Get buyer1's response - buyer should indicate which seller they want to negotiate with
-        buyer1_response = buyer1.respond(
-            conversation_history=combined_history_b1,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>."
         )
-        
-        # Get buyer2's response - buyer should indicate which seller they want to negotiate with
-        buyer2_response = buyer2.respond(
-            conversation_history=combined_history_b2,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        buyer1_response, buyer1_selected_seller = _run_buyer_routing(
+            buyer1, combined_history_b1, observation, routing_instruction
         )
-        
-        # Extract seller choice from each buyer's response
-        buyer1_selected_seller = extract_seller_choice(buyer1_response, observation, buyer_id=1)
-        buyer2_selected_seller = extract_seller_choice(buyer2_response, observation, buyer_id=2)
+        buyer2_response, buyer2_selected_seller = _run_buyer_routing(
+            buyer2, combined_history_b2, observation, routing_instruction
+        )
         
         print(f"\n[Buyer 1 chooses to negotiate with Seller {buyer1_selected_seller} this round]")
         print(f"[Buyer 2 chooses to negotiate with Seller {buyer2_selected_seller} this round]")
@@ -661,11 +574,10 @@ def main(model_name=None):
             f.write(f"  Buyer2-Seller2: Buyer=${results['b2s2_buyer_price']:.2f} | Seller=${results['b2s2_seller_price']:.2f}" if results.get('b2s2_buyer_price') is not None and results.get('b2s2_seller_price') is not None else "  Buyer2-Seller2: Not specified")
             f.write("\n\n")
             product_info = results.get('product_info', {})
-            f.write("Products:\n")
-            s1 = product_info.get('seller1_product', {})
-            s2 = product_info.get('seller2_product', {})
-            f.write(f"  Seller1: {s1.get('name', 'N/A')} - ${s1.get('original_price', 0):.2f}\n")
-            f.write(f"  Seller2: {s2.get('name', 'N/A')} - ${s2.get('original_price', 0):.2f}\n")
+            f.write("Product:\n")
+            f.write(f"  Name: {product_info.get('name', 'N/A')}\n")
+            f.write(f"  Brand: {product_info.get('brand', 'N/A')}\n")
+            f.write(f"  Price: ${product_info.get('price', product_info.get('original_price', 0)):.2f}\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:

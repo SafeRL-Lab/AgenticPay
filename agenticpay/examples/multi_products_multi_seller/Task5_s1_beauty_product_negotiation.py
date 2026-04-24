@@ -1,8 +1,7 @@
-"""Task5 Scenario 1: Beauty Product - Sequential Two-Seller Per One Product Negotiation (image + text)
+"""Task5 Scenario 1: Beauty bundle — sequential two-seller negotiation (image + text)
 
-Buyer negotiating with two sellers offering different beauty products.
-Seller1: Maybelline Expert Wear Eyeshadow (Task4). Seller2: NOU Oliban Eau de Toilette (sampled_products2).
-Buyer chooses one seller per round to negotiate with. Product info with images (image + text).
+Buyer wants the same two beauty items from either seller and negotiates TOTAL bundle price.
+Both sellers list identical products; each has a different floor price and opening offer.
 Category: Daily Life Consumption
 """
 
@@ -23,7 +22,6 @@ from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.custom_llm import CustomLLM
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
 
 # Import configuration parameters
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -68,57 +66,8 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-        return 2
-    elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-        return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it (beauty product price ranges ~$6-8 and ~$20-22)
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 2:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 3:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
-
-
 def main(model_name=None):
-    """Main function: Demonstrates sequential multi-seller negotiation flow with different products
+    """Sequential two-seller negotiation for the same two-product bundle (total price).
     
     Args:
         model_name: Optional model name. If None, uses default model.
@@ -139,12 +88,11 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # Seller1: Maybelline Eyeshadow ~$7.98. Seller2: NOU Oliban ~$21.95 (from sampled_products2)
+    # Agents: prices are TOTAL for the two-item bundle (confidential to each party)
     print("Creating agents...")
-    buyer_max_price = 7.0  # Maximum acceptable purchase price for buyer (covers both products)
-    seller1_min_price = 5.0  # Maybelline cost basis (Task4)
-    seller2_min_price = 17.0  # NOU Oliban cost basis
+    buyer_max_price = 26.0
+    seller1_min_price = 22.0
+    seller2_min_price = 20.5
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
@@ -157,8 +105,8 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=7.50,  # Maybelline list price $7.98 (Task4)
-        initial_seller2_price=21.95,  # NOU Oliban pricing (sampled_products2)
+        initial_seller1_price=29.45,
+        initial_seller2_price=28.9,
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
@@ -175,54 +123,58 @@ def main(model_name=None):
     user_profile = "Beauty-conscious user who researches product reviews before buying. Cares about brand quality and value for money. Prefers to buy from sellers with good ratings and reasonable prices."
     print(f"User Profile: {user_profile}")
     
-    # Get user requirement - based on Task4 and sampled_products2 beauty products
-    user_requirement = "I'm looking for beauty products - either Maybelline eyeshadow in Turquoise shade or NOU Oliban Eau de Toilette for men, preferably new with good reviews."
+    user_requirement = "I want the Maybelline Turquoise eyeshadow and NOU Oliban EDT together—what's your best bundle price?"
     print(f"Using default requirement: {user_requirement}")
     
-    # Product images for VLM (image + text) - from Task4 and sampled_products2
-    seller1_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"  # Maybelline (Task4)
-    seller2_image_url = "https://m.media-amazon.com/images/I/51gDhcURgKL.jpg"  # NOU Oliban (sampled_products2 images[0])
+    product1_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"
+    product2_image_url = "https://m.media-amazon.com/images/I/51gDhcURgKL.jpg"
     
-    # Reset environment - seller1: Maybelline (Task4), seller2: NOU Oliban (sampled_products2)
+    bundle_product_info = {
+        "products": [
+            {
+                "name": "Maybelline New York Expert Wear Eyeshadow Singles, 130s Turquoise Glass Perfect Pastels, 0.09 Ounce",
+                "condition": "New",
+                "brand": "Maybelline New York",
+                "shade": "130s Turquoise Glass Perfect Pastels",
+                "size": "0.09 Ounce",
+                "price": 7.5,
+                "original_price": 7.98,
+                "availability_quantity": 5,
+                "availability_status": "Only 5 left in stock - order soon.",
+                "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
+                "average_rating": 4.2,
+                "total_reviews": 54,
+                "asin": "B0046VILG4",
+                "full_description": "Easy to use. Lots to choose. All-day crease-proof wear. Rich, velvety textures. Glides on effortlessly with superior smoothness.",
+                "image_url": product1_image_url,
+                "listing_age": "3 days",
+            },
+            {
+                "name": "Oriental Eau de Toilette – Natural Eau de Toilette for Men Woody Eau de Toilette Infused with Essential Oils NOU Oliban Eau de Toilette for Men – 1.7 Fl Oz",
+                "condition": "New",
+                "brand": "NOU",
+                "price": 21.95,
+                "original_price": 21.95,
+                "availability_status": "In Stock.",
+                "product_category": "Beauty & Personal Care › Fragrance",
+                "average_rating": 4,
+                "total_reviews": 6,
+                "asin": "B08XQWJX8P",
+                "full_description": "NOU Oliban oriental woody EDT for men, crafted with essential oils; elemi, olibanum, patchouli, sandalwood, leather, vanilla notes. 50ml glass flacon.",
+                "image_url": product2_image_url,
+                "listing_age": "5 days",
+            },
+        ]
+    }
+    
     print("\n" + "="*60)
-    print("Starting new sequential negotiation with two sellers (Maybelline Eyeshadow vs NOU Oliban Eau de Toilette)...")
+    print("Sequential negotiation: two sellers, same 2-item beauty bundle, different bundle offers...")
     print("="*60)
     
     observation, info = env.reset(
         user_requirement=user_requirement,
-        seller1_product_info={
-            "name": "Maybelline New York Expert Wear Eyeshadow Singles, 130s Turquoise Glass Perfect Pastels, 0.09 Ounce",
-            "condition": "New",
-            "brand": "Maybelline New York",
-            "shade": "130s Turquoise Glass Perfect Pastels",
-            "size": "0.09 Ounce",
-            "original_price": 7.98,
-            "availability_quantity": 5,
-            "availability_status": "Only 5 left in stock - order soon.",
-            "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
-            "average_rating": 4.2,
-            "total_reviews": 54,
-            "seller_name": "Mommy Dezarn's Miscellaneous",
-            "asin": "B0046VILG4",
-            "full_description": "Easy to use. Lots to choose. All-day crease-proof wear. Rich, velvety textures. Glides on effortlessly with superior smoothness.",
-            "image_url": seller1_image_url,
-            "listing_age": "3 days",
-        },
-        seller2_product_info={
-            "name": "Oriental Eau de Toilette – Natural Eau de Toilette for Men Woody Eau de Toilette Infused with Essential Oils Fragrance for Men with Oriental Woody Tones NOU Oliban Eau de Toilette for Men – 1.7 Fl Oz",
-            "condition": "New",
-            "brand": "Brand: nou",
-            "original_price": 21.95,
-            "availability_status": "In Stock.",
-            "product_category": "Beauty & Personal Care › Fragrance",
-            "average_rating": 4,
-            "total_reviews": 6,
-            "seller_name": "AmTm Cosmetics",
-            "asin": "B08XQWJX8P",
-            "full_description": " ".join(["NOU OLIBAN ORIENTAL SCENT FOR MEN – this fragrance for men has been perfectly blended and infused with essential oils, resulting in an intriguing, mysterious scent that is powerful and appealing to women. In the beautiful Catalan language, NOU means \"new\" – a new fragrance, sparking new emotions for a new you! ", "ORIENTAL EAU DE TOILETTE CRAFTED BY FRENCH PERFUMERS – expertly crafted by French perfumers, this natural fragrance for men is created with pure and natural ingredients and infused with aromatic essential oils. Our Oliban natural Eau de Toilette for men is designed for the elegant, modern man who is determined and exudes confidence ", "OLIBAN WOODY FRAGRANCE NOTES – this natural Eau de Toilette for men is mysterious and adventurous giving a sense of both power and safety. NOU Oliban Eau de Toilette features elemi and olibanum, toned down by the relaxing scent of chamomile. The heart notes are patchouli and cistus, with raised notes of sandalwood, leather, vanilla and benzoin resulting in a masculine, powerful fragrance for men ", "NATURAL EAU DE TOILETTE FOR MEN WITH ESSENTIAL OILS – each of the NOU Eau de toilette perfumes in our range includes 10% natural essential oils, which are long-lasting and highly fragrant too. Containing no synthetic pigments and featuring its' natural colour, this oriental scent is safe to use on all skin types ", "INCLUDED IN YOUR PURCHASE – you will receive 1 x NOU Oriental 50ml fragrance for men in your purchase. This powerful, masculine fragrance for men is packaged in a modern, minimalistic glass flacon which is both presentable as a gift or as a wonderful treat for yourself to wear every day! "]),
-            "image_url": seller2_image_url,
-            "listing_age": "5 days",
-        },
+        seller1_product_info=bundle_product_info,
+        seller2_product_info=bundle_product_info,
         user_profile=user_profile,
     )
     
@@ -265,12 +217,13 @@ def main(model_name=None):
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers, each offering a different beauty product. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
+                "instruction": "Two sellers offer the SAME two beauty products as one bundle. Each round pick ONE seller (use <selected_seller>) and negotiate the TOTAL bundle price for both items together."
             }
         )
         
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+        selected_seller = Task3SequentialTwoSellerPerOneProductNegotiation.resolve_selected_seller(
+            buyer_response, observation, buyer.last_selected_seller
+        )
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
         # Use buyer's full response as the negotiation message
@@ -403,12 +356,12 @@ def main(model_name=None):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
                 # Display product info for selected seller
-                if info['selected_seller'] == 1:
-                    product_info = info.get('seller1_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
-                elif info['selected_seller'] == 2:
-                    product_info = info.get('seller2_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
+                bundle = info.get('seller1_product_info', {}) or {}
+                plist = bundle.get('products') or []
+                if len(plist) >= 2:
+                    print(f"Bundle: (1) {plist[0].get('name', 'N/A')} | (2) {plist[1].get('name', 'N/A')}")
+                elif plist:
+                    print(f"Selected bundle item: {plist[0].get('name', 'N/A')}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -503,7 +456,7 @@ def main(model_name=None):
         output_file = run_dir / "Task5_s1_beauty_product_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task5 Scenario 1: Used Smartphone - Sequential Two-Seller Per One Product Negotiation Results\n")
+            f.write("Task5 Scenario 1: Beauty bundle — sequential two-seller negotiation results\n")
             f.write("Category: Daily Life Consumption\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -518,8 +471,10 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n")
-                selected_product = results.get('seller1_product_info' if results['selected_seller'] == 1 else 'seller2_product_info', {})
-                f.write(f"Selected Product: {selected_product.get('name', 'N/A')} by {selected_product.get('brand', 'N/A')}\n\n")
+                binfo = results.get('seller1_product_info', {}) or {}
+                pl = binfo.get('products') or []
+                if len(pl) >= 2:
+                    f.write(f"Bundle: {pl[0].get('name', 'N/A')} + {pl[1].get('name', 'N/A')}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -529,13 +484,11 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
-            f.write("Products:\n")
-            seller1_product = results.get('seller1_product_info', {})
-            p1 = seller1_product.get('price', seller1_product.get('original_price', 0))
-            f.write(f"  Seller1 Product: {seller1_product.get('name', 'N/A')} by {seller1_product.get('brand', 'N/A')} (${p1:.2f})\n")
-            seller2_product = results.get('seller2_product_info', {})
-            p2 = seller2_product.get('price', seller2_product.get('original_price', 0))
-            f.write(f"  Seller2 Product: {seller2_product.get('name', 'N/A')} by {seller2_product.get('brand', 'N/A')} (${p2:.2f})\n")
+            f.write("Products (same bundle for both sellers):\n")
+            shared = results.get('seller1_product_info', {}) or {}
+            for i, p in enumerate(shared.get('products') or [], 1):
+                pr = p.get('price', p.get('original_price', 0))
+                f.write(f"  {i}. {p.get('name', 'N/A')} (${float(pr):.2f})\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
@@ -570,7 +523,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Used Smartphone - Sequential Two-Seller Per One Product Negotiation")
+    parser = argparse.ArgumentParser(description="Task5 Scenario 1: Beauty bundle — sequential two-seller negotiation")
     parser.add_argument(
         "--model",
         type=str,

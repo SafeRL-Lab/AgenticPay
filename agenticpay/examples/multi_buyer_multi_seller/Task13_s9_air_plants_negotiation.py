@@ -1,14 +1,15 @@
-"""Task13 Scenario 9: CTS Air Plants - Sequential Two-Buyer Two-Seller Negotiation
+"""Task13 Scenario 9: CTS Air Plants - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two buyers negotiating with two sellers for CTS AIR PLANTS Assorted Tillandsia Air Plants 6 Pack (from sampled_products2.jsonl line 9).
-Each buyer chooses one seller per round to negotiate with.
-Category: Patio, Lawn & Garden / Grocery
+Same SKU from two marketplace offers: listing has no per-seller identity; two sellers each have a different
+confidential floor. Two buyers each pick one seller per round (structured routing).
+Category: Patio, Lawn & Garden
 """
 
 import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -20,21 +21,8 @@ sys.path.insert(0, project_root)
 from agenticpay.envs.multi_buyer_multi_seller.Task3_sequential_two_buyer_two_seller_negotiation import Task3SequentialTwoBuyerTwoSellerNegotiation
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
-from agenticpay.models.custom_llm import CustomLLM
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    max_rounds = 20
-    price_tolerance = 1.0
-    OPENAI_API_KEY = None
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -67,60 +55,43 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict, buyer_id: int) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        buyer_id: Buyer ID (1 or 2)
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    # Get prices for this buyer
-    if buyer_id == 1:
-        seller1_price = observation.get("b1s1_seller_price")
-        seller2_price = observation.get("b1s2_seller_price")
-    else:  # buyer_id == 2
-        seller1_price = observation.get("b2s1_seller_price")
-        seller2_price = observation.get("b2s2_seller_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
+def _run_buyer_routing(buyer, combined_history: list, observation: dict, routing_instruction: str):
+    """Structured ``<selected_seller>`` + retries + random fallback (aligned with Task5)."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    buyer_response = None
+    selected_seller = None
+    while True:
+        buyer_response = buyer.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_sellers": 2,
+            },
+        )
+        selected_seller = buyer.last_selected_seller
+        if selected_seller is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_seller>; retrying buyer response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+        )
+    if selected_seller is None:
+        selected_seller = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_seller> after retries; "
+            f"randomly selecting Seller {selected_seller}."
+        )
+    return buyer_response, selected_seller
 
 
 def main(model_name=None):
@@ -131,18 +102,16 @@ def main(model_name=None):
     """
     
     print("Initializing model...")
-    
-    # OpenVLM via OpenAI-compatible API (product images passed to VLM)
+
     api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
-    openvlm_base_url = os.getenv("OPENAI_URL") or os.getenv("OPENVLM_BASE_URL", "http://localhost:8000/v1")
-    openvlm_model = os.getenv("OPENVLM_MODEL", "openvlm")
-    
-    model = OpenAIVLM(
-        model=model_name or openvlm_model,
-        api_key=api_key,
-        base_url=openvlm_base_url,
-    )
-    
+    if not api_key:
+        print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
+        print("You can set it with: export OPENAI_API_KEY='your-key-here'")
+        return
+
+    model_name = model_name or "gpt-5.4"
+    model = OpenAIVLM(model=model_name, api_key=api_key)
+
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
@@ -174,19 +143,16 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
+            "note": "Multiple third-party offers exist for the same product listing.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Two buyers looking for CTS AIR PLANTS Assorted Tillandsia Air Plants 6 Pack. Buyer1 is plant enthusiast for home decor. Buyer2 wants variety for gifting."
+    user_profile = "Two buyers want a healthy Tillandsia 6-pack for decor or gifts; need care info and medium sizes."
     print(f"User Profile: {user_profile}")
-    
-    # Get user requirement
-    # Use default requirement for automatic running
-    user_requirement = "I'm looking for CTS AIR PLANTS Assorted Tillandsia Air Plants 6 Pack. Medium size (3\"-6\") for orbs. Prefer healthy plants, good variety. Need care instructions. For home decor and gifting."
+
+    user_requirement = "I want the CTS assorted Tillandsia 6-pack, medium (about 3-6 in), new, with care instructions."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -202,21 +168,19 @@ def main(model_name=None):
         product_info={
             "name": "CTS AIR PLANTS Assorted Tillandsia Air Plants 6 Pack",
             "condition": "New",
-            "brand": "Visit the CTS Air Plants Store",
+            "brand": "CTS Air Plants",
             "original_price": 19.95,
-            "price": 19.95,
             "availability_status": "In Stock.",
             "product_category": "Patio, Lawn & Garden › Gardening & Lawn Care › Plants, Seeds & Bulbs › Cacti & Succulents",
             "average_rating": 4.7,
             "total_reviews": 25,
             "asin": "B00IB6AW4Y",
-            "full_description": "6 Pack Assorted Tillandsia Medium Size. A nice variety of medium sized air plants. Great size for Orbs. CARE: Great pack for orbs! These varieties are very hardy. Keep them in a sunny window and soak for 8 hours once every 1-2 weeks and that's it. COLOR: most are shades of green, some may have red/pink when in blush/bloom. Plants received may or may not be in bloom. SIZE: These are medium size tillandsia. Plants received will range in size from 3\" to 6\" or larger depending on availability. Best quality you can find. Natural products-sizes, shapes, and colors may vary from photo. Comes with care instructions by CTS Air Plants.",
-            "small_description": "6 medium size air plants Approximately 3\"-6\". 6 different air plant varieties. Fast Shipping. Comes with care instructions by CTS Air Plants. Make great gifts.",
-            "seller1_condition": "Healthy plants, standard shipping 7-10 days",
-            "seller2_condition": "Premium selection, expedited shipping available, plants may be in bloom",
+            "size_note": "Medium Tillandsia, roughly 3\"–6\" each; natural variation in shape/color; may or may not be in bloom",
+            "care_summary": "Bright light; soak ~8 hours every 1–2 weeks; hardy varieties",
+            "full_description": "Six assorted medium air plants; suitable for orbs and displays; includes care instructions; natural product—sizes and colors may vary from photos.",
             "image_url": product_image_url,
         },
-        user_profile=user_profile,  # Pass user profile
+        user_profile=user_profile,
     )
     
     # Start negotiation loop
@@ -242,53 +206,29 @@ def main(model_name=None):
         combined_history_b1 = []
         # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b1s1", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b1s2", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 2"})
         
         # Build combined conversation history for buyer2 (includes both sellers' conversations)
         combined_history_b2 = []
         # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b2s1", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b2s2", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 2"})
         
-        # Get buyer1's response - buyer should indicate which seller they want to negotiate with
-        buyer1_response = buyer1.respond(
-            conversation_history=combined_history_b1,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>."
         )
-        
-        # Get buyer2's response - buyer should indicate which seller they want to negotiate with
-        buyer2_response = buyer2.respond(
-            conversation_history=combined_history_b2,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        buyer1_response, buyer1_selected_seller = _run_buyer_routing(
+            buyer1, combined_history_b1, observation, routing_instruction
         )
-        
-        # Extract seller choice from each buyer's response
-        buyer1_selected_seller = extract_seller_choice(buyer1_response, observation, buyer_id=1)
-        buyer2_selected_seller = extract_seller_choice(buyer2_response, observation, buyer_id=2)
+        buyer2_response, buyer2_selected_seller = _run_buyer_routing(
+            buyer2, combined_history_b2, observation, routing_instruction
+        )
         
         print(f"\n[Buyer 1 chooses to negotiate with Seller {buyer1_selected_seller} this round]")
         print(f"[Buyer 2 chooses to negotiate with Seller {buyer2_selected_seller} this round]")
@@ -626,7 +566,7 @@ def main(model_name=None):
             f.write("Product:\n")
             f.write(f"  Name: {product_info.get('name', 'N/A')}\n")
             f.write(f"  Brand: {product_info.get('brand', 'N/A')}\n")
-            f.write(f"  Price: ${product_info.get('price', 0):.2f}\n")
+            f.write(f"  Price: ${product_info.get('price', product_info.get('original_price', 0)):.2f}\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
@@ -668,7 +608,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         default=None,
-        help="OpenVLM model name. Set OPENAI_URL/OPENVLM_BASE_URL for API endpoint, OPENVLM_MODEL for default model name."
+        help="Model name to use (e.g., 'gpt-5.4'). If not provided, uses default model.",
     )
     args = parser.parse_args()
     main(model_name=args.model)

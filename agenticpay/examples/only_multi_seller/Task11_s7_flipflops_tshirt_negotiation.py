@@ -1,14 +1,17 @@
-"""Task11 Scenario 7: Flip Flops & Marvel T-Shirt - Sequential Two-Seller Negotiation
+"""Task11 Scenario 7: Marvel Avengers Endgame T-Shirt - Sequential Two-Seller Negotiation
 
-Seller1 offers N/C Mens Flip Flops, Seller2 offers Marvel Avengers T-Shirt.
-Buyer compares products and pricing, choosing which seller to negotiate with each round.
+The buyer asks to purchase one product (same SKU) from the marketplace. Product info is a single
+item listing without per-seller details; two independent sellers each negotiate that same item with
+different confidential floor (minimum) prices.
 Category: Clothing & Fashion
+Tests agent's ability to handle multi-seller apparel negotiation with product images (image + text).
 """
 
 import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -26,7 +29,6 @@ from agenticpay.models.qwen3_vl import Qwen3VL
 from agenticpay.models.vllm_lm import VLLMLLM
 from agenticpay.models.sglang_vlm import SGLangVLM
 from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-import re
 
 
 def get_model_name(model):
@@ -59,55 +61,6 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
-
 
 def main(model_name=None):
     """Main function: Demonstrates sequential multi-seller negotiation flow
@@ -118,24 +71,24 @@ def main(model_name=None):
     
     print("Initializing model...")
     
-    # OpenVLM via OpenAI-compatible API (product images passed to VLM)
+    # Check API key
     api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
-    openvlm_base_url = os.getenv("OPENAI_URL") or os.getenv("OPENVLM_BASE_URL", "http://localhost:8000/v1")
-    openvlm_model = os.getenv("OPENVLM_MODEL", "openvlm")
+    if not api_key:
+        print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
+        print("You can set it with: export OPENAI_API_KEY='your-key-here'")
+        return
     
-    model = OpenAIVLM(
-        model=model_name or openvlm_model,
-        api_key=api_key,
-        base_url=openvlm_base_url,
-    )
+    # Use OpenAIVLM (Vision Language Model) for product negotiation with product images (image + text)
+    model_name = model_name or "gpt-5.4"
+    model = OpenAIVLM(model=model_name, api_key=api_key)
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Same product (SKU) from two listings: each seller has a different confidential floor (minimum) price
     print("Creating agents...")
-    buyer_max_price = 16.5  # Maximum acceptable purchase price for buyer (confidential) - covers both products
-    seller1_min_price = 12.0  # Minimum acceptable selling price for seller1 - Flip Flops (confidential)
-    seller2_min_price = 15.0  # Minimum acceptable selling price for seller2 - Marvel T-Shirt (confidential)
+    buyer_max_price = 20.0  # Maximum acceptable purchase price for buyer (confidential)
+    seller1_min_price = 15.5  # Seller 1 floor (confidential; lower cost / willing to go lower)
+    seller2_min_price = 17.0  # Seller 2 floor (confidential; higher than seller 1)
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
@@ -148,69 +101,48 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=17.99,  # Initial price offered by seller1 - N/C Flip Flops
-        initial_seller2_price=22.99,  # Initial price offered by seller2 - Marvel T-Shirt
+        initial_seller1_price=22.99,  # Opening ask — same item, different offer
+        initial_seller2_price=24.49,  # Opening ask — same item, different offer
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "seller1_listing_age": "2 days",
-            "seller2_listing_age": "1 week",
+            "note": "Multiple third-party offers exist for the same product listing.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Man looking for comfortable summer footwear or casual Marvel fan apparel. Values arch support for flip flops, and prefers officially licensed merchandise. Uses for beach, pool, and casual wear."
+    # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
+    user_profile = "Wants a licensed Marvel Avengers: Endgame tee; open to comparing offers for the same product."
     print(f"User Profile: {user_profile}")
     
-    # Use default requirement for automatic running
-    user_requirement = "I'm looking for either men's flip flops, size 44, black color with cloth upper for beach and pool, or a Marvel Avengers T-shirt in black, men's fit. Prefer comfortable and good value."
+    # One-product user query: concise, natural English (simulated search / assistant request)
+    user_requirement = "Marvel Avengers Endgame Cap graphic tee, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
     print("\n" + "="*60)
-    print("Starting new sequential negotiation with two sellers (Seller1: Flip Flops, Seller2: Marvel T-Shirt)...")
+    print("Starting new sequential negotiation with two sellers...")
     print("="*60)
     
-    # Product 1: N/C Mens Flip Flops (from Task10_s7_sandals example)
-    # Product 2: Marvel Avengers T-Shirt (from sampled_products2.jsonl line 7)
+    product_image_url = "https://m.media-amazon.com/images/I/A13usaonutL.png"
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "seller1_product": {
-                "name": "N/C Mens Flip Flops Thong Sandals Yoga Foam Slippers 44 R011 Black",
-                "condition": "New",
-                "brand": "Brand: N/C",
-                "size": "44",
-                "color": "R011 Black",
-                "original_price": 17.99,
-                "availability_status": "In stock. Usually ships within 3 to 4 days.",
-                "product_category": "Clothing, Shoes & Jewelry › Men › Shoes › Sandals",
-                "average_rating": 4.0,
-                "total_reviews": 0,
-                "seller_name": "changqia'w",
-                "asin": "B0989VY7D8",
-                "full_description": "Men's flip flops: the skin contact part is made of cloth so you can walk without friction or sharpness. Even if used for a long time, it will not cause blisters. Antiskid comfort with good spiral antiskid pattern at the bottom. Arch support provides good walking stability and keeps your feet comfortable. Upper material: mesh. Sole material: PVC. Waterproof and suitable for all seasons. Perfect for beach, pool, and casual wear. Sizes: 39-45.",
-                "image_url": "https://m.media-amazon.com/images/I/61vR1ZJ9u3S.jpg",
-            },
-            "seller2_product": {
-                "name": "Marvel Avengers: Endgame Captain America America's Language T-Shirt",
-                "condition": "New",
-                "brand": "Brand: Marvel",
-                "original_price": 22.99,
-                "availability_status": "In Stock.",
-                "product_category": "Clothing, Shoes & Jewelry › Novelty & More › Clothing › Novelty › Women › Tops & Tees › T-Shirts",
-                "average_rating": 5,
-                "total_reviews": 2,
-                "seller_name": "",
-                "asin": "B07XPR3R7N",
-                "full_description": "Team up with what is left of the Avengers to fix the damage that Thanos has caused to the universe. You'll find the perfect gear within this collection of Officially Licensed Marvel Avengers: Endgame tee shirts, sweatshirts, and hoodies!",
-                "image_url": "https://m.media-amazon.com/images/I/A13usaonutL.png",
-            },
+            "name": "Marvel Avengers: Endgame Captain America America's Language T-Shirt",
+            "condition": "New",
+            "brand": "Marvel",
+            "original_price": 22.99,
+            "availability_status": "In Stock.",
+            "product_category": "Clothing, Shoes & Jewelry › Novelty & More › Clothing › Novelty › Women › Tops & Tees › T-Shirts",
+            "average_rating": 5,
+            "total_reviews": 2,
+            "full_description": "Team up with what is left of the Avengers to fix the damage that Thanos has caused to the universe. You'll find the perfect gear within this collection of Officially Licensed Marvel Avengers: Endgame tee shirts, sweatshirts, and hoodies!",
+            "asin": "B07XPR3R7N",
+            "image_url": product_image_url,
         },
         user_profile=user_profile,  # Pass user profile
     )
@@ -240,30 +172,53 @@ def main(model_name=None):
         for msg in observation.get("conversation_history_seller1", []):
             combined_history.append({
                 **msg,
-                "content": f"[Seller 1] {msg['content']}"
+                "thread_label": "Talk with Seller 1",
             })
         # Add seller2 messages with prefix
         for msg in observation.get("conversation_history_seller2", []):
             combined_history.append({
                 **msg,
-                "content": f"[Seller 2] {msg['content']}"
+                "thread_label": "Talk with Seller 2",
             })
-        
-        # Get buyer's response - buyer should indicate which seller they want to negotiate with
+        # Get buyer's response - buyer should choose a seller via a structured <selected_seller> block
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>."
+        )
         buyer_response = buyer.respond(
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
+                "instruction": routing_instruction
             }
         )
-        
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+
+        # Routing relies on the structured <selected_seller> block.
+        # If parsing fails, retry a few times; if still missing, fallback to random seller.
+        selected_seller = buyer.last_selected_seller
+        max_selection_retries = 2
+        retry_count = 0
+        while selected_seller is None and retry_count < max_selection_retries:
+            retry_count += 1
+            print(f"\n[Warning] Missing <selected_seller>; retrying buyer response ({retry_count}/{max_selection_retries})...")
+            buyer_response = buyer.respond(
+                conversation_history=combined_history,
+                current_state={
+                    **observation,
+                    "instruction": (
+                        routing_instruction
+                        + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+                    )
+                }
+            )
+            selected_seller = buyer.last_selected_seller
+        if selected_seller is None:
+            selected_seller = random.choice([1, 2])
+            print(f"\n[Warning] Failed to parse <selected_seller> after retries; randomly selecting Seller {selected_seller}.")
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
-        # Use buyer's full response as the negotiation message
-        # The response may include the choice statement, which is fine as it's buyer's natural expression
+        # BuyerAgent returns only the <message> block as the negotiation message.
         buyer_action = buyer_response
         
         # Get the conversation history for the selected seller
@@ -442,18 +397,16 @@ def main(model_name=None):
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
                 "product_info": {
-                    "seller1_product": {
-                        "name": "N/C Mens Flip Flops Thong Sandals Yoga Foam Slippers 44 R011 Black",
-                        "brand": "Brand: N/C",
-                        "original_price": 17.99,
-                        "asin": "B0989VY7D8",
-                    },
-                    "seller2_product": {
-                        "name": "Marvel Avengers: Endgame Captain America America's Language T-Shirt",
-                        "brand": "Brand: Marvel",
-                        "original_price": 22.99,
-                        "asin": "B07XPR3R7N",
-                    },
+                    "name": "Marvel Avengers: Endgame Captain America America's Language T-Shirt",
+                    "condition": "New",
+                    "brand": "Marvel",
+                    "original_price": 22.99,
+                    "availability_status": "In Stock.",
+                    "product_category": "Clothing, Shoes & Jewelry › Novelty & More › Clothing › Novelty › Women › Tops & Tees › T-Shirts",
+                    "average_rating": 5,
+                    "total_reviews": 2,
+                    "asin": "B07XPR3R7N",
+                    "image_url": product_image_url,
                 },
                 "model": get_model_name(model),
             })
@@ -493,7 +446,7 @@ def main(model_name=None):
         output_file = run_dir / "Task11_s7_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task11 Scenario 7: Flip Flops & Marvel T-Shirt - Sequential Two-Seller Negotiation Results\n")
+            f.write("Task11 Scenario 7: Marvel Avengers Endgame T-Shirt - Sequential Two-Seller Negotiation Results\n")
             f.write("Category: Clothing & Fashion\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -550,12 +503,12 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task11 Scenario 7: Flip Flops & Marvel T-Shirt - Sequential Two-Seller Negotiation")
+    parser = argparse.ArgumentParser(description="Task11 Scenario 7: Marvel Avengers Endgame T-Shirt - Sequential Two-Seller Negotiation")
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="OpenVLM model name. Set OPENAI_URL/OPENVLM_BASE_URL for API endpoint, OPENVLM_MODEL for default model name."
+        help="Model name to use (e.g., 'gemini-3-pro-all', 'gpt-5.2', 'claude-sonnet-4-5-20250929'). If not provided, uses default model."
     )
     args = parser.parse_args()
     main(model_name=args.model)

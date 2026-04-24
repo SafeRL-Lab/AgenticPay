@@ -10,6 +10,7 @@ import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -23,21 +24,7 @@ from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.custom_llm import CustomLLM
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, buyer_reward_aggregation, seller_reward_aggregation, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    buyer_reward_aggregation = "average"
-    seller_reward_aggregation = "average"
-    max_rounds = 20
-    price_tolerance = 0.0
-    OPENAI_API_KEY = None
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -70,56 +57,48 @@ def get_model_name(model):
             return model_str
 
 
-def extract_buyer_choice(seller_response: str, observation: dict) -> int:
-    """Extract buyer choice from seller's response
-    
-    Seller should indicate which buyer they want to negotiate with.
-    Look for patterns like "buyer 1", "buyer1", "first buyer", etc.
-    
-    Args:
-        seller_response: Seller's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which buyer seller wants to negotiate with
-    """
-    response_lower = seller_response.lower()
-    
-    # Look for explicit buyer mentions
-    if re.search(r'buyer\s*[12]|first\s+buyer|buyer\s*one', response_lower):
-        if re.search(r'buyer\s*2|second\s+buyer|buyer\s*two', response_lower):
-            return 2
-        elif re.search(r'buyer\s*1|first\s+buyer|buyer\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if seller mentions prices or other indicators
-    buyer1_price = observation.get("buyer1_price")
-    buyer2_price = observation.get("buyer2_price")
-    seller_price_buyer1 = observation.get("seller_price_buyer1")
-    seller_price_buyer2 = observation.get("seller_price_buyer2")
-    
-    # If seller mentions a specific price, try to match it (beauty product price range ~$5-8)
-    price_match = re.search(r'\$?(\d+\.?\d*)', seller_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller_price_buyer1 is not None and abs(mentioned_price - seller_price_buyer1) < 1:
-            return 1
-        elif seller_price_buyer2 is not None and abs(mentioned_price - seller_price_buyer2) < 1:
-            return 2
-    
-    # Default: if no clear indication, check which buyer has been negotiated with more
-    # or which has a better price (higher buyer price is better for seller)
-    if buyer1_price is not None and buyer2_price is not None:
-        # Choose the one with higher price if both available
-        return 1 if buyer1_price >= buyer2_price else 2
-    elif buyer1_price is not None:
-        return 1
-    elif buyer2_price is not None:
-        return 2
-    
-    # Final default: buyer1
-    return 1
+def _run_seller_routing(
+    seller,
+    combined_history: list,
+    observation: dict,
+    routing_instruction: str,
+):
+    """Align with only_multi_seller: structured ``<selected_buyer>`` + retries + random fallback."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    seller_response = None
+    selected_buyer = None
+    while True:
+        seller_response = seller.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_buyers": 2,
+            },
+        )
+        selected_buyer = seller.last_selected_buyer
+        if selected_buyer is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_buyer>; retrying seller response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_buyer> block with only 1 or 2."
+        )
+    if selected_buyer is None:
+        selected_buyer = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_buyer> after retries; "
+            f"randomly selecting Buyer {selected_buyer}."
+        )
+    return seller_response, selected_buyer
 
 
 def main(model_name=None):
@@ -139,7 +118,7 @@ def main(model_name=None):
         return
     
     # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (image + text)
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    model_name = model_name or "gpt-5.4"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
 
     # Alternative: CustomLLM for text-only models
@@ -222,6 +201,13 @@ def main(model_name=None):
     done = False
     start_time = time.time()
     
+    routing_instruction = (
+        "You are negotiating with two buyers. Each round, choose exactly ONE buyer "
+        "and output that choice in a dedicated <selected_buyer> block containing only "
+        "the digit 1 or 2. Follow the required <mental_model> / <message> format and include "
+        "### SELLER_PRICE($X) ### in <message>."
+    )
+
     # Initialize results dictionary
     results = {
         "task": "Task5_s1_beauty_product_negotiation",
@@ -276,27 +262,13 @@ def main(model_name=None):
             # Seller can see both buyers' messages and choose which one to negotiate with
             combined_history = []
             for msg in updated_conversation_history_buyer1:
-                combined_history.append({
-                    **msg,
-                    "content": f"[Buyer 1] {msg['content']}"
-                })
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 1"})
             for msg in updated_conversation_history_buyer2:
-                combined_history.append({
-                    **msg,
-                    "content": f"[Buyer 2] {msg['content']}"
-                })
-            
-            # Get seller's response - seller should indicate which buyer they want to negotiate with
-            seller_response = seller.respond(
-                conversation_history=combined_history,
-                current_state={
-                    **observation,
-                    "instruction": "You are negotiating with two buyers. Each round, you need to choose ONE buyer to negotiate with and provide your negotiation message. Please clearly indicate which buyer (1 or 2) you want to negotiate with, for example: 'I want to negotiate with buyer 1' or 'Let me talk to buyer 2'."
-                }
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 2"})
+
+            seller_response, selected_buyer = _run_seller_routing(
+                seller, combined_history, observation, routing_instruction
             )
-            
-            # Extract buyer choice from seller's response
-            selected_buyer = extract_buyer_choice(seller_response, observation)
             print(f"\n[Seller chooses to negotiate with Buyer {selected_buyer} this round]")
             
             seller_action = seller_response
@@ -307,31 +279,16 @@ def main(model_name=None):
             else:
                 buyer_action = buyer2_action
         else:
-            # Subsequent rounds: seller chooses buyer first, then buyer responds, then seller responds
-            # Seller can see both buyers' information in the observation
+            # Subsequent rounds: seller chooses buyer first, then buyer responds
             combined_history = []
             for msg in observation.get("conversation_history_buyer1", []):
-                combined_history.append({
-                    **msg,
-                    "content": f"[Buyer 1] {msg['content']}"
-                })
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 1"})
             for msg in observation.get("conversation_history_buyer2", []):
-                combined_history.append({
-                    **msg,
-                    "content": f"[Buyer 2] {msg['content']}"
-                })
-            
-            # Get seller's response - seller should indicate which buyer they want to negotiate with
-            seller_response = seller.respond(
-                conversation_history=combined_history,
-                current_state={
-                    **observation,
-                    "instruction": "You are negotiating with two buyers. Each round, you need to choose ONE buyer to negotiate with and provide your negotiation message. Please clearly indicate which buyer (1 or 2) you want to negotiate with, for example: 'I want to negotiate with buyer 1' or 'Let me talk to buyer 2'."
-                }
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 2"})
+
+            seller_response, selected_buyer = _run_seller_routing(
+                seller, combined_history, observation, routing_instruction
             )
-            
-            # Extract buyer choice from seller's response
-            selected_buyer = extract_buyer_choice(seller_response, observation)
             print(f"\n[Seller chooses to negotiate with Buyer {selected_buyer} this round]")
             
             seller_action = seller_response

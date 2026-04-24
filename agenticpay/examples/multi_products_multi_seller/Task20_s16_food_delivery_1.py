@@ -1,7 +1,7 @@
-"""Task20 Scenario 16: Multi-Product Food Delivery - Sequential Two-Seller Per One Product Negotiation
+"""Task20 Scenario 16: Food delivery bundle — sequential two-seller negotiation (image + text)
 
-Buyer negotiating between two food delivery listings: Karaage Chicken (Izakaya) and Karaage Sliders & Fries (Sticky's Chicken).
-Buyer chooses one seller per round to negotiate with.
+Buyer wants the same two food items from either seller and negotiates TOTAL delivered bundle price (items + fees).
+Both sellers list identical products; each has a different floor price and opening offer.
 Category: Food Delivery
 """
 
@@ -21,7 +21,6 @@ from agenticpay.envs.multi_products_multi_seller.Task3_sequential_two_seller_per
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
 
 # Import configuration parameters
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -66,57 +65,8 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-        return 2
-    elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-        return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
-
-
 def main(model_name=None):
-    """Main function: Demonstrates sequential multi-seller negotiation flow with different products
+    """Sequential two-seller negotiation for the same two-item food bundle (total delivered price).
     
     Args:
         model_name: Optional model name. If None, uses default model.
@@ -137,11 +87,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Agents: prices are TOTAL for the two-item bundle (all-in delivered; confidential to each party)
     print("Creating agents...")
-    buyer_max_price = 15.20  # Maximum acceptable all-in order total for buyer (confidential)
-    seller1_min_price = 10.80  # Minimum acceptable all-in order total for seller1 (confidential)
-    seller2_min_price = 13.20  # Minimum acceptable all-in order total for seller2 (confidential)
+    buyer_max_price = 30.0
+    seller1_min_price = 25.0
+    seller2_min_price = 24.0
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
@@ -154,17 +104,18 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=12.78,  # Initial all-in quote for seller1
-        initial_seller2_price=15.15,  # Initial all-in quote for seller2
+        initial_seller1_price=27.93,
+        initial_seller2_price=28.45,
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
+            "comparison_enabled": True,
             "availability_status": "Available for delivery.",
         },
-        price_tolerance=price_tolerance,
+        price_tolerance=0,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
@@ -173,66 +124,65 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I want to compare Karaage Chicken from Izakaya and Karaage Sliders & Fries from Sticky's Chicken. Please negotiate based on all-in delivered totals including delivery and service fees."
+    user_requirement = "Karaage chicken and karaage sliders with fries—what's your best delivered total?"
     print(f"Using default requirement: {user_requirement}")
     
-    # Reset environment with different products for each seller
-    # Product 1: Karaage Chicken | Product 2: Karaage Sliders & Fries (from restaurantmenuchanges.csv)
+    bundle_product_info = {
+        "products": [
+            {
+                "name": "Karaage Chicken",
+                "condition": "Prepared fresh to order",
+                "brand": "Izakaya",
+                "flavor": "Spicy yuzu peel marmalade",
+                "size": "Single appetizer portion",
+                "original_price": 9.00,
+                "price": 12.78,
+                "delivery_distance_miles": 3.2,
+                "delivery_distance_km": 5.1,
+                "delivery_fee": 2.49,
+                "service_fee": 1.29,
+                "quoted_total_price": 12.78,
+                "availability_status": "Available for delivery.",
+                "product_category": "Food Delivery › Japanese › Small Plates",
+                "average_rating": 4.66,
+                "total_reviews": 1041,
+                "asin": "DD-HOU-IZAKAYA-KARAAGE-CHICKEN",
+                "full_description": "Fried chicken bites served as a Japanese small plate with spicy yuzu peel marmalade. Menu price is $9.00, with a $2.49 delivery fee and $1.29 service fee for an all-in quoted total of $12.78 per item line in a split-order reference.",
+                "image_url": "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/3fb24687-e36e-4ad6-b9d0-62ce9d9d8b2e-retina-large.JPG",
+            },
+            {
+                "name": "Karaage Sliders & Fries",
+                "condition": "Prepared fresh to order",
+                "brand": "Sticky's Chicken",
+                "flavor": "Japanese-style fried chicken sliders with fries",
+                "size": "Single combo meal",
+                "original_price": 11.55,
+                "price": 15.15,
+                "delivery_distance_miles": 2.6,
+                "delivery_distance_km": 4.2,
+                "delivery_fee": 2.39,
+                "service_fee": 1.21,
+                "quoted_total_price": 15.15,
+                "availability_status": "Available for delivery.",
+                "product_category": "Food Delivery › Chicken › Sliders & Fries",
+                "average_rating": 4.68,
+                "total_reviews": 405,
+                "asin": "DD-HOU-STICKYS-KARAAGE-SLIDERS-FRIES",
+                "full_description": "Karaage Sliders & Fries featuring Japanese-style fried chicken sliders served with fries. Menu price is $11.55 with a $2.39 delivery fee and $1.21 service fee, for an all-in quoted total of $15.15 per item line in a split-order reference.",
+                "image_url": "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/ca4c54d9-9782-406c-af50-b46333593362-96dd7bc8-5c66-48f4-b8c6-bc356758f1e6-retina-large.JPG",
+            },
+        ],
+    }
+    
     print("\n" + "="*60)
-    print("Starting new sequential negotiation (Seller1: Karaage Chicken, Seller2: Karaage Sliders & Fries)...")
+    print("Sequential negotiation: two sellers, same 2-item food bundle, different bundle offers...")
     print("="*60)
     
     observation, info = env.reset(
         user_requirement=user_requirement,
-        seller1_product_info=
-        {
-            "name": "Karaage Chicken",
-            "condition": "Prepared fresh to order",
-            "brand": "Izakaya",
-            "flavor": "Spicy yuzu peel marmalade",
-            "size": "Single appetizer portion",
-            "original_price": 9.00,
-            "price": 12.78,
-            "restaurant_address": "318 Gray St, Houston, TX 77002, USA",
-            "delivery_distance_miles": 3.2,
-            "delivery_distance_km": 5.1,
-            "delivery_fee": 2.49,
-            "service_fee": 1.29,
-            "quoted_total_price": 12.78,
-            "availability_status": "Available for delivery.",
-            "product_category": "Food Delivery › Japanese › Small Plates",
-            "average_rating": 4.66,
-            "total_reviews": 1041,
-            "seller_name": "Izakaya",
-            "asin": "DD-HOU-IZAKAYA-KARAAGE-CHICKEN",
-            "full_description": "Fried chicken bites served as a Japanese small plate with spicy yuzu peel marmalade. Menu price is $9.00, with a $2.49 delivery fee and $1.29 service fee for an all-in quoted total of $12.78.",
-            "image_url": "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/3fb24687-e36e-4ad6-b9d0-62ce9d9d8b2e-retina-large.JPG",
-        },
-        seller2_product_info=
-        {
-            "name": "Karaage Sliders & Fries",
-            "condition": "Prepared fresh to order",
-            "brand": "Sticky's Chicken",
-            "flavor": "Japanese-style fried chicken sliders with fries",
-            "size": "Single combo meal",
-            "original_price": 11.55,
-            "price": 15.15,
-            "restaurant_address": "Sticky's Chicken, 2311 Edwards St Suite 190, Houston, TX 77007, USA",
-            "delivery_distance_miles": 2.6,
-            "delivery_distance_km": 4.2,
-            "delivery_fee": 2.39,
-            "service_fee": 1.21,
-            "quoted_total_price": 15.15,
-            "availability_status": "Available for delivery.",
-            "product_category": "Food Delivery › Chicken › Sliders & Fries",
-            "average_rating": 4.68,
-            "total_reviews": 405,
-            "seller_name": "Sticky's Chicken",
-            "asin": "DD-HOU-STICKYS-KARAAGE-SLIDERS-FRIES",
-            "full_description": "Karaage Sliders & Fries featuring Japanese-style fried chicken sliders served with fries. Menu price is $11.55 with a $2.39 delivery fee and $1.21 service fee, for an all-in quoted total of $15.15.",
-            "image_url": "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/ca4c54d9-9782-406c-af50-b46333593362-96dd7bc8-5c66-48f4-b8c6-bc356758f1e6-retina-large.JPG",
-        },
-        user_profile=user_profile,  # Pass user profile
+        seller1_product_info=bundle_product_info,
+        seller2_product_info=bundle_product_info,
+        user_profile=user_profile,
     )
     
     # Start negotiation loop
@@ -274,12 +224,13 @@ def main(model_name=None):
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers, each offering a different product. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
+                "instruction": "Two sellers offer the SAME two food products as one delivered bundle. Each round pick ONE seller (use <selected_seller>) and negotiate the TOTAL all-in price for both items (including delivery and service fees)."
             }
         )
         
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+        selected_seller = Task3SequentialTwoSellerPerOneProductNegotiation.resolve_selected_seller(
+            buyer_response, observation, buyer.last_selected_seller
+        )
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
         # Use buyer's full response as the negotiation message
@@ -411,13 +362,12 @@ def main(model_name=None):
             if info.get('selected_seller'):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
-                # Display product info for selected seller
-                if info['selected_seller'] == 1:
-                    product_info = info.get('seller1_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
-                elif info['selected_seller'] == 2:
-                    product_info = info.get('seller2_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
+                bundle = info.get('seller1_product_info', {}) or {}
+                plist = bundle.get('products') or []
+                if len(plist) >= 2:
+                    print(f"Bundle: (1) {plist[0].get('name', 'N/A')} | (2) {plist[1].get('name', 'N/A')}")
+                elif plist:
+                    print(f"Selected bundle item: {plist[0].get('name', 'N/A')}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -512,7 +462,7 @@ def main(model_name=None):
         output_file = run_dir / "Task20_s16_food_delivery_1_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task20 Scenario 16: Multi-Product Food Delivery - Sequential Two-Seller Per One Product Negotiation Results\\n")
+            f.write("Task20 Scenario 16: Food delivery bundle — sequential two-seller negotiation results\n")
             f.write("Category: Food Delivery\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -527,8 +477,10 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n")
-                selected_product = results.get('seller1_product_info', {}) if results['selected_seller'] == 1 else results.get('seller2_product_info', {})
-                f.write(f"Selected Product: {selected_product.get('name', 'N/A')} by {selected_product.get('brand', 'N/A')}\n\n")
+                binfo = results.get('seller1_product_info', {}) or {}
+                pl = binfo.get('products') or []
+                if len(pl) >= 2:
+                    f.write(f"Bundle: {pl[0].get('name', 'N/A')} + {pl[1].get('name', 'N/A')}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -538,13 +490,11 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
-            f.write("Products:\n")
-            seller1_product = results.get('seller1_product_info', {})
-            p1 = seller1_product.get('price') or seller1_product.get('original_price', 0)
-            f.write(f"  Seller1 Product: {seller1_product.get('name', 'N/A')} by {seller1_product.get('brand', 'N/A')} (${p1:.2f})\n")
-            seller2_product = results.get('seller2_product_info', {})
-            p2 = seller2_product.get('price') or seller2_product.get('original_price', 0)
-            f.write(f"  Seller2 Product: {seller2_product.get('name', 'N/A')} by {seller2_product.get('brand', 'N/A')} (${p2:.2f})\n")
+            f.write("Products (same bundle for both sellers):\n")
+            shared = results.get('seller1_product_info', {}) or {}
+            for i, p in enumerate(shared.get('products') or [], 1):
+                pr = p.get('price', p.get('original_price', 0))
+                f.write(f"  {i}. {p.get('name', 'N/A')} (${float(pr):.2f})\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
@@ -579,7 +529,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task20 Scenario 16: Multi-Product Food Delivery - Sequential Two-Seller Per One Product Negotiation")
+    parser = argparse.ArgumentParser(description="Task20 Scenario 16: Food delivery — sequential two-seller same-bundle negotiation")
     parser.add_argument(
         "--model",
         type=str,

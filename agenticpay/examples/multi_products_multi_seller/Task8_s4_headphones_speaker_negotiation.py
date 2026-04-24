@@ -1,9 +1,7 @@
-"""Task8 Scenario 4: Headphones & Bluetooth Speaker - Sequential Two-Seller Per One Product Negotiation
+"""Task8 Scenario 4: Kids headphones + Sony speaker bundle — sequential two-seller negotiation
 
-Buyer negotiating with two sellers on Amazon: Seller1 offers Kids Headphones, Seller2 offers Sony Bluetooth Speaker.
-Buyer chooses one seller per round to negotiate with.
+Same two electronics items from both sellers; buyer negotiates total bundle price (image + text).
 Category: Electronics
-Product info from Task7 example (Kids Headphones) and sampled_products2.jsonl 4th (Sony Speaker), with images (image + text).
 """
 
 import os
@@ -22,7 +20,6 @@ from agenticpay.envs.multi_products_multi_seller.Task3_sequential_two_seller_per
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
 
 # Import configuration parameters
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,7 +31,7 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -67,55 +64,6 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-        return 2
-    elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-        return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it (headphones ~$15, speaker ~$108)
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 10:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 15:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
-
-
 def main(model_name=None):
     """Main function: Demonstrates sequential multi-seller negotiation flow with different products
     
@@ -138,12 +86,10 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # Seller1: Kids Headphones ~$15, Seller2: Sony Speaker ~$108
     print("Creating agents...")
-    buyer_max_price = 13.0  # Maximum acceptable price for buyer (covers both products)
-    seller1_min_price = 10.0  # Minimum for seller1 - Kids Headphones
-    seller2_min_price = 85.0  # Minimum for seller2 - Sony Bluetooth Speaker
+    buyer_max_price = 115.0
+    seller1_min_price = 108.0
+    seller2_min_price = 105.0
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
@@ -156,8 +102,8 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=14.99,  # Initial price - Kids Headphones (from Task7 example)
-        initial_seller2_price=108.49,  # Initial price - Sony Speaker (from jsonl 4th)
+        initial_seller1_price=126.0,
+        initial_seller2_price=124.5,
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
@@ -170,55 +116,57 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Parent and music enthusiast. Looking for affordable audio products - kids headphones for school or portable Bluetooth speaker for outdoor use. Values durability, good value, and product reviews."
+    user_profile = "Parent and music enthusiast; wants kids headphones plus a portable speaker and compares bundle offers."
     print(f"User Profile: {user_profile}")
     
-    # Get user requirement
-    # Use default requirement for automatic running
-    user_requirement = "I'm looking for either kids wireless headphones with volume control for school, or a portable Bluetooth speaker with good battery life for outdoor parties. Prefer products with good ratings."
+    user_requirement = "I need the kids Bluetooth headphones and the Sony SRS-XB33 speaker together—lowest total?"
     print(f"Using default requirement: {user_requirement}")
     
-    # Reset environment with different products for each seller
-    # Product images for VLM (image + text): from example and jsonl
-    seller1_image_url = "https://m.media-amazon.com/images/I/41B+OC0qnOL.jpg"  # Kids Headphones (Task7 example)
-    seller2_image_url = "https://m.media-amazon.com/images/I/41+lMIUpYbL.jpg"  # Sony Speaker (jsonl 4th)
+    img1 = "https://m.media-amazon.com/images/I/41B+OC0qnOL.jpg"
+    img2 = "https://m.media-amazon.com/images/I/41+lMIUpYbL.jpg"
+
+    bundle_product_info = {
+        "products": [
+            {
+                "name": "Kids Wireless Headphones, Adjustable Headband, Stereo Sound, 3.5mm Jack, Kids Bluetooth Headphones, Volume Control, Foldable, Build-in Microphone, Over-Ear Headphones for Kids for School Home, Travel",
+                "condition": "New",
+                "brand": "NVRADCHUA",
+                "price": 14.99,
+                "original_price": 14.99,
+                "availability_status": "In Stock.",
+                "product_category": "Electronics › Headphones › Over-Ear Headphones",
+                "average_rating": 4.0,
+                "total_reviews": 2,
+                "asin": "B09KQNH5C6",
+                "full_description": "Bluetooth 5.0 and 3.5mm jack, foldable kids over-ear headphones with volume control and mic; up to ~7h battery.",
+                "image_url": img1,
+            },
+            {
+                "name": "Sony Extra Bass Portable Bluetooth Speaker Black - SRS-XB33/BC (Renewed)",
+                "condition": "Renewed",
+                "brand": "Sony",
+                "price": 108.49,
+                "original_price": 108.49,
+                "availability_status": "Only 1 left in stock - order soon.",
+                "product_category": "Electronics › Portable Audio & Video › Portable Speakers & Docks › Portable Bluetooth Speakers",
+                "average_rating": 4.5,
+                "total_reviews": 962,
+                "asin": "B08FZDJRQ7",
+                "full_description": "Amazon Renewed Sony SRS-XB33 portable Bluetooth speaker (Extra Bass), inspected and tested.",
+                "image_url": img2,
+            },
+        ]
+    }
 
     print("\n" + "="*60)
-    print("Starting new sequential negotiation with two sellers (Kids Headphones vs Sony Bluetooth Speaker)...")
+    print("Sequential negotiation: headphones + speaker bundle, two sellers...")
     print("="*60)
 
     observation, info = env.reset(
         user_requirement=user_requirement,
-        seller1_product_info={
-            "name": "Kids Wireless Headphones, Adjustable Headband, Stereo Sound, 3.5mm Jack, Kids Bluetooth Headphones, Volume Control, Foldable, Build-in Microphone, Over-Ear Headphones for Kids for School Home, Travel",
-            "condition": "New",
-            "brand": "Brand: NVRADCHUA",
-            "original_price": 14.99,
-            "availability_status": "In Stock.",
-            "product_category": "Electronics › Headphones › Over-Ear Headphones",
-            "average_rating": 4.0,
-            "total_reviews": 2,
-            "seller_name": "Manyutech",
-            "asin": "B09KQNH5C6",
-            "full_description": "WIRELESS & WIRED KIDS HEADPHONES: Built with 5.0 Bluetooth chip for fast and stable connection, also with 3.5mm jack. Compatible with smartphones, laptops, tablets, computers, TVs. Cute cat headphones designed with cartoon pattern, comfortable and soft ear cushions to protect child's ears. Excellent sound quality and adjustable headband, stretchable and foldable design for travel and storage. Long battery life (up to 7 hours) and built-in microphone for calls, video chats, or online lessons. Perfect for kids headphones for school and outdoor use.",
-            "image_url": seller1_image_url,  # For VLM: product image (image + text)
-        },
-        seller2_product_info={
-            "name": "Sony Extra Bass Portable Bluetooth Speaker Black - SRS-XB33/BC (Renewed)",
-            "condition": "Renewed",
-            "brand": "Visit the Amazon Renewed Store",
-            "original_price": 108.49,
-            "availability_status": "Only 1 left in stock - order soon.",
-            "product_category": "Electronics › Portable Audio & Video › Portable Speakers & Docks › Portable Bluetooth Speakers",
-            "average_rating": 4.5,
-            "total_reviews": 962,
-            "seller_name": "Planet Open Box",
-            "asin": "B08FZDJRQ7",
-            "full_description": "This pre-owned or refurbished product has been professionally inspected and tested to work and look like new. How a product becomes part of Amazon Renewed, your destination for pre-owned, refurbished products: A customer buys a new product and returns it or trades it in for a newer or different model. That product is inspected and tested to work and look like new by Amazon-qualified suppliers. Then, the product is sold as an Amazon Renewed product on Amazon. If not satisfied with the purchase, renewed products are eligible for replacement or refund under the Amazon Renewed Guarantee.",
-            "image_url": seller2_image_url,  # For VLM: product image (image + text)
-        },
-        user_profile=user_profile,  # Pass user profile
+        seller1_product_info=bundle_product_info,
+        seller2_product_info=bundle_product_info,
+        user_profile=user_profile,
     )
     
     # Start negotiation loop
@@ -260,12 +208,13 @@ def main(model_name=None):
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers, each offering a different audio product (headphones vs Bluetooth speaker). Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
+                "instruction": "Two sellers offer the SAME two products as one bundle. Each round pick ONE seller (use <selected_seller>) and negotiate the TOTAL bundle price for both items together."
             }
         )
         
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+        selected_seller = Task3SequentialTwoSellerPerOneProductNegotiation.resolve_selected_seller(
+            buyer_response, observation, buyer.last_selected_seller
+        )
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
         # Use buyer's full response as the negotiation message
@@ -398,12 +347,12 @@ def main(model_name=None):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
                 # Display product info for selected seller
-                if info['selected_seller'] == 1:
-                    product_info = info.get('seller1_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
-                elif info['selected_seller'] == 2:
-                    product_info = info.get('seller2_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
+                bundle = info.get('seller1_product_info', {}) or {}
+                plist = bundle.get('products') or []
+                if len(plist) >= 2:
+                    print(f"Bundle: (1) {plist[0].get('name', 'N/A')} | (2) {plist[1].get('name', 'N/A')}")
+                elif plist:
+                    print(f"Selected bundle item: {plist[0].get('name', 'N/A')}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -498,7 +447,7 @@ def main(model_name=None):
         output_file = run_dir / "Task8_s4_headphones_speaker_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task8 Scenario 4: Headphones & Bluetooth Speaker - Sequential Two-Seller Per One Product Negotiation Results\n")
+            f.write("Task8 Scenario 4: Headphones + speaker bundle — sequential two-seller negotiation results\n")
             f.write("Category: Electronics\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -513,8 +462,10 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n")
-                selected_product = results.get('seller1_product_info', {}) if results['selected_seller'] == 1 else results.get('seller2_product_info', {})
-                f.write(f"Selected Product: {selected_product.get('name', 'N/A')} by {selected_product.get('brand', 'N/A')}\n\n")
+                binfo = results.get('seller1_product_info', {}) or {}
+                pl = binfo.get('products') or []
+                if len(pl) >= 2:
+                    f.write(f"Bundle: {pl[0].get('name', 'N/A')} + {pl[1].get('name', 'N/A')}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -524,13 +475,11 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
-            f.write("Products:\n")
-            seller1_product = results.get('seller1_product_info', {})
-            seller1_price_val = seller1_product.get('original_price', seller1_product.get('price', 0)) or 0
-            f.write(f"  Seller1 Product: {seller1_product.get('name', 'N/A')} by {seller1_product.get('brand', 'N/A')} (${seller1_price_val:.2f})\n")
-            seller2_product = results.get('seller2_product_info', {})
-            seller2_price_val = seller2_product.get('original_price', seller2_product.get('price', 0)) or 0
-            f.write(f"  Seller2 Product: {seller2_product.get('name', 'N/A')} by {seller2_product.get('brand', 'N/A')} (${seller2_price_val:.2f})\n")
+            f.write("Products (same bundle for both sellers):\n")
+            shared = results.get('seller1_product_info', {}) or {}
+            for i, p in enumerate(shared.get('products') or [], 1):
+                pr = p.get('price', p.get('original_price', 0))
+                f.write(f"  {i}. {p.get('name', 'N/A')} (${float(pr):.2f})\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
@@ -565,7 +514,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task8 Scenario 4: Headphones & Bluetooth Speaker - Sequential Two-Seller Per One Product Negotiation")
+    parser = argparse.ArgumentParser(description="Task8 Scenario 4: Headphones + speaker bundle — sequential two-seller negotiation")
     parser.add_argument(
         "--model",
         type=str,

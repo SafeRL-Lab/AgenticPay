@@ -1,7 +1,6 @@
-"""Task7 Scenario 3: Riflescope & Epson Printer - Sequential Two-Seller Per One Product Negotiation
+"""Task7 Scenario 3: Riflescope + Epson printer bundle — sequential two-seller negotiation
 
-Buyer negotiating with two sellers: Seller1 offers Crimson Trace Riflescope, Seller2 offers Epson thermal receipt printer.
-Buyer chooses one seller per round to negotiate with.
+Same two items from both sellers; buyer negotiates total bundle price. Sellers differ in floor and list offers.
 Category: Sports & Outdoors / Office Electronics
 """
 
@@ -21,7 +20,6 @@ from agenticpay.envs.multi_products_multi_seller.Task3_sequential_two_seller_per
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
 
 # Import configuration parameters
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,7 +31,7 @@ except ImportError:
     reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
     max_rounds = 20
     price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_KEY = None
 
 
 def get_model_name(model):
@@ -66,55 +64,6 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-        return 2
-    elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-        return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
-
-
 def main(model_name=None):
     """Main function: Demonstrates sequential multi-seller negotiation flow with different products
     
@@ -137,11 +86,10 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer_max_price = 210.0  # Maximum acceptable price for buyer (confidential) - can afford either product
-    seller1_min_price = 180.0  # Minimum acceptable price for seller1 - Crimson Trace Riflescope (confidential)
-    seller2_min_price = 250.0  # Minimum acceptable price for seller2 - Epson Printer (confidential)
+    buyer_max_price = 500.0
+    seller1_min_price = 460.0
+    seller2_min_price = 450.0
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
@@ -154,8 +102,8 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=218.79,  # Initial price for Crimson Trace Riflescope (list price)
-        initial_seller2_price=320.0,  # Initial price for Epson thermal receipt printer (list price)
+        initial_seller1_price=548.0,
+        initial_seller2_price=539.5,
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
@@ -168,60 +116,61 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Outdoor enthusiast and small business owner. Values quality optics for hunting and reliable office equipment. Prefers to buy from reputable sellers with good reviews. Interested in either a riflescope or a thermal receipt printer."
+    user_profile = "Outdoor enthusiast and small business owner. Wants quality optics plus a reliable receipt printer; compares bundle totals."
     print(f"User Profile: {user_profile}")
     
-    # Get user requirement
-    # Use default requirement for automatic running
-    user_requirement = "I'm looking for either a Crimson Trace Riflescope for hunting or an Epson thermal receipt printer for my small business. Prefer good value and reliable products."
+    user_requirement = "I want the Crimson Trace Brushline Pro scope and the Epson TM-T20 printer—what's your best combined price?"
     print(f"Using default requirement: {user_requirement}")
-    
-    # Reset environment with different products for each seller
-    # Product 1: Crimson Trace Riflescope (from Task6 example)
-    # Product 2: Epson thermal receipt printer (from sampled_products2.jsonl, 3rd sample)
-    print("\n" + "="*60)
-    print("Starting new sequential negotiation with two sellers (Riflescope vs Epson Printer)...")
-    print("="*60)
     
     riflescope_image_url = "https://m.media-amazon.com/images/I/31j7DdlfrOL.jpg"
     epson_image_url = "https://m.media-amazon.com/images/I/51BzGMyEVfL.jpg"
     
+    bundle_product_info = {
+        "products": [
+            {
+                "name": "Crimson Trace Brushline Pro Riflescope with Lightweight Solid Construction, Scope Caps and Lens Cloth for Hunting, Shooting and Outdoor",
+                "condition": "New",
+                "brand": "Crimson Trace",
+                "model": "Brushline Pro Riflescope 2.5-10x42mm CT Plex Reticle",
+                "style": "2.5-10x42mm Plex",
+                "price": 218.79,
+                "original_price": 218.79,
+                "availability_quantity": 14,
+                "availability_status": "Only 14 left in stock (more on the way).",
+                "product_category": "Sports & Outdoors › Hunting & Fishing › Shooting › Optics › Gun Scopes › Rifle Scopes",
+                "average_rating": 4.3,
+                "total_reviews": 28,
+                "asin": "B08GS6B87J",
+                "full_description": "2.5-10x42mm, second focal plane CT Plex reticle, 1\" tube, waterproof/shockproof, capped turrets; includes lens cloth and caps.",
+                "image_url": riflescope_image_url,
+            },
+            {
+                "name": "Epson C31CB10023 TM-T20 Readyprint Thermal Receipt Printer, Ethernet Interface, Without Cable, Dark Grey",
+                "condition": "New",
+                "brand": "Epson",
+                "model": "C31CB10023",
+                "price": 320.0,
+                "original_price": 320.0,
+                "availability_status": "In stock. Usually ships within 3 to 4 days.",
+                "product_category": "Office Products › Office Electronics",
+                "average_rating": 4.1,
+                "total_reviews": 4,
+                "asin": "B00A0WG5KW",
+                "full_description": "Epson TM-T20 thermal receipt printer, Ethernet, dark grey; reliable POS receipt printing.",
+                "image_url": epson_image_url,
+            },
+        ]
+    }
+    
+    print("\n" + "="*60)
+    print("Sequential negotiation: riflescope + Epson printer bundle, two sellers...")
+    print("="*60)
+    
     observation, info = env.reset(
         user_requirement=user_requirement,
-        seller1_product_info={
-            "name": "Crimson Trace Brushline Pro Riflescope with Lightweight Solid Construction, Scope Caps and Lens Cloth for Hunting, Shooting and Outdoor",
-            "condition": "New",
-            "brand": "Visit the Crimson Trace Store",
-            "model": "Brushline Pro Riflescope 2.5-10x42mm CT Plex Reticle",
-            "style": "2.5-10x42mm Plex",
-            "original_price": 218.79,
-            "availability_quantity": 14,
-            "availability_status": "Only 14 left in stock (more on the way).",
-            "product_category": "Sports & Outdoors › Hunting & Fishing › Shooting › Optics › Gun Scopes › Rifle Scopes",
-            "average_rating": 4.3,
-            "total_reviews": 28,
-            "seller_name": "Amazon.com",
-            "asin": "B08GS6B87J",
-            "full_description": "SPECS: 2.5-10 magnification with a 42mm lens diameter, aerospace grade 1\" tube and weighs 16.6 oz - FOV Range: 40.3 ft Min - 10.1 ft Max. ACCURACY: Features a second focal plane, non-illuminated, CT Plex reticle with a 4\" eye relief, 1/4\" click value and quick spring-loaded zero reset capped turrets. EASE OF USE: Windage (right side), elevation (top) knobs are capped and can be easily unscrewed and adjusted when sighting in at the range by turning with your fingers (no tool required). DURABLE: Constructed of lightweight anodized aluminum with multi-coated lenses and is waterproof, shockproof and nitrogen purged to prevent fogging. INCLUDES: Lens cloth and scope caps.",
-            "image_url": riflescope_image_url,
-        },
-        seller2_product_info={
-            "name": "Epson C31CB10023 TM-T20 Readyprint Thermal Receipt Printer, Ethernet Interface, Without Cable, Dark Grey",
-            "condition": "New",
-            "brand": "Visit the Epson Store",
-            "model": "C31CB10023",
-            "original_price": 320.0,
-            "availability_status": "In stock. Usually ships within 3 to 4 days.",
-            "product_category": "Office Products › Office Electronics",
-            "average_rating": 4.1,
-            "total_reviews": 4,
-            "seller_name": "SourceLink Technologies",
-            "asin": "B00A0WG5KW",
-            "full_description": "For nearly 40 years, Epson has led the industry in developing innovative, reliable, high-performance products. From scanners to printers to 3D projectors, our award-winning technology brings your images to life. Epson Headquartered and established on the shore of Lake Suwa in Nagano, Japan.",
-            "image_url": epson_image_url,
-        },
-        user_profile=user_profile,  # Pass user profile
+        seller1_product_info=bundle_product_info,
+        seller2_product_info=bundle_product_info,
+        user_profile=user_profile,
     )
     
     # Start negotiation loop
@@ -263,12 +212,13 @@ def main(model_name=None):
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers: Seller 1 offers Crimson Trace Riflescope, Seller 2 offers Epson thermal receipt printer. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
+                "instruction": "Two sellers offer the SAME two products as one bundle. Each round pick ONE seller (use <selected_seller>) and negotiate the TOTAL bundle price for both items together."
             }
         )
         
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+        selected_seller = Task3SequentialTwoSellerPerOneProductNegotiation.resolve_selected_seller(
+            buyer_response, observation, buyer.last_selected_seller
+        )
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
         # Use buyer's full response as the negotiation message
@@ -401,12 +351,12 @@ def main(model_name=None):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
                 # Display product info for selected seller
-                if info['selected_seller'] == 1:
-                    product_info = info.get('seller1_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
-                elif info['selected_seller'] == 2:
-                    product_info = info.get('seller2_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
+                bundle = info.get('seller1_product_info', {}) or {}
+                plist = bundle.get('products') or []
+                if len(plist) >= 2:
+                    print(f"Bundle: (1) {plist[0].get('name', 'N/A')} | (2) {plist[1].get('name', 'N/A')}")
+                elif plist:
+                    print(f"Selected bundle item: {plist[0].get('name', 'N/A')}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -501,7 +451,7 @@ def main(model_name=None):
         output_file = run_dir / "Task7_s3_riflescope_epson_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task7 Scenario 3: Riflescope & Epson - Sequential Two-Seller Per One Product Negotiation Results\n")
+            f.write("Task7 Scenario 3: Riflescope + Epson bundle — sequential two-seller negotiation results\n")
             f.write("Category: Sports & Outdoors / Office Electronics\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -516,8 +466,10 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n")
-                selected_product = results.get('seller1_product_info', {}) if results['selected_seller'] == 1 else results.get('seller2_product_info', {})
-                f.write(f"Selected Product: {selected_product.get('name', 'N/A')} by {selected_product.get('brand', 'N/A')}\n\n")
+                binfo = results.get('seller1_product_info', {}) or {}
+                pl = binfo.get('products') or []
+                if len(pl) >= 2:
+                    f.write(f"Bundle: {pl[0].get('name', 'N/A')} + {pl[1].get('name', 'N/A')}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -527,13 +479,11 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
-            f.write("Products:\n")
-            seller1_product = results.get('seller1_product_info', {})
-            price1 = seller1_product.get('original_price', seller1_product.get('price', 0)) or 0
-            f.write(f"  Seller1 Product: {seller1_product.get('name', 'N/A')} by {seller1_product.get('brand', 'N/A')} (${price1:.2f})\n")
-            seller2_product = results.get('seller2_product_info', {})
-            price2 = seller2_product.get('original_price', seller2_product.get('price', 0)) or 0
-            f.write(f"  Seller2 Product: {seller2_product.get('name', 'N/A')} by {seller2_product.get('brand', 'N/A')} (${price2:.2f})\n")
+            f.write("Products (same bundle for both sellers):\n")
+            shared = results.get('seller1_product_info', {}) or {}
+            for i, p in enumerate(shared.get('products') or [], 1):
+                pr = p.get('price', p.get('original_price', 0))
+                f.write(f"  {i}. {p.get('name', 'N/A')} (${float(pr):.2f})\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
@@ -568,7 +518,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task7 Scenario 3: Riflescope & Epson - Sequential Two-Seller Per One Product Negotiation")
+    parser = argparse.ArgumentParser(description="Task7 Scenario 3: Riflescope + Epson bundle — sequential two-seller negotiation")
     parser.add_argument(
         "--model",
         type=str,

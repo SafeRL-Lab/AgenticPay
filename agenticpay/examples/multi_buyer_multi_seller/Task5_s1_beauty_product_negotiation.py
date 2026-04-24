@@ -1,7 +1,7 @@
 """Task5 Scenario 1: Beauty Product - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two buyers negotiating with two sellers for Maybelline Expert Wear Eyeshadow (Task4).
-Each buyer chooses one seller per round to negotiate with. Product info with images (image + text).
+Same SKU from two marketplace offers: product listing has no per-seller identity; two sellers each
+have a different confidential floor. Two buyers each pick one seller per round (structured routing).
 Category: Daily Life Consumption
 """
 
@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -20,21 +21,8 @@ sys.path.insert(0, project_root)
 from agenticpay.envs.multi_buyer_multi_seller.Task3_sequential_two_buyer_two_seller_negotiation import Task3SequentialTwoBuyerTwoSellerNegotiation
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
-from agenticpay.models.custom_llm import CustomLLM
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    max_rounds = 20
-    price_tolerance = 1.0
-    OPENAI_API_KEY = None
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -67,60 +55,43 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict, buyer_id: int) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        buyer_id: Buyer ID (1 or 2)
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    # Get prices for this buyer
-    if buyer_id == 1:
-        seller1_price = observation.get("b1s1_seller_price")
-        seller2_price = observation.get("b1s2_seller_price")
-    else:  # buyer_id == 2
-        seller1_price = observation.get("b2s1_seller_price")
-        seller2_price = observation.get("b2s2_seller_price")
-    
-    # If buyer mentions a specific price, try to match it (beauty product price range ~$5-8)
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 1:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 1:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
+def _run_buyer_routing(buyer, combined_history: list, observation: dict, routing_instruction: str):
+    """Structured ``<selected_seller>`` + retries + random fallback (aligned with only_multi_seller Task5)."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    buyer_response = None
+    selected_seller = None
+    while True:
+        buyer_response = buyer.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_sellers": 2,
+            },
+        )
+        selected_seller = buyer.last_selected_seller
+        if selected_seller is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_seller>; retrying buyer response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+        )
+    if selected_seller is None:
+        selected_seller = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_seller> after retries; "
+            f"randomly selecting Seller {selected_seller}."
+        )
+    return buyer_response, selected_seller
 
 
 def main(model_name=None):
@@ -140,17 +111,17 @@ def main(model_name=None):
         return
     
     # Use OpenAIVLM (Vision Language Model) for beauty product negotiation with product images (image + text)
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    model_name = model_name or "gpt-5.4"
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents - Maybelline Eyeshadow scenario (Task4): two buyers, two sellers
+    # Same product (SKU) from two listings: each seller has a different confidential floor
     print("Creating agents...")
-    buyer1_max_price = 6.50  # Maximum acceptable purchase price for buyer1 (confidential)
-    buyer2_max_price = 6.30  # Maximum acceptable purchase price for buyer2 (confidential, slightly lower)
-    seller1_min_price = 5.00  # Minimum acceptable selling price for seller1 (confidential)
-    seller2_min_price = 5.20  # Minimum acceptable selling price for seller2 (confidential, slightly higher)
+    buyer1_max_price = 6.50  # Buyer 1 max willingness to pay (confidential)
+    buyer2_max_price = 6.30  # Buyer 2 max willingness to pay (confidential; lower than buyer 1)
+    seller1_min_price = 4.90  # Seller 1 floor (confidential; lower cost)
+    seller2_min_price = 5.45  # Seller 2 floor (confidential; higher than seller 1)
     
     buyer1 = BuyerAgent(model=model, buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, buyer_max_price=buyer2_max_price)
@@ -165,27 +136,27 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=7.50,  # Initial price offered by seller1 (list price $7.98)
-        initial_seller2_price=7.80,  # Initial price offered by seller2 (slightly higher)
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        initial_seller1_price=7.45,  # Opening ask — same item, different listing
+        initial_seller2_price=7.95,  # Opening ask — same item, different listing
+        buyer1_max_price=buyer1_max_price,
+        buyer2_max_price=buyer2_max_price,
+        seller1_min_price=seller1_min_price,
+        seller2_min_price=seller2_min_price,
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "Only 5 left in stock - order soon.",
+            "note": "Multiple third-party offers exist for the same product listing.",
         },
-        price_tolerance=0,
-        reward_weights=reward_weights,  # Reward weights configuration
+        price_tolerance=price_tolerance,
+        reward_weights=reward_weights,
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Two beauty-conscious buyers competing for Maybelline eyeshadow. Buyer1 researches product reviews; Buyer2 prefers quick purchase. Both care about brand quality and value."
+    # Preferences only; no seller identity — sellers differ only in negotiation/pricing
+    user_profile = "Two buyers want fair value on brand makeup; both open to comparing offers for the same SKU."
     print(f"User Profile: {user_profile}")
     
-    # Get user requirement (from Task4)
-    user_requirement = "I'm looking for Maybelline Expert Wear Eyeshadow in Turquoise Glass Perfect Pastels shade, preferably new with good reviews."
+    # Concise English user query (simulated search / assistant request)
+    user_requirement = "I want to buy the Maybelline Expert Wear single eyeshadow in Turquoise Glass, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -196,24 +167,21 @@ def main(model_name=None):
     # Product image for VLM (image + text) - from Task4
     product_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"
     
-    # Product info from Task4 Maybelline, condition variants from Task4/sampled_products2
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
             "name": "Maybelline New York Expert Wear Eyeshadow Singles, 130s Turquoise Glass Perfect Pastels, 0.09 Ounce",
-            "brand": "Maybelline New York",
             "condition": "New",
+            "brand": "Maybelline New York",
             "shade": "130s Turquoise Glass Perfect Pastels",
             "size": "0.09 Ounce",
             "original_price": 7.98,
+            "availability_quantity": 5,
+            "availability_status": "Only 5 left in stock - order soon.",
             "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
             "average_rating": 4.2,
             "total_reviews": 54,
             "full_description": "Easy to use. Lots to choose. All-day crease-proof wear. Rich, velvety textures. Glides on effortlessly with superior smoothness.",
-            "condition_seller1": "New, Only 5 left in stock - order soon.",
-            "condition_seller2": "New, In Stock.",
-            "seller1_name": "Mommy Dezarn's Miscellaneous",
-            "seller2_name": "AmTm Cosmetics",
             "asin": "B0046VILG4",
             "image_url": product_image_url,
         },
@@ -239,57 +207,29 @@ def main(model_name=None):
         # Each round, each buyer chooses one seller to negotiate with
         # Let buyers decide which seller to negotiate with and provide negotiation message
         
-        # Build combined conversation history for buyer1 (includes both sellers' conversations)
         combined_history_b1 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b1s1", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b1s2", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 2"})
         
-        # Build combined conversation history for buyer2 (includes both sellers' conversations)
         combined_history_b2 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b2s1", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b2s2", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 2"})
         
-        # Get buyer1's response - buyer should indicate which seller they want to negotiate with
-        buyer1_response = buyer1.respond(
-            conversation_history=combined_history_b1,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>."
         )
-        
-        # Get buyer2's response - buyer should indicate which seller they want to negotiate with
-        buyer2_response = buyer2.respond(
-            conversation_history=combined_history_b2,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        buyer1_response, buyer1_selected_seller = _run_buyer_routing(
+            buyer1, combined_history_b1, observation, routing_instruction
         )
-        
-        # Extract seller choice from each buyer's response
-        buyer1_selected_seller = extract_seller_choice(buyer1_response, observation, buyer_id=1)
-        buyer2_selected_seller = extract_seller_choice(buyer2_response, observation, buyer_id=2)
+        buyer2_response, buyer2_selected_seller = _run_buyer_routing(
+            buyer2, combined_history_b2, observation, routing_instruction
+        )
         
         print(f"\n[Buyer 1 chooses to negotiate with Seller {buyer1_selected_seller} this round]")
         print(f"[Buyer 2 chooses to negotiate with Seller {buyer2_selected_seller} this round]")

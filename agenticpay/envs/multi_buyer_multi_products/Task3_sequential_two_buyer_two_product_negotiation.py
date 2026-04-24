@@ -925,127 +925,99 @@ class Task3SequentialTwoBuyerTwoProductNegotiation(BaseEnv):
         elif self.final_selected_buyer == 2:
             return self.buyer2_max_price
         return None
+
+    def _get_market_best_ceiling(self) -> Optional[float]:
+        """Highest max total price across buyers — aligned with only_multi_buyer Task3."""
+        caps = [p for p in (self.buyer1_max_price, self.buyer2_max_price) if p is not None]
+        if not caps:
+            return None
+        return max(caps)
     
     def _calculate_global_score(self, print_details: bool = True) -> float:
-        """Calculate GlobalScore based on the optimized formula
-        
-        Uses the final selected buyer's max_price and seller's min_price for calculation.
-        If no buyer is selected, calculates failure penalty.
-        
-        Let:
-        - buyer_max_price = maximum price the final selected buyer is willing to pay
-        - seller_min_price = minimum price the seller is willing to accept
-        - Z = buyer_max_price - seller_min_price
-        - γ (gamma) controls how strongly longer negotiations are penalized (default: 0.99)
-        
-        valid_range = (Z > 0) and (seller_min_price <= p <= buyer_max_price)
-        feasible_deal = negotiation reached agreement
-        
-        discount = γ^(t-1)  # where t is the round number (1-based)
-        
-        If feasible_deal and valid_range:
-            u_b = (buyer_max_price - p) / Z          # in [0, 1]
-            u_s = (p - seller_min_price) / Z         # in [0, 1]
-            Q = 4 * u_b * u_s                        # in [0, 1]
-            
-            DealScore       = D * discount
-            QualityScore    = W * Q * discount
-            EfficiencyScore = E * discount
-            
-            GlobalScore = DealScore + QualityScore + EfficiencyScore
-        Else:
-            FailurePenalty = -F * (1 - discount)
-            GlobalScore = FailurePenalty
-        
-        Settings:
-            D = deal_score_weight (default: 10)
-            W = quality_score_weight (default: 80)
-            E = efficiency_score_weight (default: 10)
-            F = failure_penalty_weight (default: 15)
-            γ = gamma (default: 0.99)
-            T = max_rounds
-        
-        Returns:
-            GlobalScore value (only calculated at final result)
+        """GlobalScore aligned with only_multi_buyer Task3: Z_market = market_best_ceiling - seller_min.
+
+        ``market_best_ceiling`` = max(buyer1_max, buyer2_max) for the two-product bundle total.
+        Buyer surplus u_b still uses the final selected buyer's max_price; valid_range likewise.
         """
-        # Get final selected buyer's max_price and seller's min_price
         selected_buyer_max_price = self._get_selected_buyer_max_price()
-        seller_min_price = self.seller_min_price
+        market_best_ceiling = self._get_market_best_ceiling()
         
-        # Check if we have required prices
-        if selected_buyer_max_price is None or seller_min_price is None:
-            # Calculate discount for failure penalty
+        if (
+            selected_buyer_max_price is None
+            or self.seller_min_price is None
+            or market_best_ceiling is None
+        ):
             round_index = max(0, self.current_round)
             discount = self.gamma ** round_index
             failure_penalty = -self.failure_penalty_weight * (1.0 - discount)
             
             if print_details:
                 print(f"\n[GlobalScore Calculation]")
-                print(f"  selected_buyer_max_price or seller_min_price is None")
+                print(f"  selected_buyer_max_price, market_best_ceiling, or seller_min_price is None")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 print(f"  FailurePenalty = -F({self.failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {failure_penalty:.3f}")
                 print(f"  GlobalScore = {failure_penalty:.3f}")
             return failure_penalty
         
-        # Calculate Z
-        Z = selected_buyer_max_price - seller_min_price
+        Z_market = market_best_ceiling - self.seller_min_price
         
-        # Calculate discount = γ^(t-1)
         round_index = max(0, self.current_round)
         discount = self.gamma ** round_index
         
-        # Check feasible_deal: whether negotiation reached agreement
         feasible_deal = (self.negotiation_info.status == NegotiationStatus.AGREED) or (self.final_deal_price is not None)
         
-        # Get the final price
         if self.final_deal_price is not None:
             final_price = self.final_deal_price
         else:
-            # No price available - calculate failure penalty
             failure_penalty = -self.failure_penalty_weight * (1.0 - discount)
             
             if print_details:
                 print(f"\n[GlobalScore Calculation]")
-                print(f"  Z = selected_buyer_max_price({selected_buyer_max_price:.2f}) - seller_min_price({seller_min_price:.2f}) = {Z:.2f}")
+                print(
+                    f"  market_best_ceiling = max(buyer1_max({self.buyer1_max_price}), "
+                    f"buyer2_max({self.buyer2_max_price})) = {market_best_ceiling:.2f}"
+                )
+                print(f"  Z_market = {market_best_ceiling:.2f} - seller_min({self.seller_min_price:.2f}) = {Z_market:.2f}")
                 print(f"  No final price available")
                 print(f"  feasible_deal = {feasible_deal}")
-                print(f"  valid_range = (Z > 0) = {Z > 0}")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 print(f"  FailurePenalty = -F({self.failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {failure_penalty:.3f}")
                 print(f"  GlobalScore = {failure_penalty:.3f}")
             return failure_penalty
         
-        # Check valid_range: (Z > 0) and (seller_min_price <= p <= buyer_max_price)
-        valid_range = (Z > 0) and (seller_min_price <= final_price <= selected_buyer_max_price)
+        valid_range = (Z_market > 0) and (self.seller_min_price <= final_price <= selected_buyer_max_price)
         
-        # If feasible_deal and valid_range, calculate success scores
         if feasible_deal and valid_range:
-            # Calculate utilities
-            u_b = (selected_buyer_max_price - final_price) / Z
-            u_s = (final_price - seller_min_price) / Z
-            
-            # Calculate Q = 4 * u_b * u_s (in [0,1])
+            u_b = (selected_buyer_max_price - final_price) / Z_market
+            u_s = (final_price - self.seller_min_price) / Z_market
             Q = 4.0 * u_b * u_s
             
-            # Calculate component scores
-            deal_score = self.deal_score_weight * discount  # D * discount
-            quality_score = self.quality_score_weight * Q * discount  # W * Q * discount
-            efficiency_score = self.efficiency_score_weight * discount  # E * discount
-            
-            # Calculate GlobalScore
+            deal_score = self.deal_score_weight * discount
+            quality_score = self.quality_score_weight * Q * discount
+            efficiency_score = self.efficiency_score_weight * discount
             global_score = deal_score + quality_score + efficiency_score
             
             if print_details:
-                # Debug output header
                 print(f"\n[GlobalScore Calculation]")
-                print(f"  Z = selected_buyer_max_price({selected_buyer_max_price:.2f}) - seller_min_price({seller_min_price:.2f}) = {Z:.2f}")
-                print(f"  final_price = {final_price:.2f}")
+                print(
+                    f"  market_best_ceiling = max(buyer1_max({self.buyer1_max_price}), "
+                    f"buyer2_max({self.buyer2_max_price})) = {market_best_ceiling:.2f}"
+                )
+                print(f"  Z_market = {market_best_ceiling:.2f} - seller_min({self.seller_min_price:.2f}) = {Z_market:.2f}")
+                print(f"  final_price (bundle total) = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
-                print(f"  valid_range = (Z > 0) and (seller_min_price({seller_min_price:.2f}) <= final_price({final_price:.2f}) <= selected_buyer_max_price({selected_buyer_max_price:.2f})) = {valid_range}")
+                sr = (
+                    f"(Z_market > 0) and (seller_min <= final_price({final_price:.2f}) "
+                    f"<= selected_buyer_max({selected_buyer_max_price:.2f}))"
+                )
+                print(f"  valid_range = {sr} = {valid_range}")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
-                # Debug output for success case
-                print(f"  u_b = (selected_buyer_max_price({selected_buyer_max_price:.2f}) - final_price({final_price:.2f})) / Z({Z:.2f}) = {u_b:.4f}")
-                print(f"  u_s = (final_price({final_price:.2f}) - seller_min_price({seller_min_price:.2f})) / Z({Z:.2f}) = {u_s:.4f}")
+                print(
+                    f"  u_b = (selected_buyer_max({selected_buyer_max_price:.2f}) - final_price) / Z_market({Z_market:.2f}) = {u_b:.4f}"
+                )
+                print(
+                    f"  u_s = (final_price - seller_min({self.seller_min_price:.2f})) / Z_market({Z_market:.2f}) = {u_s:.4f}"
+                )
                 print(f"  Q = 4 * u_b({u_b:.4f}) * u_s({u_s:.4f}) = {Q:.4f}")
                 print(f"  DealScore = D({self.deal_score_weight:.1f}) * discount({discount:.6f}) = {deal_score:.3f}")
                 print(f"  QualityScore = W({self.quality_score_weight:.1f}) * Q({Q:.4f}) * discount({discount:.6f}) = {quality_score:.3f}")
@@ -1054,242 +1026,169 @@ class Task3SequentialTwoBuyerTwoProductNegotiation(BaseEnv):
             
             return global_score
         else:
-            # Calculate failure penalty
             failure_penalty = -self.failure_penalty_weight * (1.0 - discount)
             
             if print_details:
-                # Debug output header
                 print(f"\n[GlobalScore Calculation]")
-                print(f"  Z = selected_buyer_max_price({selected_buyer_max_price:.2f}) - seller_min_price({seller_min_price:.2f}) = {Z:.2f}")
-                print(f"  final_price = {final_price:.2f}")
+                print(
+                    f"  market_best_ceiling = max(buyer1_max({self.buyer1_max_price}), "
+                    f"buyer2_max({self.buyer2_max_price})) = {market_best_ceiling:.2f}"
+                )
+                print(f"  Z_market = {Z_market:.2f}, final_price = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
-                print(f"  valid_range = (Z > 0) and (seller_min_price({seller_min_price:.2f}) <= final_price({final_price:.2f}) <= selected_buyer_max_price({selected_buyer_max_price:.2f})) = {valid_range}")
+                print(f"  valid_range = {valid_range}")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
-                # Debug output for failure case
                 print(f"  FailurePenalty = -F({self.failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {failure_penalty:.3f}")
                 print(f"  GlobalScore = {failure_penalty:.3f}")
             
             return failure_penalty
     
     def _calculate_buyer_score(self, print_details: bool = True) -> float:
-        """Calculate BuyerScore based on the formula
-        
-        Uses the final selected buyer's max_price and seller's min_price for calculation.
-        
-        u_b = (buyer_max_price - p) / (buyer_max_price - seller_min_price)
-        
-        discount = γ^(t-1)  # where t is the round number (1-based)
-        
-        If feasible_deal and valid_range:
-            BuyerScore = discount * (Db + Wb * u_b + Eb)
-        Else:
-            BuyerScore = -Fb * (1 - discount)
-        
-        Settings:
-            Db = buyer_deal_weight (default: 10)
-            Wb = buyer_utility_weight (default: 80)
-            Eb = buyer_efficiency_weight (default: 10)
-            Fb = buyer_failure_penalty_weight (default: 15)
-            γ = gamma (default: 0.99)
-        
-        Note: Out-of-range deals are treated as failures (same logic as failure)
-        
-        Returns:
-            BuyerScore value (only calculated at final result)
-        """
-        # Get final selected buyer's max_price and seller's min_price
+        """BuyerScore: u_b uses selected buyer's max; Z_market = market_best_ceiling - seller_min (aligned with Task3)."""
         selected_buyer_max_price = self._get_selected_buyer_max_price()
-        seller_min_price = self.seller_min_price
+        market_best_ceiling = self._get_market_best_ceiling()
         
-        # Check if we have required prices
-        if selected_buyer_max_price is None or seller_min_price is None:
-            # Calculate discount for failure penalty
+        if (
+            selected_buyer_max_price is None
+            or self.seller_min_price is None
+            or market_best_ceiling is None
+        ):
             round_index = max(0, self.current_round)
             discount = self.gamma ** round_index
             buyer_score = -self.buyer_failure_penalty_weight * (1.0 - discount)
             
             if print_details:
                 print(f"\n[BuyerScore Calculation]")
-                print(f"  selected_buyer_max_price or seller_min_price is None")
+                print(f"  selected_buyer_max_price, market_best_ceiling, or seller_min_price is None")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 print(f"  BuyerScore = -Fb({self.buyer_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {buyer_score:.3f}")
             return buyer_score
         
-        # Calculate Z
-        Z = selected_buyer_max_price - seller_min_price
-        
-        # Calculate discount = γ^(t-1)
+        Z_market = market_best_ceiling - self.seller_min_price
         round_index = max(0, self.current_round)
         discount = self.gamma ** round_index
-        
-        # Check feasible_deal: whether negotiation reached agreement
         feasible_deal = (self.negotiation_info.status == NegotiationStatus.AGREED) or (self.final_deal_price is not None)
         
-        # Get the final price
         if self.final_deal_price is not None:
             final_price = self.final_deal_price
         else:
-            # No price available - calculate failure penalty
             buyer_score = -self.buyer_failure_penalty_weight * (1.0 - discount)
             
             if print_details:
                 print(f"\n[BuyerScore Calculation]")
-                print(f"  Z = selected_buyer_max_price({selected_buyer_max_price:.2f}) - seller_min_price({seller_min_price:.2f}) = {Z:.2f}")
+                print(
+                    f"  market_best_ceiling = {market_best_ceiling:.2f}, "
+                    f"Z_market = {Z_market:.2f}"
+                )
                 print(f"  No final price available")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 print(f"  BuyerScore = -Fb({self.buyer_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {buyer_score:.3f}")
             return buyer_score
         
-        # Check valid_range: (Z > 0) and (seller_min_price <= p <= buyer_max_price)
-        valid_range = (Z > 0) and (seller_min_price <= final_price <= selected_buyer_max_price)
+        valid_range = (Z_market > 0) and (self.seller_min_price <= final_price <= selected_buyer_max_price)
         
-        # If feasible_deal and valid_range, calculate success score
         if feasible_deal and valid_range:
-            # Calculate utility
-            u_b = (selected_buyer_max_price - final_price) / Z
-            
-            # Calculate BuyerScore = discount * (Db + Wb * u_b + Eb)
+            u_b = (selected_buyer_max_price - final_price) / Z_market
             buyer_score = discount * (self.buyer_deal_weight + self.buyer_utility_weight * u_b + self.buyer_efficiency_weight)
             
             if print_details:
-                # Debug output header
                 print(f"\n[BuyerScore Calculation]")
-                print(f"  Z = selected_buyer_max_price({selected_buyer_max_price:.2f}) - seller_min_price({seller_min_price:.2f}) = {Z:.2f}")
-                print(f"  final_price = {final_price:.2f}")
+                print(
+                    f"  market_best_ceiling = max(buyer1_max, buyer2_max) = {market_best_ceiling:.2f}, "
+                    f"Z_market = {Z_market:.2f}"
+                )
+                print(f"  final_price (bundle total) = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
-                print(f"  valid_range = (Z > 0) and (seller_min_price({seller_min_price:.2f}) <= final_price({final_price:.2f}) <= selected_buyer_max_price({selected_buyer_max_price:.2f})) = {valid_range}")
+                print(f"  valid_range = (Z_market > 0) and (seller_min <= p <= selected_buyer_max) = {valid_range}")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
-                # Debug output for success case
-                print(f"  u_b = (selected_buyer_max_price({selected_buyer_max_price:.2f}) - final_price({final_price:.2f})) / Z({Z:.2f}) = {u_b:.4f}")
-                print(f"  BuyerScore = discount({discount:.6f}) * (Db({self.buyer_deal_weight:.1f}) + Wb({self.buyer_utility_weight:.1f}) * u_b({u_b:.4f}) + Eb({self.buyer_efficiency_weight:.1f}))")
+                print(
+                    f"  u_b = (selected_buyer_max({selected_buyer_max_price:.2f}) - final_price) / Z_market({Z_market:.2f}) = {u_b:.4f}"
+                )
                 print(f"  BuyerScore = {discount:.6f} * ({self.buyer_deal_weight:.1f} + {self.buyer_utility_weight * u_b:.4f} + {self.buyer_efficiency_weight:.1f}) = {buyer_score:.3f}")
             
             return buyer_score
         else:
-            # Calculate failure penalty (out-of-range deals treated as failures)
             buyer_score = -self.buyer_failure_penalty_weight * (1.0 - discount)
             
             if print_details:
-                # Debug output header
                 print(f"\n[BuyerScore Calculation]")
-                print(f"  Z = selected_buyer_max_price({selected_buyer_max_price:.2f}) - seller_min_price({seller_min_price:.2f}) = {Z:.2f}")
-                print(f"  final_price = {final_price:.2f}")
+                print(f"  Z_market = {Z_market:.2f}, final_price = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
-                print(f"  valid_range = (Z > 0) and (seller_min_price({seller_min_price:.2f}) <= final_price({final_price:.2f}) <= selected_buyer_max_price({selected_buyer_max_price:.2f})) = {valid_range}")
+                print(f"  valid_range = {valid_range}")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
-                # Debug output for failure case
                 print(f"  BuyerScore = -Fb({self.buyer_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {buyer_score:.3f}")
             
             return buyer_score
     
     def _calculate_seller_score(self, print_details: bool = True) -> float:
-        """Calculate SellerScore based on the formula
-        
-        Uses the final selected buyer's max_price and seller's min_price for calculation.
-        If no buyer is selected or deal not reached, calculates failure penalty.
-        
-        u_s = (p - seller_min_price) / (buyer_max_price - seller_min_price)
-        
-        discount = γ^(t-1)  # where t is the round number (1-based)
-        
-        If feasible_deal and valid_range:
-            SellerScore = discount * (Ds + Ws * u_s + Es)
-        Else:
-            SellerScore = -Fs * (1 - discount)
-        
-        Settings:
-            Ds = seller_deal_weight (default: 10)
-            Ws = seller_utility_weight (default: 80)
-            Es = seller_efficiency_weight (default: 10)
-            Fs = seller_failure_penalty_weight (default: 15)
-            γ = gamma (default: 0.99)
-        
-        Note: Out-of-range deals are treated as failures (same logic as failure)
-        
-        Returns:
-            SellerScore value (only calculated at final result)
-        """
-        # Get final selected buyer's max_price and seller's min_price
+        """SellerScore: u_s = (p - seller_min) / Z_market with Z_market = market_best_ceiling - seller_min."""
         selected_buyer_max_price = self._get_selected_buyer_max_price()
-        seller_min_price = self.seller_min_price
+        market_best_ceiling = self._get_market_best_ceiling()
         
-        # Check if we have required prices
-        if selected_buyer_max_price is None or seller_min_price is None:
-            # Calculate discount for failure penalty
+        if (
+            selected_buyer_max_price is None
+            or self.seller_min_price is None
+            or market_best_ceiling is None
+        ):
             round_index = max(0, self.current_round)
             discount = self.gamma ** round_index
             seller_score = -self.seller_failure_penalty_weight * (1.0 - discount)
             
             if print_details:
                 print(f"\n[SellerScore Calculation]")
-                print(f"  selected_buyer_max_price or seller_min_price is None")
+                print(f"  selected_buyer_max_price, market_best_ceiling, or seller_min_price is None")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 print(f"  SellerScore = -Fs({self.seller_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {seller_score:.3f}")
             return seller_score
         
-        # Calculate Z
-        Z = selected_buyer_max_price - seller_min_price
-        
-        # Calculate discount = γ^(t-1)
+        Z_market = market_best_ceiling - self.seller_min_price
         round_index = max(0, self.current_round)
         discount = self.gamma ** round_index
-        
-        # Check feasible_deal: whether negotiation reached agreement
         feasible_deal = (self.negotiation_info.status == NegotiationStatus.AGREED) or (self.final_deal_price is not None)
         
-        # Get the final price
         if self.final_deal_price is not None:
             final_price = self.final_deal_price
         else:
-            # No price available - calculate failure penalty
             seller_score = -self.seller_failure_penalty_weight * (1.0 - discount)
             
             if print_details:
                 print(f"\n[SellerScore Calculation]")
-                print(f"  Z = selected_buyer_max_price({selected_buyer_max_price:.2f}) - seller_min_price({seller_min_price:.2f}) = {Z:.2f}")
-                print(f"  No final price available")
+                print(f"  Z_market = {Z_market:.2f}, no final price")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 print(f"  SellerScore = -Fs({self.seller_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {seller_score:.3f}")
             return seller_score
         
-        # Check valid_range: (Z > 0) and (seller_min_price <= p <= buyer_max_price)
-        valid_range = (Z > 0) and (seller_min_price <= final_price <= selected_buyer_max_price)
+        valid_range = (Z_market > 0) and (self.seller_min_price <= final_price <= selected_buyer_max_price)
         
-        # If feasible_deal and valid_range, calculate success score
         if feasible_deal and valid_range:
-            # Calculate utility
-            u_s = (final_price - seller_min_price) / Z
-            
-            # Calculate SellerScore = discount * (Ds + Ws * u_s + Es)
+            u_s = (final_price - self.seller_min_price) / Z_market
             seller_score = discount * (self.seller_deal_weight + self.seller_utility_weight * u_s + self.seller_efficiency_weight)
             
             if print_details:
-                # Debug output header
                 print(f"\n[SellerScore Calculation]")
-                print(f"  Z = selected_buyer_max_price({selected_buyer_max_price:.2f}) - seller_min_price({seller_min_price:.2f}) = {Z:.2f}")
-                print(f"  final_price = {final_price:.2f}")
+                print(
+                    f"  market_best_ceiling = {market_best_ceiling:.2f}, "
+                    f"Z_market = {Z_market:.2f}"
+                )
+                print(f"  final_price (bundle total) = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
-                print(f"  valid_range = (Z > 0) and (seller_min_price({seller_min_price:.2f}) <= final_price({final_price:.2f}) <= selected_buyer_max_price({selected_buyer_max_price:.2f})) = {valid_range}")
+                print(f"  valid_range = (Z_market > 0) and (seller_min <= p <= selected_buyer_max) = {valid_range}")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
-                # Debug output for success case
-                print(f"  u_s = (final_price({final_price:.2f}) - seller_min_price({seller_min_price:.2f})) / Z({Z:.2f}) = {u_s:.4f}")
-                print(f"  SellerScore = discount({discount:.6f}) * (Ds({self.seller_deal_weight:.1f}) + Ws({self.seller_utility_weight:.1f}) * u_s({u_s:.4f}) + Es({self.seller_efficiency_weight:.1f}))")
+                print(
+                    f"  u_s = (final_price - seller_min({self.seller_min_price:.2f})) / Z_market({Z_market:.2f}) = {u_s:.4f}"
+                )
                 print(f"  SellerScore = {discount:.6f} * ({self.seller_deal_weight:.1f} + {self.seller_utility_weight * u_s:.4f} + {self.seller_efficiency_weight:.1f}) = {seller_score:.3f}")
             
             return seller_score
         else:
-            # Calculate failure penalty (out-of-range deals treated as failures)
             seller_score = -self.seller_failure_penalty_weight * (1.0 - discount)
             
             if print_details:
-                # Debug output header
                 print(f"\n[SellerScore Calculation]")
-                print(f"  Z = selected_buyer_max_price({selected_buyer_max_price:.2f}) - seller_min_price({seller_min_price:.2f}) = {Z:.2f}")
-                print(f"  final_price = {final_price:.2f}")
+                print(f"  Z_market = {Z_market:.2f}, final_price = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
-                print(f"  valid_range = (Z > 0) and (seller_min_price({seller_min_price:.2f}) <= final_price({final_price:.2f}) <= selected_buyer_max_price({selected_buyer_max_price:.2f})) = {valid_range}")
+                print(f"  valid_range = {valid_range}")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
-                # Debug output for failure case
                 print(f"  SellerScore = -Fs({self.seller_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {seller_score:.3f}")
             
             return seller_score

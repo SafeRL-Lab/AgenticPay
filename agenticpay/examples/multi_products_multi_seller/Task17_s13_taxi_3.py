@@ -1,7 +1,7 @@
-"""Task17 Scenario 13: NYC Taxi Ride - Sequential Two-Seller Per One Product Negotiation
+"""Task17 Scenario 13: NYC taxi — same two line items, sequential two-seller (bundle total)
 
-Buyer negotiates with two sellers offering the same LaGuardia Airport -> East Chelsea route under different service levels.
-Buyer chooses one seller per round to negotiate with.
+Buyer wants the same two items (main trip + mandatory fees) and negotiates TOTAL bundle price.
+Both sellers list identical line items; each has a different floor price and opening offer.
 Category: Daily Life Consumption
 """
 
@@ -21,7 +21,6 @@ from agenticpay.envs.multi_products_multi_seller.Task3_sequential_two_seller_per
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
 
 # Import configuration parameters
 examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -56,38 +55,8 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response."""
-    response_lower = buyer_response.lower()
-
-    if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-        return 2
-    elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-        return 1
-
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-
-    if seller1_price is not None and seller2_price is not None:
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-
-    return 1
-
-
 def main(model_name=None):
-    """Main function: Demonstrates sequential multi-seller negotiation flow with different products."""
+    """Sequential two-seller negotiation for the same two-line-item bundle (total price)."""
 
     print("Initializing model...")
 
@@ -105,6 +74,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
+    # Prices are TOTAL for both line items (confidential to each party)
     buyer_max_price = 67.81
     seller1_min_price = 64.61
     seller2_min_price = 66.61
@@ -126,22 +96,19 @@ def main(model_name=None):
         seller2_min_price=seller2_min_price,
         environment_info={
             "platform": "NYC Street Hail",
-            "market_type": "Service Negotiation (Two Drivers, One Route)",
+            "market_type": "B2C",
+            "comparison_enabled": True,
             "traffic_context": "Airport to Manhattan corridor with variable congestion",
         },
-        price_tolerance=price_tolerance,
+        price_tolerance=0,
         reward_weights=reward_weights,
     )
 
     user_profile = "Price-sensitive rider comparing two driver options for the same NYC route. Prioritizes a transparent all-in final fare with no hidden fees."
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I need a direct ride from LaGuardia Airport to East Chelsea. It is a longer route, but I want a transparent all-in flat fare that includes airport-related charges."
+    user_requirement = "LaGuardia to East Chelsea—best all-in total for the ride and all mandatory fees?"
     print(f"Using default requirement: {user_requirement}")
-
-    print("\n" + "="*60)
-    print("Starting new sequential negotiation (Seller1: standard taxi, Seller2: premium taxi)...")
-    print("="*60)
 
     product_image_url = os.path.join(
         project_root,
@@ -153,60 +120,62 @@ def main(model_name=None):
         "image_2.png",
     )
 
+    bundle_product_info = {
+        "products": [
+            {
+                "name": "NYC yellow taxi — LaGuardia Airport to East Chelsea (main trip / metered fare portion)",
+                "condition": "Metered on-trip service",
+                "brand": "NYC Yellow Taxi",
+                "service_type": "Point-to-point taxi ride",
+                "pickup_location": "LaGuardia Airport, Queens, New York, NY",
+                "dropoff_location": "East Chelsea, Manhattan, New York, NY",
+                "trip_distance_miles": 9.99,
+                "historical_trip_time": "About 31 minutes",
+                "VendorID": 2,
+                "RatecodeID": 1,
+                "Passenger Count": 1,
+                "Historical Fare Amount": 44.3,
+                "price": 44.3,
+                "original_price": 44.3,
+                "availability_status": "Available now",
+                "product_category": "Transportation & Mobility > Taxi Service",
+                "average_rating": 4.7,
+                "total_reviews": 128,
+                "full_description": "Main trip component for the LGA–East Chelsea leg; bundle total is trip plus mandatory fees line item.",
+                "image_url": product_image_url,
+            },
+            {
+                "name": "NYC yellow taxi — mandatory surcharges and taxes (this route, incl. airport/peak where applicable)",
+                "condition": "Regulatory surcharges, fees, and taxes (bundled line item)",
+                "brand": "NYC Yellow Taxi",
+                "price": 23.51,
+                "original_price": 23.51,
+                "Historical Total Amount (reference)": 67.81,
+                "mandatory_surcharges": [
+                    "$2.50 (Congestion Surcharge)",
+                    "$0.75 (CBD Congestion Fee)",
+                    "$1.75 (Airport Fee)",
+                    "$6.00 (Night/peak extra)",
+                    "$1.00 (Improvement Surcharge)",
+                    "$0.50 (MTA State Tax)",
+                ],
+                "tolls": 0.0,
+                "availability_status": "In effect per TLC rules",
+                "product_category": "Transportation & Mobility > Taxi Service",
+                "full_description": "Itemized add-ons and taxes applicable to this route; the negotiated ### BUYER_PRICE($X) ### is the all-in total for line 1 + line 2 together.",
+                "image_url": product_image_url,
+            },
+        ],
+    }
+
+    print("\n" + "="*60)
+    print("Sequential negotiation: two sellers, same 2-line-item taxi bundle, different bundle offers...")
+    print("="*60)
+
     observation, info = env.reset(
         user_requirement=user_requirement,
-        seller1_product_info={
-            "name": "Standard Yellow Taxi Ride: LaGuardia Airport -> East Chelsea",
-            "condition": "Metered standard yellow taxi service",
-            "brand": "NYC Yellow Taxi (Standard Driver)",
-            "original_price": 75.00,
-            "price": 75.00,
-            "availability_status": "Available now",
-            "product_category": "Transportation & Mobility > Taxi Service",
-            "average_rating": 4.7,
-            "total_reviews": 128,
-            "seller_name": "Standard Driver",
-            "service_type": "Point-to-point taxi ride",
-            "pickup_location": "LaGuardia Airport, Queens, New York, NY",
-            "dropoff_location": "East Chelsea, Manhattan, New York, NY",
-            "trip_distance_miles": 9.99,
-            "historical_trip_time": "About 31 minutes",
-            "VendorID": 2,
-            "RatecodeID": 1,
-            "Passenger Count": 1,
-            "Historical Fare Amount": 44.3,
-            "Historical Total Amount": 67.81,
-            "mandatory_surcharges": ['$2.50 (Congestion Surcharge)', '$0.75 (CBD Congestion Fee)', '$1.75 (Airport Fee)', '$6.00 (Night/peak extra)', '$1.00 (Improvement Surcharge)', '$0.50 (MTA State Tax)'],
-            "tolls": 0.0,
-            "full_description": "Standard taxi option for the route from LaGuardia Airport to East Chelsea. Final negotiated price must be all-in and include required NYC surcharges.",
-            "image_url": product_image_url,
-        },
-        seller2_product_info={
-            "name": "Premium Yellow Taxi Ride: LaGuardia Airport -> East Chelsea",
-            "condition": "Premium ride with cleaner vehicle and faster pick-up",
-            "brand": "NYC Yellow Taxi (Premium Driver)",
-            "original_price": 79.00,
-            "price": 79.00,
-            "availability_status": "Available now",
-            "product_category": "Transportation & Mobility > Taxi Service",
-            "average_rating": 4.9,
-            "total_reviews": 92,
-            "seller_name": "Premium Driver",
-            "service_type": "Point-to-point taxi ride",
-            "pickup_location": "LaGuardia Airport, Queens, New York, NY",
-            "dropoff_location": "East Chelsea, Manhattan, New York, NY",
-            "trip_distance_miles": 9.99,
-            "historical_trip_time": "About 31 minutes",
-            "VendorID": 2,
-            "RatecodeID": 1,
-            "Passenger Count": 1,
-            "Historical Fare Amount": 44.3,
-            "Historical Total Amount": 67.81,
-            "mandatory_surcharges": ['$2.50 (Congestion Surcharge)', '$0.75 (CBD Congestion Fee)', '$1.75 (Airport Fee)', '$6.00 (Night/peak extra)', '$1.00 (Improvement Surcharge)', '$0.50 (MTA State Tax)'],
-            "tolls": 0.0,
-            "full_description": "Premium taxi option for the same route with better service quality. Final negotiated price must be all-in and include required NYC surcharges.",
-            "image_url": product_image_url,
-        },
+        seller1_product_info=bundle_product_info,
+        seller2_product_info=bundle_product_info,
         user_profile=user_profile,
     )
 
@@ -216,7 +185,7 @@ def main(model_name=None):
     results = {
         "task": "Task17_s13_taxi_3_multi_products_multi_seller",
         "category": "Daily Life Consumption",
-        "scenario": "LaGuardia Airport to East Chelsea taxi ride fare negotiation (two service levels)",
+        "scenario": "LaGuardia to East Chelsea: same two line items, two sellers negotiate all-in total (different floors)",
         "timestamp": datetime.now().isoformat(),
         "user_requirement": user_requirement,
         "user_profile": user_profile,
@@ -236,11 +205,13 @@ def main(model_name=None):
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers offering the same route under different service levels. Each round, choose ONE seller (1 or 2) and provide your negotiation message clearly."
+                "instruction": "Two sellers offer the SAME two items as one all-in trip bundle. Each round pick ONE seller (use <selected_seller>) and negotiate the TOTAL all-in price for both line items together."
             }
         )
 
-        selected_seller = extract_seller_choice(buyer_response, observation)
+        selected_seller = Task3SequentialTwoSellerPerOneProductNegotiation.resolve_selected_seller(
+            buyer_response, observation, buyer.last_selected_seller
+        )
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
 
         buyer_action = buyer_response
@@ -294,6 +265,54 @@ def main(model_name=None):
                 print(f"Seller2: {info['step_seller2_reward']:.3f}", end="")
             print()
 
+            # Display detailed calculation with weights
+            round_cost = -info['round']
+            weights = env.reward_weights
+
+            # Buyer step reward details
+            if 'step_buyer_reward' in info:
+                buyer_price = None
+                if info.get('current_selected_seller') == 1:
+                    buyer_price = info.get('buyer_price_seller1')
+                elif info.get('current_selected_seller') == 2:
+                    buyer_price = info.get('buyer_price_seller2')
+
+                if buyer_price is not None and env.buyer_max_price is not None:
+                    buyer_savings = env.buyer_max_price - buyer_price
+                    print(f"  Buyer Step Reward = buyer_savings({buyer_savings:.2f} * {weights['buyer_savings']:.2f}) + round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {info['step_buyer_reward']:.2f} (buyer_max={env.buyer_max_price}, buyer_price={buyer_price:.2f}, round={info['round']})")
+                else:
+                    weighted_round_cost = round_cost * weights["time_cost"]
+                    print(f"  Buyer Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (buyer_price not specified, round={info['round']})")
+
+            # Seller1 step reward details
+            if 'step_seller1_reward' in info and info.get('seller1_price') is not None:
+                seller1_price = info.get('seller1_price', 0)
+                seller1_min = env.seller1_min_price
+                if seller1_min is not None:
+                    seller1_profit = seller1_price - seller1_min
+                    print(f"  Seller1 Step Reward = seller_profit({seller1_profit:.2f} * {weights['seller_profit']:.2f}) + round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {info['step_seller1_reward']:.2f} (seller1_price={seller1_price:.2f}, seller1_min={seller1_min}, round={info['round']})")
+                else:
+                    weighted_round_cost = round_cost * weights["time_cost"]
+                    print(f"  Seller1 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (seller1_price={seller1_price:.2f}, seller1_min not specified, round={info['round']})")
+            elif 'step_seller1_reward' in info:
+                weighted_round_cost = round_cost * weights["time_cost"]
+                print(f"  Seller1 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (seller1_price not specified, round={info['round']})")
+
+            # Seller2 step reward details
+            if 'step_seller2_reward' in info and info.get('seller2_price') is not None:
+                seller2_price = info.get('seller2_price', 0)
+                seller2_min = env.seller2_min_price
+                if seller2_min is not None:
+                    seller2_profit = seller2_price - seller2_min
+                    print(f"  Seller2 Step Reward = seller_profit({seller2_profit:.2f} * {weights['seller_profit']:.2f}) + round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {info['step_seller2_reward']:.2f} (seller2_price={seller2_price:.2f}, seller2_min={seller2_min}, round={info['round']})")
+                else:
+                    weighted_round_cost = round_cost * weights["time_cost"]
+                    print(f"  Seller2 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (seller2_price={seller2_price:.2f}, seller2_min not specified, round={info['round']})")
+            elif 'step_seller2_reward' in info:
+                weighted_round_cost = round_cost * weights["time_cost"]
+                print(f"  Seller2 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (seller2_price not specified, round={info['round']})")
+
+        # If this is the final round (agreed or timeout), display score calculations after Step Rewards
         if done:
             env._print_global_score_details()
             env._print_buyer_score_details()
@@ -306,12 +325,12 @@ def main(model_name=None):
             if info.get('selected_seller'):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
-                if info['selected_seller'] == 1:
-                    product_info = info.get('seller1_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
-                elif info['selected_seller'] == 2:
-                    product_info = info.get('seller2_product_info', {})
-                    print(f"Selected Product: {product_info.get('name', 'N/A')} by {product_info.get('brand', 'N/A')}")
+                bundle = info.get('seller1_product_info', {}) or {}
+                plist = bundle.get('products') or []
+                if len(plist) >= 2:
+                    print(f"Bundle: (1) {plist[0].get('name', 'N/A')} | (2) {plist[1].get('name', 'N/A')}")
+                elif plist:
+                    print(f"Items: {plist[0].get('name', 'N/A')}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -395,7 +414,7 @@ def main(model_name=None):
         output_file = run_dir / f"{script_stem}_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task17 Scenario 13: NYC Taxi Ride - Sequential Two-Seller Per One Product Negotiation Results\n")
+            f.write("Task17 Scenario 13: NYC taxi — two-product bundle, sequential two-seller negotiation results\n")
             f.write("Category: Daily Life Consumption\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -410,8 +429,10 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n")
-                selected_product = results.get('seller1_product_info', {}) if results['selected_seller'] == 1 else results.get('seller2_product_info', {})
-                f.write(f"Selected Product: {selected_product.get('name', 'N/A')} by {selected_product.get('brand', 'N/A')}\n\n")
+                binfo = results.get('seller1_product_info', {}) or {}
+                pl = binfo.get('products') or []
+                if len(pl) >= 2:
+                    f.write(f"Bundle: {pl[0].get('name', 'N/A')} + {pl[1].get('name', 'N/A')}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -421,13 +442,11 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
-            f.write("Services:\n")
-            seller1_product = results.get('seller1_product_info', {})
-            p1 = seller1_product.get('price') or seller1_product.get('original_price', 0)
-            f.write(f"  Seller1 Service: {seller1_product.get('name', 'N/A')} by {seller1_product.get('brand', 'N/A')} (${p1:.2f})\n")
-            seller2_product = results.get('seller2_product_info', {})
-            p2 = seller2_product.get('price') or seller2_product.get('original_price', 0)
-            f.write(f"  Seller2 Service: {seller2_product.get('name', 'N/A')} by {seller2_product.get('brand', 'N/A')} (${p2:.2f})\n")
+            f.write("Products (same bundle for both sellers):\n")
+            shared = results.get('seller1_product_info', {}) or {}
+            for i, p in enumerate(shared.get('products') or [], 1):
+                pr = p.get('price', p.get('original_price', 0))
+                f.write(f"  {i}. {p.get('name', 'N/A')} (${float(pr):.2f})\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:

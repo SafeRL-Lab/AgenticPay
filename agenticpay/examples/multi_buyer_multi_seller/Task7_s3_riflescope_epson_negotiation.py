@@ -1,7 +1,7 @@
-"""Task7 Scenario 3: Riflescope & Epson Printer - Sequential Two-Buyer Two-Seller Negotiation
+"""Task7 Scenario 3: Riflescope & Epson Printer - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two buyers negotiating with two sellers: Seller1 offers Crimson Trace Riflescope, Seller2 offers Epson thermal receipt printer.
-Each buyer chooses one seller per round to negotiate with.
+Two different SKUs from parallel marketplace offers: product text has no per-offer seller identity; each
+seller has a different confidential floor. Two buyers each pick one seller per round (structured routing).
 Category: Sports & Outdoors / Office Electronics
 """
 
@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -21,19 +22,7 @@ from agenticpay.envs.multi_buyer_multi_seller.Task3_sequential_two_buyer_two_sel
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    max_rounds = 20
-    price_tolerance = 1.0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -66,60 +55,43 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict, buyer_id: int) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        buyer_id: Buyer ID (1 or 2)
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    # Get prices for this buyer
-    if buyer_id == 1:
-        seller1_price = observation.get("b1s1_seller_price")
-        seller2_price = observation.get("b1s2_seller_price")
-    else:  # buyer_id == 2
-        seller1_price = observation.get("b2s1_seller_price")
-        seller2_price = observation.get("b2s2_seller_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
+def _run_buyer_routing(buyer, combined_history: list, observation: dict, routing_instruction: str):
+    """Structured ``<selected_seller>`` + retries + random fallback (aligned with Task5)."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    buyer_response = None
+    selected_seller = None
+    while True:
+        buyer_response = buyer.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_sellers": 2,
+            },
+        )
+        selected_seller = buyer.last_selected_seller
+        if selected_seller is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_seller>; retrying buyer response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+        )
+    if selected_seller is None:
+        selected_seller = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_seller> after retries; "
+            f"randomly selecting Seller {selected_seller}."
+        )
+    return buyer_response, selected_seller
 
 
 def main(model_name=None):
@@ -138,18 +110,17 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
     
-    # Use OpenAIVLM (Vision Language Model) for Riflescope & Epson negotiation with product images (image + text)
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    model_name = model_name or "gpt-5.4"
     model = OpenAIVLM(model=model_name, api_key=api_key)
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Two different listings: each seller has a different confidential floor
     print("Creating agents...")
-    buyer1_max_price = 210.0  # Maximum acceptable price for buyer1 (confidential) - Riflescope or Epson
-    buyer2_max_price = 215.0  # Maximum acceptable price for buyer2 (confidential) - Riflescope or Epson
-    seller1_min_price = 180.0  # Minimum acceptable price for seller1 - Crimson Trace Riflescope (confidential)
-    seller2_min_price = 250.0  # Minimum acceptable price for seller2 - Epson Printer (confidential)
+    buyer1_max_price = 210.0
+    buyer2_max_price = 215.0
+    seller1_min_price = 180.0
+    seller2_min_price = 250.0
     
     buyer1 = BuyerAgent(model=model, buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, buyer_max_price=buyer2_max_price)
@@ -173,19 +144,16 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "comparison_enabled": True,
+            "note": "Side-by-side offers for two SKUs; listing text has no per-offer seller identity.",
         },
-        price_tolerance=0,
-        reward_weights=reward_weights,  # Reward weights configuration
+        price_tolerance=price_tolerance,
+        reward_weights=reward_weights,
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Two buyers interested in Sports & Outdoors or Office Electronics. Buyer1 is hunter looking for riflescope. Buyer2 runs small business seeking receipt printer."
+    user_profile = "One shopper wants a hunting scope; the other needs a small-business receipt printer—both want fair pricing."
     print(f"User Profile: {user_profile}")
     
-    # Get user requirement
-    # Use default requirement for automatic running
-    user_requirement = "I'm looking for either a Crimson Trace Riflescope for hunting or an Epson thermal receipt printer for my small business. Prefer good value and reliable products."
+    user_requirement = "Find me either a 2.5–10x42 Brushline Pro riflescope or an Epson TM-T20 Ethernet receipt printer (no cable) — new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -195,42 +163,22 @@ def main(model_name=None):
     
     # Product info: Seller1 = Crimson Trace Riflescope, Seller2 = Epson thermal receipt printer (with images for VLM; image + text)
     riflescope_image_url = "https://m.media-amazon.com/images/I/31j7DdlfrOL.jpg"
-    epson_image_url = "https://m.media-amazon.com/images/I/51BzGMyEVfL.jpg"
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "seller1_product": {
-                "name": "Crimson Trace Brushline Pro Riflescope with Lightweight Solid Construction, Scope Caps and Lens Cloth for Hunting, Shooting and Outdoor",
-                "condition": "New",
-                "brand": "Visit the Crimson Trace Store",
-                "model": "Brushline Pro Riflescope 2.5-10x42mm CT Plex Reticle",
-                "price": 218.79,
-                "original_price": 218.79,
-                "product_category": "Sports & Outdoors › Hunting & Fishing › Shooting › Optics › Gun Scopes › Rifle Scopes",
-                "average_rating": 4.3,
-                "total_reviews": 28,
-                "asin": "B08GS6B87J",
-                "full_description": "SPECS: 2.5-10 magnification with a 42mm lens diameter, aerospace grade 1\" tube and weighs 16.6 oz. ACCURACY: Features a second focal plane, non-illuminated, CT Plex reticle. DURABLE: Constructed of lightweight anodized aluminum with multi-coated lenses, waterproof, shockproof.",
-                "image_url": riflescope_image_url,
-            },
-            "seller2_product": {
-                "name": "Epson C31CB10023 TM-T20 Readyprint Thermal Receipt Printer, Ethernet Interface, Without Cable, Dark Grey",
-                "condition": "New",
-                "brand": "Visit the Epson Store",
-                "model": "C31CB10023",
-                "price": 320.0,
-                "original_price": 320.0,
-                "product_category": "Office Products › Office Electronics",
-                "average_rating": 4.1,
-                "total_reviews": 4,
-                "asin": "B00A0WG5KW",
-                "full_description": "For nearly 40 years, Epson has led the industry in developing innovative, reliable, high-performance products. From scanners to printers to 3D projectors, our award-winning technology brings your images to life.",
-                "image_url": epson_image_url,
-            },
-            "condition_seller1": "New - Crimson Trace Riflescope",
-            "condition_seller2": "New - Epson Thermal Receipt Printer",
+            "name": "Crimson Trace Brushline Pro Riflescope with Lightweight Solid Construction, Scope Caps and Lens Cloth for Hunting, Shooting and Outdoor",
+            "condition": "New",
+            "brand": "Crimson Trace",
+            "model": "Brushline Pro Riflescope 2.5-10x42mm CT Plex Reticle",
+            "original_price": 218.79,
+            "product_category": "Sports & Outdoors › Hunting & Fishing › Shooting › Optics › Gun Scopes › Rifle Scopes",
+            "average_rating": 4.3,
+            "total_reviews": 28,
+            "asin": "B08GS6B87J",
+            "full_description": "SPECS: 2.5-10 magnification with a 42mm lens diameter, aerospace grade 1\" tube and weighs 16.6 oz. ACCURACY: Features a second focal plane, non-illuminated, CT Plex reticle. DURABLE: Constructed of lightweight anodized aluminum with multi-coated lenses, waterproof, shockproof.",
+            "image_url": riflescope_image_url,
         },
-        user_profile=user_profile,  # Pass user profile
+        user_profile=user_profile,
     )
     
     # Start negotiation loop
@@ -239,7 +187,7 @@ def main(model_name=None):
     
     # Initialize results dictionary
     results = {
-        "task": "Task7_s3_short_term_rental_negotiation",
+        "task": "Task7_s3_riflescope_epson_negotiation",
         "timestamp": datetime.now().isoformat(),
         "user_requirement": user_requirement,
         "user_profile": user_profile,
@@ -252,57 +200,29 @@ def main(model_name=None):
         # Each round, each buyer chooses one seller to negotiate with
         # Let buyers decide which seller to negotiate with and provide negotiation message
         
-        # Build combined conversation history for buyer1 (includes both sellers' conversations)
         combined_history_b1 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b1s1", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b1s2", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 2"})
         
-        # Build combined conversation history for buyer2 (includes both sellers' conversations)
         combined_history_b2 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b2s1", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b2s2", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 2"})
         
-        # Get buyer1's response - buyer should indicate which seller they want to negotiate with
-        buyer1_response = buyer1.respond(
-            conversation_history=combined_history_b1,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>."
         )
-        
-        # Get buyer2's response - buyer should indicate which seller they want to negotiate with
-        buyer2_response = buyer2.respond(
-            conversation_history=combined_history_b2,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
-            }
+        buyer1_response, buyer1_selected_seller = _run_buyer_routing(
+            buyer1, combined_history_b1, observation, routing_instruction
         )
-        
-        # Extract seller choice from each buyer's response
-        buyer1_selected_seller = extract_seller_choice(buyer1_response, observation, buyer_id=1)
-        buyer2_selected_seller = extract_seller_choice(buyer2_response, observation, buyer_id=2)
+        buyer2_response, buyer2_selected_seller = _run_buyer_routing(
+            buyer2, combined_history_b2, observation, routing_instruction
+        )
         
         print(f"\n[Buyer 1 chooses to negotiate with Seller {buyer1_selected_seller} this round]")
         print(f"[Buyer 2 chooses to negotiate with Seller {buyer2_selected_seller} this round]")
@@ -540,9 +460,8 @@ def main(model_name=None):
                 print(f"Reason: {info['termination_reason']}")
             print("="*60)
             
-            # Collect results
             elapsed_time = time.time() - start_time
-            product_info = info.get('product_info', {})
+            product_info = info.get("product_info", {})
             results.update({
                 "status": info.get('status', 'unknown'),
                 "success": terminated,
@@ -609,11 +528,11 @@ def main(model_name=None):
             json.dump(results, f, indent=2, ensure_ascii=False)
         
         # Save output text
-        output_file = run_dir / "Task7_s3_output.txt"
+        output_file = run_dir / "Task7_s3_riflescope_epson_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task7 Scenario 3: Short-term Rental - Sequential Two-Buyer Two-Seller Negotiation Results\n")
-            f.write("Category: Daily Life Consumption\n")
+            f.write("Task7 Scenario 3: Riflescope & Epson - Sequential Two-Buyer Two-Seller Negotiation Results (image + text)\n")
+            f.write("Category: Sports & Outdoors / Office Electronics\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
             f.write(f"Model: {results['model']}\n")
@@ -626,14 +545,7 @@ def main(model_name=None):
             f.write(f"Elapsed Time: {elapsed_time:.2f}s\n\n")
             if results.get('selected_buyer') and results.get('selected_seller'):
                 f.write(f"Selected Deal: Buyer {results['selected_buyer']} - Seller {results['selected_seller']}\n")
-                f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n")
-                product_info = results.get('product_info', {})
-                if results['selected_seller'] == 1:
-                    p = product_info.get('seller1_product', {})
-                    f.write(f"Selected Product: {p.get('name', 'N/A')} by {p.get('brand', 'N/A')}\n\n")
-                elif results['selected_seller'] == 2:
-                    p = product_info.get('seller2_product', {})
-                    f.write(f"Selected Product: {p.get('name', 'N/A')} by {p.get('brand', 'N/A')}\n\n")
+                f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Buyer1-Seller1: Buyer=${results['b1s1_buyer_price']:.2f} | Seller=${results['b1s1_seller_price']:.2f}" if results.get('b1s1_buyer_price') is not None and results.get('b1s1_seller_price') is not None else "  Buyer1-Seller1: Not specified")
             f.write("\n")
@@ -644,13 +556,10 @@ def main(model_name=None):
             f.write(f"  Buyer2-Seller2: Buyer=${results['b2s2_buyer_price']:.2f} | Seller=${results['b2s2_seller_price']:.2f}" if results.get('b2s2_buyer_price') is not None and results.get('b2s2_seller_price') is not None else "  Buyer2-Seller2: Not specified")
             f.write("\n\n")
             product_info = results.get('product_info', {})
-            f.write("Products:\n")
-            p1 = product_info.get('seller1_product', {})
-            price1 = p1.get('original_price', p1.get('price', 0)) or 0
-            f.write(f"  Seller1: {p1.get('name', 'N/A')} by {p1.get('brand', 'N/A')} (${price1:.2f})\n")
-            p2 = product_info.get('seller2_product', {})
-            price2 = p2.get('original_price', p2.get('price', 0)) or 0
-            f.write(f"  Seller2: {p2.get('name', 'N/A')} by {p2.get('brand', 'N/A')} (${price2:.2f})\n")
+            f.write("Product:\n")
+            f.write(f"  Name: {product_info.get('name', 'N/A')}\n")
+            f.write(f"  Brand: {product_info.get('brand', 'N/A')}\n")
+            f.write(f"  Price: ${product_info.get('price', product_info.get('original_price', 0)):.2f}\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
@@ -687,7 +596,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task7 Scenario 3: Short-term Rental - Sequential Two-Buyer Two-Seller Negotiation")
+    parser = argparse.ArgumentParser(description="Task7 Scenario 3: Riflescope & Epson - Sequential Two-Buyer Two-Seller Negotiation (image + text)")
     parser.add_argument(
         "--model",
         type=str,

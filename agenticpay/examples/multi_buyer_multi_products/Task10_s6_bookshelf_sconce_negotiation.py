@@ -1,8 +1,7 @@
-"""Task10 Scenario 6: Bookshelf & Wall Sconce Package - Sequential Two-Buyer Two-Product Negotiation
+"""Task10 Scenario 6: Bookshelf & Wall Sconce Package - Sequential Two-Buyer Two-Product Negotiation (image + text)
 
-One seller negotiating with two buyers for furniture package (4-Tier Bookshelf + Fanyate Wall Sconce).
-Seller chooses one buyer per round to negotiate with.
-Prices represent total price for both products.
+One seller negotiating with two buyers for the same two-item home bundle (total price).
+Seller chooses which buyer to negotiate with each round (aligned with Task5 / Task3).
 Category: Home & Kitchen / Tools & Home Improvement
 """
 
@@ -10,6 +9,7 @@ import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -21,21 +21,8 @@ sys.path.insert(0, project_root)
 from agenticpay.envs.multi_buyer_multi_products.Task3_sequential_two_buyer_two_product_negotiation import Task3SequentialTwoBuyerTwoProductNegotiation
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
-from agenticpay.models.custom_llm import CustomLLM
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    max_rounds = 20
-    price_tolerance = 1.0
-    OPENAI_API_KEY = None
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -62,62 +49,54 @@ def get_model_name(model):
         if "model=" in model_str:
             try:
                 return model_str.split("model=")[1].split(")")[0]
-            except:
+            except Exception:
                 return model_str
         else:
             return model_str
 
 
-def extract_buyer_choice(seller_response: str, observation: dict) -> int:
-    """Extract buyer choice from seller's response
-    
-    Seller should indicate which buyer they want to negotiate with.
-    Look for patterns like "buyer 1", "buyer1", "first buyer", etc.
-    
-    Args:
-        seller_response: Seller's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which buyer seller wants to negotiate with
-    """
-    response_lower = seller_response.lower()
-    
-    # Look for explicit buyer mentions
-    if re.search(r'buyer\s*[12]|first\s+buyer|buyer\s*one', response_lower):
-        if re.search(r'buyer\s*2|second\s+buyer|buyer\s*two', response_lower):
-            return 2
-        elif re.search(r'buyer\s*1|first\s+buyer|buyer\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if seller mentions prices or other indicators
-    buyer1_price = observation.get("buyer1_price")
-    buyer2_price = observation.get("buyer2_price")
-    seller_price_buyer1 = observation.get("seller_price_buyer1")
-    seller_price_buyer2 = observation.get("seller_price_buyer2")
-    
-    # If seller mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', seller_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller_price_buyer1 is not None and abs(mentioned_price - seller_price_buyer1) < 5:
-            return 1
-        elif seller_price_buyer2 is not None and abs(mentioned_price - seller_price_buyer2) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which buyer has been negotiated with more
-    # or which has a better price (higher buyer price is better for seller)
-    if buyer1_price is not None and buyer2_price is not None:
-        # Choose the one with higher price if both available
-        return 1 if buyer1_price >= buyer2_price else 2
-    elif buyer1_price is not None:
-        return 1
-    elif buyer2_price is not None:
-        return 2
-    
-    # Final default: buyer1
-    return 1
+def _run_seller_routing(
+    seller,
+    combined_history: list,
+    observation: dict,
+    routing_instruction: str,
+):
+    """Structured ``<selected_buyer>`` + retries + random fallback (aligned with Task5)."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    seller_response = None
+    selected_buyer = None
+    while True:
+        seller_response = seller.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_buyers": 2,
+            },
+        )
+        selected_buyer = seller.last_selected_buyer
+        if selected_buyer is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_buyer>; retrying seller response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_buyer> block with only 1 or 2."
+        )
+    if selected_buyer is None:
+        selected_buyer = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_buyer> after retries; "
+            f"randomly selecting Buyer {selected_buyer}."
+        )
+    return seller_response, selected_buyer
 
 
 def main(model_name=None):
@@ -128,18 +107,16 @@ def main(model_name=None):
     """
     
     print("Initializing model...")
-    
-    # OpenVLM via OpenAI-compatible API
+
     api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
-    openvlm_base_url = os.getenv("OPENAI_URL") or os.getenv("OPENVLM_BASE_URL", "http://localhost:8000/v1")
-    openvlm_model = os.getenv("OPENVLM_MODEL", "openvlm")
-    
-    model = OpenAIVLM(
-        model=model_name or openvlm_model,
-        api_key=api_key,
-        base_url=openvlm_base_url,
-    )
-    
+    if not api_key:
+        print("Warning: OPENAI_API_KEY not set. Please set it to use OpenAI models.")
+        print("You can set it with: export OPENAI_API_KEY='your-key-here'")
+        return
+
+    model_name = model_name or "gpt-5.4"
+    model = OpenAIVLM(model=model_name, api_key=api_key)
+
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
@@ -168,14 +145,21 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
+            "listing_age": "3 days",
             "availability_status": "In Stock.",
+            "bundle_context": (
+                "Several sellers list this exact two-item bundle; offers are for the bundle total. "
+                "Each seller has a different internal floor for the pair; buyers only see product facts, not seller identities."
+            ),
         },
-        price_tolerance=0,  # Set price_tolerance to 0
-        reward_weights=reward_weights,  # Reward weights configuration
+        price_tolerance=price_tolerance,
+        reward_weights=reward_weights,
     )
-    
-    # Create user profile (text description of personal preferences)
-    user_profile = "Home office organizer looking for practical storage solutions. Values sturdy construction, easy assembly, and good value. For lighting, prefers wall sconces with clear glass shade for bathroom, living room, or dining room."
+
+    user_profile = (
+        "Home buyer comparing listings for a small office refresh. Wants a sturdy ladder bookshelf and "
+        "ORB wall sconces with clear glass; negotiates both as one total."
+    )
     print(f"User Profile: {user_profile}")
     
     # Define two products (from Task9_s6_bookshelf example and sampled_products2.jsonl line 6)
@@ -185,13 +169,12 @@ def main(model_name=None):
         "products": [
             {
                 "name": "4-Tier Ladder Bookshelf Organizer, Iron Open Bookcase Organizer (Black)",
-                "brand": "Brand: Kcelarec",
+                "brand": "Kcelarec",
                 "price": 36.94,
                 "condition": "New",
                 "product_category": "Home & Kitchen › Furniture › Home Office Furniture › Bookcases",
                 "average_rating": 5.0,
                 "total_reviews": 1,
-                "seller_name": "Kcelarec",
                 "asin": "B088WSDHTW",
                 "full_description": "If you are looking for a practical bookshelf, you can't miss this Widen 4 Tiers Bookshelf. This bookshelf is made of high quality material, which is stable, sturdy and durable. Its design of 4 tiers can hold a lot of books, and its strong bearing capacity can bear 44-88 lbs. You can put books in this bookshelf, and also place many other items like potting, decoration, etc. Made of high quality iron. Stable, sturdy and durable. Practical, design of 4 tiers can hold a lot of items. 44-88 lbs strong bearing capacity. Easy to install. Dimensions: (23.62 x 13.78 x 57.87) inches.",
                 "image_url": "https://m.media-amazon.com/images/I/41Tbj+f2soL.jpg",
@@ -199,13 +182,12 @@ def main(model_name=None):
             },
             {
                 "name": "Fanyate Antique Industrial Wall Sconce, 2-Light Bathroom Light Fixture Oil Rubbed Bronze Vanity Light with Clear Glass Shade Suitable for Bathroom Living Room Hallway ORB, 2 Pack",
-                "brand": "Visit the Fanyate Store",
+                "brand": "Fanyate",
                 "price": 113.99,
                 "condition": "New",
                 "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Wall Lights › Wall Lamps & Sconces",
                 "average_rating": 4.7,
                 "total_reviews": 55,
-                "seller_name": "Fanyate",
                 "asin": "B0928LGTVF",
                 "full_description": "【ANTIQUE INDUSTRIAL STYLE】Unique Oil Rubbed Bronze painting finished metal lamp body mated with clear glass shade, adding more antique and industrial atmosphere and bringing a quiet and comfortable feeling to your life. 【PRODUCT INSPECTION】The width of this light is 13.8'', the depth is 6.6,'' and the height is 9.8''. Compatible with E26 base bulb. The max wattage of the bulb is 60W. (Bulb is not included.) 【EASY INSTALLATION】Easy installation to save your time. The installation instruction and mounting screws are included in the package for your quick installation. 【APPLICABLE SPACE】These wall lights are suitable for any space you want to decorate. Not only suitable for bathroom, also living room, study, porch, kitchen, dining room, cafe, bar, bedroom, shop, lounge decoration. 【GORGEOUS SHOPPING EXPERIENCE】You can get not only good value from this lamp but also our services and a 1-year warranty that will guarantee your complete satisfaction with your purchase.",
                 "image_url": "https://m.media-amazon.com/images/I/41icQciKVIS.jpg",
@@ -222,14 +204,15 @@ def main(model_name=None):
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
     # Get user requirement
-    user_requirement = "I'm looking for a 4-tier ladder bookshelf for my home office and a wall sconce with clear glass shade for bathroom, living room, or dining room. Prefer iron/metal construction, oil rubbed bronze vanity light fixture."
+    user_requirement = (
+        "I want a black 4-tier iron ladder bookshelf and a 2-pack ORB wall sconce with clear glass—quote one total."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
-    print("\n" + "="*60)
-    print("Starting new sequential negotiation for Bookshelf & Wall Sconce package...")
-    print("Seller choosing between two buyers for 4-Tier Bookshelf + Fanyate Wall Sconce")
-    print("="*60)
+    print("\n" + "=" * 60)
+    print("Starting sequential negotiation for the two-item bookshelf & sconce bundle...")
+    print("=" * 60)
     
     observation, info = env.reset(
         user_requirement=user_requirement,
@@ -252,78 +235,97 @@ def main(model_name=None):
         "error": None,
     }
     
+    routing_instruction = (
+        "You are negotiating with two buyers for the SAME two-product bundle; all prices are the TOTAL for both items. "
+        "Each round, choose exactly ONE buyer and output that choice in a dedicated <selected_buyer> block containing only "
+        "the digit 1 or 2. Follow the required <mental_model> / <message> format and include "
+        "### SELLER_PRICE($X) ### in <message>."
+    )
+
     while not done:
-        # Each round: seller chooses one buyer to negotiate with, then buyer responds first, then seller responds
-        # Seller can see both buyers' information in the observation
-        # Let seller decide which buyer to negotiate with
-        # We'll use a combined conversation history that includes both buyers' conversations
-        combined_history = []
-        # Add buyer1 messages with prefix
-        for msg in observation.get("conversation_history_buyer1", []):
-            combined_history.append({
-                **msg,
-                "content": f"[Buyer 1] {msg['content']}"
-            })
-        # Add buyer2 messages with prefix
-        for msg in observation.get("conversation_history_buyer2", []):
-            combined_history.append({
-                **msg,
-                "content": f"[Buyer 2] {msg['content']}"
-            })
-        
-        # Get seller's choice - seller should indicate which buyer they want to negotiate with
-        seller_choice_response = seller.respond(
-            conversation_history=combined_history,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two buyers for two products (4-Tier Bookshelf + Fanyate Wall Sconce). Each round, you need to choose ONE buyer to negotiate with. Please clearly indicate which buyer (1 or 2) you want to negotiate with, for example: 'I want to negotiate with buyer 1' or 'Let me talk to buyer 2'. Prices represent total price for both products."
-            }
-        )
-        
-        # Extract buyer choice from seller's response
-        selected_buyer = extract_buyer_choice(seller_choice_response, observation)
-        print(f"\n[Seller chooses to negotiate with Buyer {selected_buyer} this round]")
-        
-        # Get the conversation history for the selected buyer
-        if selected_buyer == 1:
-            conversation_history = observation["conversation_history_buyer1"]
-        else:
-            conversation_history = observation["conversation_history_buyer2"]
-        
-        # Get the selected buyer's response first (buyer responds based on current history)
-        if selected_buyer == 1:
-            buyer_action = buyer1.respond(
-                conversation_history=conversation_history,
-                current_state=observation
+        current_round = observation.get("current_round", 0)
+
+        if current_round == 0:
+            buyer1_action = buyer1.respond(
+                conversation_history=observation["conversation_history_buyer1"],
+                current_state=observation,
             )
-        else:
-            buyer_action = buyer2.respond(
-                conversation_history=conversation_history,
-                current_state=observation
+            buyer2_action = buyer2.respond(
+                conversation_history=observation["conversation_history_buyer2"],
+                current_state=observation,
             )
-        
-        # Create updated conversation history that includes buyer's response
-        # So seller can see buyer's message before responding
-        updated_conversation_history = conversation_history.copy()
-        if buyer_action:
-            current_round = observation.get("current_round", 0)
-            updated_conversation_history.append({
-                "role": "buyer",
-                "content": buyer_action,
-                "round": current_round
-            })
-        
-        # Get seller's negotiation response (seller can now see buyer's message)
-        seller_action = seller.respond(
-            conversation_history=updated_conversation_history,
-            current_state=observation
-        )
-        
-        # Execute step with selected buyer and actions (order: buyer -> seller)
+
+            updated_conversation_history_buyer1 = observation["conversation_history_buyer1"].copy()
+            updated_conversation_history_buyer2 = observation["conversation_history_buyer2"].copy()
+
+            if buyer1_action:
+                updated_conversation_history_buyer1.append({
+                    "role": "buyer",
+                    "content": buyer1_action,
+                    "round": current_round,
+                })
+            if buyer2_action:
+                updated_conversation_history_buyer2.append({
+                    "role": "buyer",
+                    "content": buyer2_action,
+                    "round": current_round,
+                })
+
+            combined_history = []
+            for msg in updated_conversation_history_buyer1:
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 1"})
+            for msg in updated_conversation_history_buyer2:
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 2"})
+
+            seller_response, selected_buyer = _run_seller_routing(
+                seller, combined_history, observation, routing_instruction
+            )
+            print(f"\n[Seller chooses to negotiate with Buyer {selected_buyer} this round]")
+
+            seller_action = seller_response
+            buyer_action = buyer1_action if selected_buyer == 1 else buyer2_action
+        else:
+            combined_history = []
+            for msg in observation.get("conversation_history_buyer1", []):
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 1"})
+            for msg in observation.get("conversation_history_buyer2", []):
+                combined_history.append({**msg, "thread_label": "Talk with Buyer 2"})
+
+            seller_response, selected_buyer = _run_seller_routing(
+                seller, combined_history, observation, routing_instruction
+            )
+            print(f"\n[Seller chooses to negotiate with Buyer {selected_buyer} this round]")
+
+            seller_action = seller_response
+
+            if selected_buyer == 1:
+                conversation_history = observation["conversation_history_buyer1"]
+            else:
+                conversation_history = observation["conversation_history_buyer2"]
+
+            updated_conversation_history = conversation_history.copy()
+            if seller_action:
+                updated_conversation_history.append({
+                    "role": "seller",
+                    "content": seller_action,
+                    "round": current_round,
+                })
+
+            if selected_buyer == 1:
+                buyer_action = buyer1.respond(
+                    conversation_history=updated_conversation_history,
+                    current_state=observation,
+                )
+            else:
+                buyer_action = buyer2.respond(
+                    conversation_history=updated_conversation_history,
+                    current_state=observation,
+                )
+
         observation, reward, terminated, truncated, info = env.step(
             selected_buyer=selected_buyer,
+            buyer_action=buyer_action,
             seller_action=seller_action,
-            buyer_action=buyer_action
         )
         done = terminated or truncated
         
@@ -557,12 +559,14 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task10 Scenario 6: Bookshelf & Wall Sconce Package - Sequential Two-Buyer Two-Product Negotiation")
+    parser = argparse.ArgumentParser(
+        description="Task10 Scenario 6: Bookshelf & Wall Sconce - Sequential Two-Buyer Two-Product Negotiation (image + text)"
+    )
     parser.add_argument(
         "--model",
         type=str,
         default=None,
-        help="OpenVLM model name. Set OPENAI_URL/OPENVLM_BASE_URL for API endpoint, OPENVLM_MODEL for default model name."
+        help="Model name to use. If not provided, uses default model.",
     )
     args = parser.parse_args()
     main(model_name=args.model)

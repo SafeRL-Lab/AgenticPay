@@ -1,7 +1,8 @@
-"""Task25 Scenario 21: Rent House — Sequential Two-Landlord Monthly Lease (East Village Studio)
+"""Task25 Scenario 21: East Village Studio — Sequential Two-Seller Rent Negotiation
 
-Two landlord/listing channels for the same NYC East Village studio (Airbnb sample ``_id`` 13183672 in
-``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl``). Tenant compares monthly rent and lease terms.
+The tenant wants one lease (the same property) from the marketplace. Product info is a single listing
+without per-seller details; two independent sellers each negotiate that same unit with different
+confidential floor (minimum) monthly rent.
 Category: Real Estate › Residential Rental
 """
 
@@ -9,6 +10,7 @@ import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -26,7 +28,6 @@ from agenticpay.models.qwen3_vl import Qwen3VL
 from agenticpay.models.vllm_lm import VLLMLLM
 from agenticpay.models.sglang_vlm import SGLangVLM
 from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-import re
 
 
 def get_model_name(model):
@@ -59,55 +60,6 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    seller1_price = observation.get("seller1_price")
-    seller2_price = observation.get("seller2_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
-
 
 def main(model_name=None):
     """Main function: Demonstrates sequential multi-seller negotiation flow
@@ -125,8 +77,8 @@ def main(model_name=None):
         print("You can set it with: export OPENAI_API_KEY='your-key-here'")
         return
 
-    # Use OpenAIVLM (Vision Language Model) for multi-seller negotiation with images (image + text)
-    model_name = model_name or "gpt-4o-mini"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
+    # Use OpenAIVLM (Vision Language Model) for property listing negotiation with images (image + text)
+    model_name = model_name or "gpt-5.4"  # gpt-4o, gpt-4o-mini, gpt-4-vision-preview, etc.
     model = OpenAIVLM(model=model_name, api_key=api_key)
 
     # Build absolute path to model directory
@@ -148,11 +100,11 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Same property from two offers: each seller has a different confidential floor monthly rent
     print("Creating agents...")
-    buyer_max_price = 1350.0  # Max acceptable monthly rent for tenant (confidential); > both landlord mins
-    seller1_min_price = 1260.0  # Landlord 1 floor rent (confidential)
-    seller2_min_price = 1280.0  # Landlord 2 floor rent (confidential; premium channel)
+    buyer_max_price = 1350.0  # Max acceptable monthly rent (confidential)
+    seller1_min_price = 1260.0  # Seller 1 floor (confidential; lower)
+    seller2_min_price = 1280.0  # Seller 2 floor (confidential; higher than seller 1)
     
     buyer = BuyerAgent(model=model, buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, seller_min_price=seller1_min_price)
@@ -165,23 +117,22 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=1395.0,  # Landlord 1 opening monthly rent ask
-        initial_seller2_price=1425.0,  # Landlord 2 opening ask (higher; upgraded lease bundle)
+        initial_seller1_price=1395.0,  # Opening ask — same unit, different channel
+        initial_seller2_price=1425.0,  # Opening ask — same unit, different channel
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
         environment_info={
-            "platform": "Airbnb-style listing; negotiation framed as monthly lease",
-            "market_type": "Residential Rental",
-            "availability_status": "Available now.",
-            "listing_reference": "Listing ID 13183672 (airbnb_embeddings_sample10.jsonl)",
+            "platform": "Rental marketplace",
+            "market_type": "B2C",
+            "note": "Multiple third-party offers exist for the same property listing.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Remote worker moving to Manhattan who wants a walkable East Village base and predictable monthly rent. Cares about cleanliness, host communication, and lease clarity."
+    # User profile (preferences only; no seller identity)
+    user_profile = "Wants a fair monthly rent; open to comparing offers for the same studio."
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -192,16 +143,16 @@ def main(model_name=None):
     #     print("No requirement entered, using default requirement...")
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
-    # Use default requirement for automatic running
-    user_requirement = "I'm comparing two East Village studio offers (listing 13183672 style). I want to negotiate monthly rent and basics (furnishing, move-in date) before signing a lease."
+    # One-lease user query: concise, natural English (simulated search / assistant request)
+    user_requirement = "I need a 1-month lease on the East Village studio, move-in ready."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
     print("\n" + "="*60)
-    print("Starting new sequential negotiation with two landlords (East Village studio monthly lease)...")
+    print("Starting new sequential negotiation with two sellers...")
     print("="*60)
     
-    # Listing image from airbnb_embeddings_sample10.jsonl (_id 13183672)
+    # Product image for VLM: URL or local path (OpenAIVLM supports both)
     product_image_url = "https://a0.muscache.com/im/pictures/9f7b13d2-1c37-4c46-9f05-0a7046acba30.jpg?aki_policy=large"
     
     observation, info = env.reset(
@@ -209,21 +160,16 @@ def main(model_name=None):
         product_info={
             "name": "East Village Living — Entire studio (NYC East Village)",
             "condition": "Move-in ready",
-            "brand": "Host: Erica",
-            "color": "N/A",
             "size": "Studio · 1 bath · entire home/apt",
             "original_price": 1395.0,
+            "availability_quantity": 1,
             "availability_status": "Available now.",
-            "product_category": "Real Estate › Rentals › Apartments › Studio (Airbnb listing 13183672)",
+            "product_category": "Real Estate › Rentals › Apartments › Studio",
             "average_rating": 4.95,
             "total_reviews": 32,
-            "seller_name": "Erica",
+            "full_description": "Sunny East Village studio: exposed brick, hardwood floors, stand-up shower, stainless appliances; queen bed, modern decor. Monthly rent in USD; long-term lease framing.",
             "asin": "AIRBNB-13183672",
-            "full_description": "Sunny East Village studio: exposed brick, hardwood floors, stand-up shower, stainless appliances; queen Tempurpedic, modern decor. Negotiation uses monthly rent in USD. Listing: https://www.airbnb.com/rooms/13183672",
-            "small_description": "Walkable East Village studio; newly renovated; strong reviews.",
-            "seller1_condition": "12-month lease standard; utilities split per lease draft A",
-            "seller2_condition": "12-month preferred; includes quarterly cleaning credit (lease draft B)",
-            "image_url": product_image_url,
+            "image_url": product_image_url,  # For VLM: listing image (image + text)
         },
         user_profile=user_profile,  # Pass user profile
     )
@@ -253,30 +199,53 @@ def main(model_name=None):
         for msg in observation.get("conversation_history_seller1", []):
             combined_history.append({
                 **msg,
-                "content": f"[Seller 1] {msg['content']}"
+                "thread_label": "Talk with Seller 1",
             })
         # Add seller2 messages with prefix
         for msg in observation.get("conversation_history_seller2", []):
             combined_history.append({
                 **msg,
-                "content": f"[Seller 2] {msg['content']}"
+                "thread_label": "Talk with Seller 2",
             })
-        
-        # Get buyer's response - buyer should indicate which seller they want to negotiate with
+        # Get buyer's response - buyer should choose a seller via a structured <selected_seller> block
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>."
+        )
         buyer_response = buyer.respond(
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "You are negotiating with two sellers. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'."
+                "instruction": routing_instruction
             }
         )
-        
-        # Extract seller choice from buyer's response
-        selected_seller = extract_seller_choice(buyer_response, observation)
+
+        # Routing relies on the structured <selected_seller> block.
+        # If parsing fails, retry a few times; if still missing, fallback to random seller.
+        selected_seller = buyer.last_selected_seller
+        max_selection_retries = 2
+        retry_count = 0
+        while selected_seller is None and retry_count < max_selection_retries:
+            retry_count += 1
+            print(f"\n[Warning] Missing <selected_seller>; retrying buyer response ({retry_count}/{max_selection_retries})...")
+            buyer_response = buyer.respond(
+                conversation_history=combined_history,
+                current_state={
+                    **observation,
+                    "instruction": (
+                        routing_instruction
+                        + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+                    )
+                }
+            )
+            selected_seller = buyer.last_selected_seller
+        if selected_seller is None:
+            selected_seller = random.choice([1, 2])
+            print(f"\n[Warning] Failed to parse <selected_seller> after retries; randomly selecting Seller {selected_seller}.")
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
-        # Use buyer's full response as the negotiation message
-        # The response may include the choice statement, which is fine as it's buyer's natural expression
+        # BuyerAgent returns only the <message> block as the negotiation message.
         buyer_action = buyer_response
         
         # Get the conversation history for the selected seller
@@ -456,11 +425,15 @@ def main(model_name=None):
                 "seller2_min_price": seller2_min_price,
                 "product_info": {
                     "name": "East Village Living — Entire studio (NYC East Village)",
-                    "brand": "Host: Erica",
+                    "condition": "Move-in ready",
+                    "size": "Studio · 1 bath · entire home/apt",
                     "original_price": 1395.0,
-                    "product_category": "Real Estate › Rentals › Apartments › Studio (Airbnb listing 13183672)",
+                    "availability_quantity": 1,
+                    "availability_status": "Available now.",
+                    "product_category": "Real Estate › Rentals › Apartments › Studio",
                     "average_rating": 4.95,
                     "total_reviews": 32,
+                    "full_description": "Sunny East Village studio: exposed brick, hardwood floors, stand-up shower, stainless appliances; queen bed, modern decor. Monthly rent in USD; long-term lease framing.",
                     "asin": "AIRBNB-13183672",
                     "image_url": product_image_url,
                 },
@@ -502,7 +475,7 @@ def main(model_name=None):
         output_file = run_dir / "Task25_s21_rent_house_1_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task25 Scenario 21: East Village studio — Sequential Two-Landlord Negotiation Results\n")
+            f.write("Task25 Scenario 21: East Village studio — Sequential Two-Seller Negotiation Results\n")
             f.write("Category: Real Estate › Residential Rental\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -559,7 +532,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task25 Scenario 21: East Village rent — sequential two-landlord negotiation")
+    parser = argparse.ArgumentParser(description="Task25 Scenario 21: East Village rent — sequential two-seller negotiation")
     parser.add_argument(
         "--model",
         type=str,

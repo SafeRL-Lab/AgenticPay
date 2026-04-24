@@ -15,6 +15,29 @@ from agenticpay.memory.conversation_memory import ConversationMemory
 from agenticpay.utils.negotiation_state import NegotiationState
 
 
+def _image_urls_from_product_info(product_info: Dict[str, Any]) -> list:
+    """Collect image URLs from flat product_info or from product_info['products']."""
+    urls: list = []
+    if not product_info:
+        return urls
+    top = product_info.get("image_path") or product_info.get("image_url")
+    if top:
+        urls.append(top)
+    for p in product_info.get("products") or []:
+        if not isinstance(p, dict):
+            continue
+        u = p.get("image_path") or p.get("image_url")
+        if u:
+            urls.append(u)
+    seen: set = set()
+    out: list = []
+    for u in urls:
+        if u not in seen:
+            seen.add(u)
+            out.append(u)
+    return out
+
+
 class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
     """Task3 Sequential Two-Seller Per One Product Negotiation Environment
     
@@ -176,12 +199,15 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         self.seller1_product_info = seller1_product_info or {}
         self.seller2_product_info = seller2_product_info or {}
         
-        # Extract product_images for VLM (from image_url in seller1/seller2 product_info)
-        product_images = []
-        for prod in [self.seller1_product_info, self.seller2_product_info]:
-            img_url = prod.get("image_path") or prod.get("image_url")
-            if img_url:
-                product_images.append(img_url)
+        # Extract product_images for VLM (top-level image_url and/or products[].image_url)
+        imgs_s1 = _image_urls_from_product_info(self.seller1_product_info)
+        imgs_s2 = _image_urls_from_product_info(self.seller2_product_info)
+        product_images: list = []
+        seen_pi: set = set()
+        for u in imgs_s1 + imgs_s2:
+            if u not in seen_pi:
+                seen_pi.add(u)
+                product_images.append(u)
         if not product_images:
             product_images = None
         self.product_images = product_images
@@ -198,13 +224,21 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "negotiation_mode": "sequential",  # Inform buyer this is sequential negotiation
             "product_images": product_images,  # For VLM: product images (URL/path) for img input
         }
+        prods = self.seller1_product_info.get("products")
+        if (
+            prods
+            and isinstance(prods, list)
+            and len(prods) >= 2
+            and self.seller1_product_info is self.seller2_product_info
+        ):
+            buyer_context["negotiation_scope"] = (
+                "Both sellers list the SAME two products as one bundle. "
+                "Compare their TOTAL bundle prices only; ### BUYER_PRICE($X) ### must be the combined price for both items."
+            )
         self.buyer_agent.initialize(buyer_context)
         
         # Initialize Seller1 Agent with its own product
-        seller1_images = None
-        img1 = self.seller1_product_info.get("image_path") or self.seller1_product_info.get("image_url")
-        if img1:
-            seller1_images = [img1]
+        seller1_images = imgs_s1 if imgs_s1 else None
         seller1_context = {
             "product_info": self.seller1_product_info,
             "initial_price": self.initial_seller1_price,
@@ -216,10 +250,7 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         self.seller1_agent.initialize(seller1_context)
         
         # Initialize Seller2 Agent with its own product
-        seller2_images = None
-        img2 = self.seller2_product_info.get("image_path") or self.seller2_product_info.get("image_url")
-        if img2:
-            seller2_images = [img2]
+        seller2_images = imgs_s2 if imgs_s2 else None
         seller2_context = {
             "product_info": self.seller2_product_info,
             "initial_price": self.initial_seller2_price,
@@ -532,6 +563,66 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         self.state_seller1 = NegotiationState()
         self.state_seller2 = NegotiationState()
     
+    @staticmethod
+    def resolve_selected_seller(
+        buyer_message: str,
+        observation: Dict[str, Any],
+        last_selected_seller: Optional[int] = None,
+    ) -> int:
+        """Resolve which seller (1 or 2) the buyer is addressing this turn.
+        
+        Priority: explicit ``last_selected_seller`` from BuyerAgent (``<selected_seller>`` in full model
+        output), then ``<selected_seller>`` inside ``buyer_message``, then natural-language cues,
+        then price match against current/initial seller offers, then lower listed seller price.
+        """
+        if last_selected_seller in (1, 2):
+            return int(last_selected_seller)
+        text = buyer_message or ""
+        m = re.search(r"<selected_seller>\s*(\d+)\s*</selected_seller>", text, re.IGNORECASE | re.DOTALL)
+        if m:
+            v = int(m.group(1))
+            if v in (1, 2):
+                return v
+        tl = text.lower()
+        if re.search(r"seller\s*2|second\s+seller|seller\s*two", tl):
+            return 2
+        if re.search(r"seller\s*1|first\s+seller|seller\s*one", tl):
+            return 1
+        s1 = observation.get("seller1_price")
+        s2 = observation.get("seller2_price")
+        init1 = observation.get("initial_seller1_price")
+        init2 = observation.get("initial_seller2_price")
+        price_match = re.search(r"\$?([\d,]+\.?\d*)", text)
+        if price_match:
+            try:
+                mentioned = float(price_match.group(1).replace(",", ""))
+            except ValueError:
+                mentioned = None
+            if mentioned is not None and mentioned > 0:
+                tol = max(3.0, 0.12 * mentioned)
+                best_id: Optional[int] = None
+                best_d = float("inf")
+                for sid, ref in (
+                    (1, s1),
+                    (2, s2),
+                    (1, init1),
+                    (2, init2),
+                ):
+                    if ref is None:
+                        continue
+                    d = abs(mentioned - float(ref))
+                    if d < best_d:
+                        best_d, best_id = d, sid
+                if best_id is not None and best_d <= tol:
+                    return best_id
+        if s1 is not None and s2 is not None:
+            return 1 if float(s1) <= float(s2) else 2
+        if s1 is not None:
+            return 1
+        if s2 is not None:
+            return 2
+        return 1
+    
     def _get_observation(self) -> Dict[str, Any]:
         """Get current observation"""
         obs = {
@@ -548,6 +639,8 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "final_deal_price": self.final_deal_price,
             "seller1_product_info": self.seller1_product_info,
             "seller2_product_info": self.seller2_product_info,
+            "initial_seller1_price": self.initial_seller1_price,
+            "initial_seller2_price": self.initial_seller2_price,
         }
         # Include product_images for VLM (agent passes img to model when is_vlm)
         if getattr(self, "product_images", None) is not None:
@@ -569,6 +662,8 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "negotiation_info": self.negotiation_info,
             "seller1_product_info": self.seller1_product_info,
             "seller2_product_info": self.seller2_product_info,
+            "initial_seller1_price": self.initial_seller1_price,
+            "initial_seller2_price": self.initial_seller2_price,
         }
     
     def _extract_price(self, text: str) -> Optional[float]:
@@ -951,16 +1046,35 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             return self.seller2_min_price
         return None
     
+    def _score_Z_and_winner_min(self) -> Tuple[Optional[float], Optional[float]]:
+        """Bargaining range width Z for GlobalScore / BuyerScore / SellerScore.
+        
+        When both sellers have a minimum, Z = buyer_max - min(s1_min, s2_min) so utilities reflect
+        the competitive surplus band; u_b and u_s still use the **closing** seller's min in the
+        numerator for u_s and the same Z in the denominator (buyer surplus vs best outside seller).
+        """
+        winner_min = self._get_selected_seller_min_price()
+        if self.buyer_max_price is None or winner_min is None:
+            return None, winner_min
+        if self.seller1_min_price is not None and self.seller2_min_price is not None:
+            competitive_floor = min(self.seller1_min_price, self.seller2_min_price)
+            Z = self.buyer_max_price - competitive_floor
+        else:
+            Z = self.buyer_max_price - winner_min
+        return Z, winner_min
+    
     def _calculate_global_score(self, print_details: bool = True) -> float:
         """Calculate GlobalScore based on the optimized formula
         
-        Uses the final selected seller's min_price for calculation.
+        Uses competitive Z = buyer_max - min(seller mins) when both sellers exist; otherwise
+        Z = buyer_max - closing seller min. Closing seller's min anchors u_s.
         If no seller is selected, calculates failure penalty.
         
         Let:
         - buyer_max_price = maximum price the buyer is willing to pay
         - seller_min_price = minimum price the final selected seller is willing to accept
-        - Z = buyer_max_price - seller_min_price
+        - competitive_floor = min(seller1_min_price, seller2_min_price) when both set, else seller_min_price
+        - Z = buyer_max_price - competitive_floor (normalizes u_b and u_s vs best competing seller)
         - γ (gamma) controls how strongly longer negotiations are penalized (default: 0.99)
         
         valid_range = (Z > 0) and (seller_min_price <= p <= buyer_max_price)
@@ -1011,8 +1125,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
                 print(f"  GlobalScore = {failure_penalty:.3f}")
             return failure_penalty
         
-        # Calculate Z
-        Z = self.buyer_max_price - selected_seller_min_price
+        Z, _ = self._score_Z_and_winner_min()
+        competitive_floor: Optional[float] = None
+        if self.seller1_min_price is not None and self.seller2_min_price is not None:
+            competitive_floor = min(self.seller1_min_price, self.seller2_min_price)
         
         # Calculate discount = γ^(t-1)
         round_index = max(0, self.current_round)
@@ -1030,7 +1146,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             
             if print_details:
                 print(f"\n[GlobalScore Calculation]")
-                print(f"  Z = buyer_max_price({self.buyer_max_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f}) = {Z:.2f}")
+                if competitive_floor is not None:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - min(seller mins)({competitive_floor:.2f}) = {Z:.2f} (closing seller min = {selected_seller_min_price:.2f})")
+                else:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - closing seller min({selected_seller_min_price:.2f}) = {Z:.2f}")
                 print(f"  No final price available")
                 print(f"  feasible_deal = {feasible_deal}")
                 print(f"  valid_range = (Z > 0) = {Z > 0}")
@@ -1062,14 +1181,17 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             if print_details:
                 # Debug output header
                 print(f"\n[GlobalScore Calculation]")
-                print(f"  Z = buyer_max_price({self.buyer_max_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f}) = {Z:.2f}")
+                if competitive_floor is not None:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - min(seller mins)({competitive_floor:.2f}) = {Z:.2f} (closing seller min = {selected_seller_min_price:.2f})")
+                else:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - closing seller min({selected_seller_min_price:.2f}) = {Z:.2f}")
                 print(f"  final_price = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
                 print(f"  valid_range = (Z > 0) and (selected_seller_min_price({selected_seller_min_price:.2f}) <= final_price({final_price:.2f}) <= buyer_max_price({self.buyer_max_price:.2f})) = {valid_range}")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 # Debug output for success case
                 print(f"  u_b = (buyer_max_price({self.buyer_max_price:.2f}) - final_price({final_price:.2f})) / Z({Z:.2f}) = {u_b:.4f}")
-                print(f"  u_s = (final_price({final_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f})) / Z({Z:.2f}) = {u_s:.4f}")
+                print(f"  u_s = (final_price({final_price:.2f}) - closing seller min({selected_seller_min_price:.2f})) / Z({Z:.2f}) = {u_s:.4f}")
                 print(f"  Q = 4 * u_b({u_b:.4f}) * u_s({u_s:.4f}) = {Q:.4f}")
                 print(f"  DealScore = D({self.deal_score_weight:.1f}) * discount({discount:.6f}) = {deal_score:.3f}")
                 print(f"  QualityScore = W({self.quality_score_weight:.1f}) * Q({Q:.4f}) * discount({discount:.6f}) = {quality_score:.3f}")
@@ -1084,7 +1206,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             if print_details:
                 # Debug output header
                 print(f"\n[GlobalScore Calculation]")
-                print(f"  Z = buyer_max_price({self.buyer_max_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f}) = {Z:.2f}")
+                if competitive_floor is not None:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - min(seller mins)({competitive_floor:.2f}) = {Z:.2f} (closing seller min = {selected_seller_min_price:.2f})")
+                else:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - closing seller min({selected_seller_min_price:.2f}) = {Z:.2f}")
                 print(f"  final_price = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
                 print(f"  valid_range = (Z > 0) and (selected_seller_min_price({selected_seller_min_price:.2f}) <= final_price({final_price:.2f}) <= buyer_max_price({self.buyer_max_price:.2f})) = {valid_range}")
@@ -1098,7 +1223,7 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
     def _calculate_buyer_score(self, print_details: bool = True) -> float:
         """Calculate BuyerScore based on the formula
         
-        u_b = (buyer_max_price - p) / (buyer_max_price - seller_min_price)
+        u_b = (buyer_max_price - p) / Z with Z from _score_Z_and_winner_min() (competitive when two sellers).
         
         discount = γ^(t-1)  # where t is the round number (1-based)
         
@@ -1136,8 +1261,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
                 print(f"  BuyerScore = -Fb({self.buyer_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {buyer_score:.3f}")
             return buyer_score
         
-        # Calculate Z
-        Z = self.buyer_max_price - selected_seller_min_price
+        Z, _ = self._score_Z_and_winner_min()
+        competitive_floor: Optional[float] = None
+        if self.seller1_min_price is not None and self.seller2_min_price is not None:
+            competitive_floor = min(self.seller1_min_price, self.seller2_min_price)
         
         # Calculate discount = γ^(t-1)
         round_index = max(0, self.current_round)
@@ -1155,7 +1282,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             
             if print_details:
                 print(f"\n[BuyerScore Calculation]")
-                print(f"  Z = buyer_max_price({self.buyer_max_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f}) = {Z:.2f}")
+                if competitive_floor is not None:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - min(seller mins)({competitive_floor:.2f}) = {Z:.2f} (closing seller min = {selected_seller_min_price:.2f})")
+                else:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - closing seller min({selected_seller_min_price:.2f}) = {Z:.2f}")
                 print(f"  No final price available")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 print(f"  BuyerScore = -Fb({self.buyer_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {buyer_score:.3f}")
@@ -1175,7 +1305,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             if print_details:
                 # Debug output header
                 print(f"\n[BuyerScore Calculation]")
-                print(f"  Z = buyer_max_price({self.buyer_max_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f}) = {Z:.2f}")
+                if competitive_floor is not None:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - min(seller mins)({competitive_floor:.2f}) = {Z:.2f} (closing seller min = {selected_seller_min_price:.2f})")
+                else:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - closing seller min({selected_seller_min_price:.2f}) = {Z:.2f}")
                 print(f"  final_price = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
                 print(f"  valid_range = (Z > 0) and (selected_seller_min_price({selected_seller_min_price:.2f}) <= final_price({final_price:.2f}) <= buyer_max_price({self.buyer_max_price:.2f})) = {valid_range}")
@@ -1193,7 +1326,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             if print_details:
                 # Debug output header
                 print(f"\n[BuyerScore Calculation]")
-                print(f"  Z = buyer_max_price({self.buyer_max_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f}) = {Z:.2f}")
+                if competitive_floor is not None:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - min(seller mins)({competitive_floor:.2f}) = {Z:.2f} (closing seller min = {selected_seller_min_price:.2f})")
+                else:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - closing seller min({selected_seller_min_price:.2f}) = {Z:.2f}")
                 print(f"  final_price = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
                 print(f"  valid_range = (Z > 0) and (selected_seller_min_price({selected_seller_min_price:.2f}) <= final_price({final_price:.2f}) <= buyer_max_price({self.buyer_max_price:.2f})) = {valid_range}")
@@ -1209,7 +1345,7 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         Uses the final selected seller's min_price for calculation.
         If no seller is selected or deal not reached with this seller, calculates failure penalty.
         
-        u_s = (p - seller_min_price) / (buyer_max_price - seller_min_price)
+        u_s = (p - closing seller min) / Z; Z matches GlobalScore (competitive band when two sellers).
         
         discount = γ^(t-1)  # where t is the round number (1-based)
         
@@ -1247,8 +1383,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
                 print(f"  SellerScore = -Fs({self.seller_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {seller_score:.3f}")
             return seller_score
         
-        # Calculate Z
-        Z = self.buyer_max_price - selected_seller_min_price
+        Z, _ = self._score_Z_and_winner_min()
+        competitive_floor: Optional[float] = None
+        if self.seller1_min_price is not None and self.seller2_min_price is not None:
+            competitive_floor = min(self.seller1_min_price, self.seller2_min_price)
         
         # Calculate discount = γ^(t-1)
         round_index = max(0, self.current_round)
@@ -1266,7 +1404,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             
             if print_details:
                 print(f"\n[SellerScore Calculation]")
-                print(f"  Z = buyer_max_price({self.buyer_max_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f}) = {Z:.2f}")
+                if competitive_floor is not None:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - min(seller mins)({competitive_floor:.2f}) = {Z:.2f} (closing seller min = {selected_seller_min_price:.2f})")
+                else:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - closing seller min({selected_seller_min_price:.2f}) = {Z:.2f}")
                 print(f"  No final price available")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 print(f"  SellerScore = -Fs({self.seller_failure_penalty_weight:.1f}) * (1 - discount({discount:.6f})) = {seller_score:.3f}")
@@ -1286,13 +1427,16 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             if print_details:
                 # Debug output header
                 print(f"\n[SellerScore Calculation]")
-                print(f"  Z = buyer_max_price({self.buyer_max_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f}) = {Z:.2f}")
+                if competitive_floor is not None:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - min(seller mins)({competitive_floor:.2f}) = {Z:.2f} (closing seller min = {selected_seller_min_price:.2f})")
+                else:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - closing seller min({selected_seller_min_price:.2f}) = {Z:.2f}")
                 print(f"  final_price = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
                 print(f"  valid_range = (Z > 0) and (selected_seller_min_price({selected_seller_min_price:.2f}) <= final_price({final_price:.2f}) <= buyer_max_price({self.buyer_max_price:.2f})) = {valid_range}")
                 print(f"  round_index = {round_index}, gamma = {self.gamma}, discount = γ^{round_index} = {discount:.6f}")
                 # Debug output for success case
-                print(f"  u_s = (final_price({final_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f})) / Z({Z:.2f}) = {u_s:.4f}")
+                print(f"  u_s = (final_price({final_price:.2f}) - closing seller min({selected_seller_min_price:.2f})) / Z({Z:.2f}) = {u_s:.4f}")
                 print(f"  SellerScore = discount({discount:.6f}) * (Ds({self.seller_deal_weight:.1f}) + Ws({self.seller_utility_weight:.1f}) * u_s({u_s:.4f}) + Es({self.seller_efficiency_weight:.1f}))")
                 print(f"  SellerScore = {discount:.6f} * ({self.seller_deal_weight:.1f} + {self.seller_utility_weight * u_s:.4f} + {self.seller_efficiency_weight:.1f}) = {seller_score:.3f}")
             
@@ -1304,7 +1448,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             if print_details:
                 # Debug output header
                 print(f"\n[SellerScore Calculation]")
-                print(f"  Z = buyer_max_price({self.buyer_max_price:.2f}) - selected_seller_min_price({selected_seller_min_price:.2f}) = {Z:.2f}")
+                if competitive_floor is not None:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - min(seller mins)({competitive_floor:.2f}) = {Z:.2f} (closing seller min = {selected_seller_min_price:.2f})")
+                else:
+                    print(f"  Z = buyer_max({self.buyer_max_price:.2f}) - closing seller min({selected_seller_min_price:.2f}) = {Z:.2f}")
                 print(f"  final_price = {final_price:.2f}")
                 print(f"  feasible_deal = {feasible_deal} (negotiation status: {self.negotiation_info.status.value})")
                 print(f"  valid_range = (Z > 0) and (selected_seller_min_price({selected_seller_min_price:.2f}) <= final_price({final_price:.2f}) <= buyer_max_price({self.buyer_max_price:.2f})) = {valid_range}")

@@ -1,15 +1,14 @@
-"""Task11 Scenario 7: Flip Flops & Marvel T-Shirt - Sequential Two-Buyer Two-Seller Two-Product Negotiation
+"""Task11 Scenario 7: Flip-flops & Marvel tee — Sequential 2x2 (2 products, image + text)
 
-Two buyers negotiating with two sellers for N/C Flip Flops + Marvel Avengers T-Shirt package.
-Each buyer chooses one seller per round to negotiate with.
-Prices represent total price for both products (Flip Flops + T-Shirt).
-Category: Clothing & Fashion
+Same two-SKU cart, two offers, no per-seller identity in the listing; floors differ per buyer/seller.
+``<selected_seller>`` routing aligned with Task5_s1. Category: Clothing & Fashion
 """
 
 import os
 import sys
 import json
 import time
+import random
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -18,23 +17,13 @@ from datetime import datetime
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, project_root)
 
-from agenticpay.envs.multi_buyer_multi_products_multi_seller.Task3_sequential_two_buyer_two_seller_two_product_negotiation import Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation
+from agenticpay.envs.multi_buyer_multi_products_multi_seller.Task3_sequential_two_buyer_two_seller_two_product_negotiation import (
+    Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation,
+)
 from agenticpay.agents.buyer_agent import BuyerAgent
 from agenticpay.agents.seller_agent import SellerAgent
 from agenticpay.models.openai_vlm import OpenAIVLM
-import re
-
-# Import configuration parameters
-examples_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, examples_dir)
-try:
-    from config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
-except ImportError:
-    # Default values if config not available
-    reward_weights = {"buyer_savings": 1.0, "seller_profit": 1.0, "time_cost": 0.1}
-    max_rounds = 20
-    price_tolerance = 0
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+from agenticpay.examples.config import reward_weights, max_rounds, price_tolerance, OPENAI_API_KEY
 
 
 def get_model_name(model):
@@ -67,60 +56,43 @@ def get_model_name(model):
             return model_str
 
 
-def extract_seller_choice(buyer_response: str, observation: dict, buyer_id: int) -> int:
-    """Extract seller choice from buyer's response
-    
-    Buyer should indicate which seller they want to negotiate with.
-    Look for patterns like "seller 1", "seller1", "first seller", etc.
-    
-    Args:
-        buyer_response: Buyer's response text
-        observation: Current observation from environment
-        buyer_id: Buyer ID (1 or 2)
-        
-    Returns:
-        1 or 2, indicating which seller buyer wants to negotiate with
-    """
-    response_lower = buyer_response.lower()
-    
-    # Look for explicit seller mentions
-    if re.search(r'seller\s*[12]|first\s+seller|seller\s*one', response_lower):
-        if re.search(r'seller\s*2|second\s+seller|seller\s*two', response_lower):
-            return 2
-        elif re.search(r'seller\s*1|first\s+seller|seller\s*one', response_lower):
-            return 1
-    
-    # If no explicit mention, try to infer from context
-    # Check if buyer mentions prices or other indicators
-    # Get prices for this buyer
-    if buyer_id == 1:
-        seller1_price = observation.get("b1s1_seller_price")
-        seller2_price = observation.get("b1s2_seller_price")
-    else:  # buyer_id == 2
-        seller1_price = observation.get("b2s1_seller_price")
-        seller2_price = observation.get("b2s2_seller_price")
-    
-    # If buyer mentions a specific price, try to match it
-    price_match = re.search(r'\$?(\d+\.?\d*)', buyer_response)
-    if price_match:
-        mentioned_price = float(price_match.group(1))
-        if seller1_price is not None and abs(mentioned_price - seller1_price) < 5:
-            return 1
-        elif seller2_price is not None and abs(mentioned_price - seller2_price) < 5:
-            return 2
-    
-    # Default: if no clear indication, check which seller has been negotiated with more
-    # or which has a better price
-    if seller1_price is not None and seller2_price is not None:
-        # Choose the one with lower price if both available
-        return 1 if seller1_price <= seller2_price else 2
-    elif seller1_price is not None:
-        return 1
-    elif seller2_price is not None:
-        return 2
-    
-    # Final default: seller1
-    return 1
+def _run_buyer_routing(buyer, combined_history: list, observation: dict, routing_instruction: str):
+    """Structured ``<selected_seller>`` + retries + random fallback (aligned with Task5_s1)."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    buyer_response = None
+    selected_seller = None
+    while True:
+        buyer_response = buyer.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_sellers": 2,
+            },
+        )
+        selected_seller = buyer.last_selected_seller
+        if selected_seller is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_seller>; retrying buyer response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+        )
+    if selected_seller is None:
+        selected_seller = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_seller> after retries; "
+            f"randomly selecting Seller {selected_seller}."
+        )
+    return buyer_response, selected_seller
 
 
 def main(model_name=None):
@@ -175,6 +147,7 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
+            "note": "Multiple third-party offers for the same two-SKU cart; prices are bundle totals.",
             "seller1_listing_age": "2 days",
             "seller2_listing_age": "1 week",
         },
@@ -182,8 +155,9 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    # Create user profile (text description of personal preferences)
-    user_profile = "Two people looking for summer footwear and casual Marvel fan apparel. Buyer1 seeks good value for flip flops and T-shirt. Buyer2 values comfort and officially licensed merchandise. Both use for beach, pool, and casual wear."
+    user_profile = (
+        "Two buyers want the same two-item summer outfit; listing has no per-seller identity; they compare offers for the cart total."
+    )
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices (Product 1 from Task10_s7_sandals, Product 2 from sampled_products2.jsonl line 7)
@@ -193,8 +167,9 @@ def main(model_name=None):
         "products": [
             {
                 "name": "N/C Mens Flip Flops Thong Sandals Yoga Foam Slippers 44 R011 Black",
-                "brand": "Brand: N/C",
+                "brand": "N/C",
                 "price": 17.99,
+                "list_price": 17.99,
                 "condition": "New",
                 "size": "44",
                 "color": "R011 Black",
@@ -202,21 +177,20 @@ def main(model_name=None):
                 "product_category": "Clothing, Shoes & Jewelry › Men › Shoes › Sandals",
                 "average_rating": 4.0,
                 "total_reviews": 0,
-                "seller_name": "changqia'w",
                 "asin": "B0989VY7D8",
                 "full_description": "Men's flip flops: the skin contact part is made of cloth so you can walk without friction or sharpness. Even if used for a long time, it will not cause blisters. Antiskid comfort with good spiral antiskid pattern at the bottom. Arch support provides good walking stability and keeps your feet comfortable. Upper material: mesh. Sole material: PVC. Waterproof and suitable for all seasons. Perfect for beach, pool, and casual wear. Sizes: 39-45.",
                 "image_url": "https://m.media-amazon.com/images/I/61vR1ZJ9u3S.jpg",
             },
             {
                 "name": "Marvel Avengers: Endgame Captain America America's Language T-Shirt",
-                "brand": "Brand: Marvel",
+                "brand": "Marvel",
                 "price": 22.99,
+                "list_price": 22.99,
                 "condition": "New",
                 "availability_status": "In Stock.",
                 "product_category": "Clothing, Shoes & Jewelry › Novelty & More › Clothing › Novelty › Women › Tops & Tees › T-Shirts",
                 "average_rating": 5,
                 "total_reviews": 2,
-                "seller_name": "",
                 "asin": "B07XPR3R7N",
                 "full_description": "Team up with what is left of the Avengers to fix the damage that Thanos has caused to the universe. You'll find the perfect gear within this collection of Officially Licensed Marvel Avengers: Endgame tee shirts, sweatshirts, and hoodies!",
                 "small_description": ["Officially Licensed Marvel Apparel", "19MARF00431A-001", "Lightweight, Classic fit, Double-needle sleeve and bottom hem"],
@@ -234,7 +208,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for men's flip flops, size 44, black color with cloth upper for beach and pool, plus a Marvel Avengers Captain America T-shirt in black, men's fit. Prefer comfortable and good value."
+    user_requirement = "I want these two, new: N/C black flip-flops (size 44) and a Marvel Endgame Cap America tee."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -270,56 +244,30 @@ def main(model_name=None):
         
         # Build combined conversation history for buyer1 (includes both sellers' conversations)
         combined_history_b1 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b1s1", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b1s2", []):
-            combined_history_b1.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
-        
-        # Build combined conversation history for buyer2 (includes both sellers' conversations)
+            combined_history_b1.append({**msg, "thread_label": "Talk with Seller 2"})
+
         combined_history_b2 = []
-        # Add seller1 messages with prefix
         for msg in observation.get("conversation_history_b2s1", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 1] {msg['content']}"
-            })
-        # Add seller2 messages with prefix
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 1"})
         for msg in observation.get("conversation_history_b2s2", []):
-            combined_history_b2.append({
-                **msg,
-                "content": f"[Seller 2] {msg['content']}"
-            })
-        
-        # Get buyer1's response - buyer should indicate which seller they want to negotiate with
-        buyer1_response = buyer1.respond(
-            conversation_history=combined_history_b1,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers for two products. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'. Prices represent total price for both products."
-            }
+            combined_history_b2.append({**msg, "thread_label": "Talk with Seller 2"})
+
+        routing_instruction = (
+            "You are negotiating with two sellers. Each round, choose exactly ONE seller "
+            "and output that choice in a dedicated <selected_seller> block containing only "
+            "the digit 1 or 2. Then put only your negotiation text in <message>. "
+            "The price you discuss is the **total** for both products in the cart."
         )
-        
-        # Get buyer2's response - buyer should indicate which seller they want to negotiate with
-        buyer2_response = buyer2.respond(
-            conversation_history=combined_history_b2,
-            current_state={
-                **observation,
-                "instruction": "You are negotiating with two sellers for two products. Each round, you need to choose ONE seller to negotiate with and provide your negotiation message. Please clearly indicate which seller (1 or 2) you want to negotiate with, for example: 'I want to negotiate with seller 1' or 'Let me talk to seller 2'. Prices represent total price for both products."
-            }
+        buyer1_response, buyer1_selected_seller = _run_buyer_routing(
+            buyer1, combined_history_b1, observation, routing_instruction
         )
-        
-        # Extract seller choice from each buyer's response
-        buyer1_selected_seller = extract_seller_choice(buyer1_response, observation, buyer_id=1)
-        buyer2_selected_seller = extract_seller_choice(buyer2_response, observation, buyer_id=2)
-        
+        buyer2_response, buyer2_selected_seller = _run_buyer_routing(
+            buyer2, combined_history_b2, observation, routing_instruction
+        )
+
         print(f"\n[Buyer 1 chooses to negotiate with Seller {buyer1_selected_seller} this round]")
         print(f"[Buyer 2 chooses to negotiate with Seller {buyer2_selected_seller} this round]")
         
@@ -517,80 +465,90 @@ def main(model_name=None):
                     weighted_round_cost = round_cost * weights["time_cost"]
                     print(f"  Seller2 Step Reward = round_cost({round_cost:.2f} * {weights['time_cost']:.2f}) = {weighted_round_cost:.2f} (seller2_price not specified, round={info['round']})")
         
-        # If this is the final round (agreed or timeout), display score calculations after Step Rewards
         if done:
-            # Print score calculations after Step Rewards
+            print("\n" + "=" * 60)
+            print("Negotiation Ended")
+            print("=" * 60)
+            print(f"Status: {info['status']}")
+            if info.get("selected_buyer") and info.get("selected_seller"):
+                print(f"Selected Deal: Buyer {info['selected_buyer']} - Seller {info['selected_seller']}")
+                print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
+            print(
+                f"Buyer1-Seller1 Total: Buyer=${info.get('b1s1_buyer_price', 0) or 0:.2f} | "
+                f"Seller=${info.get('b1s1_seller_price', 0) or 0:.2f}"
+            )
+            print(
+                f"Buyer1-Seller2 Total: Buyer=${info.get('b1s2_buyer_price', 0) or 0:.2f} | "
+                f"Seller=${info.get('b1s2_seller_price', 0) or 0:.2f}"
+            )
+            print(
+                f"Buyer2-Seller1 Total: Buyer=${info.get('b2s1_buyer_price', 0) or 0:.2f} | "
+                f"Seller=${info.get('b2s1_seller_price', 0) or 0:.2f}"
+            )
+            print(
+                f"Buyer2-Seller2 Total: Buyer=${info.get('b2s2_buyer_price', 0) or 0:.2f} | "
+                f"Seller=${info.get('b2s2_seller_price', 0) or 0:.2f}"
+            )
             env._print_global_score_details()
             env._print_buyer_score_details()
             env._print_seller_score_details()
-            
-            print("\n" + "="*60)
-            print("Negotiation Ended")
-            print("="*60)
-            print(f"Status: {info['status']}")
-            if info.get('selected_buyer') and info.get('selected_seller'):
-                print(f"Selected Deal: Buyer {info['selected_buyer']} - Seller {info['selected_seller']}")
-                print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
-            print(f"Buyer1-Seller1 Total Prices: Buyer=${info.get('b1s1_buyer_price', 0) or 0:.2f} | Seller=${info.get('b1s1_seller_price', 0) or 0:.2f}")
-            print(f"Buyer1-Seller2 Total Prices: Buyer=${info.get('b1s2_buyer_price', 0) or 0:.2f} | Seller=${info.get('b1s2_seller_price', 0) or 0:.2f}")
-            print(f"Buyer2-Seller1 Total Prices: Buyer=${info.get('b2s1_buyer_price', 0) or 0:.2f} | Seller=${info.get('b2s1_seller_price', 0) or 0:.2f}")
-            print(f"Buyer2-Seller2 Total Prices: Buyer=${info.get('b2s2_buyer_price', 0) or 0:.2f} | Seller=${info.get('b2s2_seller_price', 0) or 0:.2f}")
-            # current_round has been incremented to reflect the completed round
-            actual_rounds = info['round']
+            actual_rounds = info["round"]
             print(f"Total Rounds: {actual_rounds}")
             print(f"Global Reward: {reward:.3f}")
-            if 'buyer1_reward' in info:
+            if "buyer1_reward" in info:
                 print(f"Buyer1 Reward: {info['buyer1_reward']:.3f}")
-            if 'buyer2_reward' in info:
+            if "buyer2_reward" in info:
                 print(f"Buyer2 Reward: {info['buyer2_reward']:.3f}")
-            if 'seller1_reward' in info:
+            if "seller1_reward" in info:
                 print(f"Seller1 Reward: {info['seller1_reward']:.3f}")
-            if 'seller2_reward' in info:
+            if "seller2_reward" in info:
                 print(f"Seller2 Reward: {info['seller2_reward']:.3f}")
-            if 'global_score' in info:
+            if "global_score" in info:
                 print(f"GlobalScore: {info['global_score']:.3f}")
-            if 'buyer_score' in info:
+            if "buyer_score" in info:
                 print(f"BuyerScore: {info['buyer_score']:.3f}")
-            if 'seller_score' in info:
+            if "seller_score" in info:
                 print(f"SellerScore: {info['seller_score']:.3f}")
-            if info.get('termination_reason'):
+            if info.get("termination_reason"):
                 print(f"Reason: {info['termination_reason']}")
-            print("="*60)
-            
-            # Collect results
+            print("=" * 60)
+
             elapsed_time = time.time() - start_time
-            results.update({
-                "status": info.get('status', 'unknown'),
+            product_info_out = info.get("product_info", {})
+            results.update(
+                {
+                "status": info.get("status", "unknown"),
                 "success": terminated,
-                "selected_buyer": info.get('selected_buyer'),
-                "selected_seller": info.get('selected_seller'),
-                "final_deal_price": info.get('final_deal_price'),
-                "b1s1_buyer_price": info.get('b1s1_buyer_price'),
-                "b1s1_seller_price": info.get('b1s1_seller_price'),
-                "b1s2_buyer_price": info.get('b1s2_buyer_price'),
-                "b1s2_seller_price": info.get('b1s2_seller_price'),
-                "b2s1_buyer_price": info.get('b2s1_buyer_price'),
-                "b2s1_seller_price": info.get('b2s1_seller_price'),
-                "b2s2_buyer_price": info.get('b2s2_buyer_price'),
-                "b2s2_seller_price": info.get('b2s2_seller_price'),
-                "total_rounds": info.get('round', 0),
+                "selected_buyer": info.get("selected_buyer"),
+                "selected_seller": info.get("selected_seller"),
+                "final_deal_price": info.get("final_deal_price"),
+                "b1s1_buyer_price": info.get("b1s1_buyer_price"),
+                "b1s1_seller_price": info.get("b1s1_seller_price"),
+                "b1s2_buyer_price": info.get("b1s2_buyer_price"),
+                "b1s2_seller_price": info.get("b1s2_seller_price"),
+                "b2s1_buyer_price": info.get("b2s1_buyer_price"),
+                "b2s1_seller_price": info.get("b2s1_seller_price"),
+                "b2s2_buyer_price": info.get("b2s2_buyer_price"),
+                "b2s2_seller_price": info.get("b2s2_seller_price"),
+                "total_rounds": info.get("round", 0),
                 "total_reward": float(reward) if reward is not None else None,
-                "buyer1_reward": info.get('buyer1_reward'),
-                "buyer2_reward": info.get('buyer2_reward'),
-                "seller1_reward": info.get('seller1_reward'),
-                "seller2_reward": info.get('seller2_reward'),
-                "global_score": info.get('global_score'),
-                "buyer_score": info.get('buyer_score'),
-                "seller_score": info.get('seller_score'),
-                "termination_reason": info.get('termination_reason'),
+                "buyer1_reward": info.get("buyer1_reward"),
+                "buyer2_reward": info.get("buyer2_reward"),
+                "seller1_reward": info.get("seller1_reward"),
+                "seller2_reward": info.get("seller2_reward"),
+                "global_score": info.get("global_score"),
+                "buyer_score": info.get("buyer_score"),
+                "seller_score": info.get("seller_score"),
+                "termination_reason": info.get("termination_reason"),
                 "elapsed_time": elapsed_time,
                 "buyer1_max_price": buyer1_max_price,
                 "buyer2_max_price": buyer2_max_price,
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
-                "product_info": product_info,
+                "product_info": product_info_out,
                 "model": get_model_name(model),
-            })
+            }
+            )
             break
     
     # Close environment
@@ -642,22 +600,32 @@ def main(model_name=None):
             if results.get('selected_buyer') and results.get('selected_seller'):
                 f.write(f"Selected Deal: Buyer {results['selected_buyer']} - Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Total Price: ${results.get('final_deal_price', 0):.2f}\n\n")
-            f.write("Final Prices (Total for Both Products):\n")
-            f.write(f"  Buyer1-Seller1: Buyer=${results['b1s1_buyer_price']:.2f} | Seller=${results['b1s1_seller_price']:.2f}" if results.get('b1s1_buyer_price') is not None and results.get('b1s1_seller_price') is not None else "  Buyer1-Seller1: Not specified")
-            f.write("\n")
-            f.write(f"  Buyer1-Seller2: Buyer=${results['b1s2_buyer_price']:.2f} | Seller=${results['b1s2_seller_price']:.2f}" if results.get('b1s2_buyer_price') is not None and results.get('b1s2_seller_price') is not None else "  Buyer1-Seller2: Not specified")
-            f.write("\n")
-            f.write(f"  Buyer2-Seller1: Buyer=${results['b2s1_buyer_price']:.2f} | Seller=${results['b2s1_seller_price']:.2f}" if results.get('b2s1_buyer_price') is not None and results.get('b2s1_seller_price') is not None else "  Buyer2-Seller1: Not specified")
-            f.write("\n")
-            f.write(f"  Buyer2-Seller2: Buyer=${results['b2s2_buyer_price']:.2f} | Seller=${results['b2s2_seller_price']:.2f}" if results.get('b2s2_buyer_price') is not None and results.get('b2s2_seller_price') is not None else "  Buyer2-Seller2: Not specified")
-            f.write("\n\n")
-            product_info = results.get('product_info', {})
+            f.write("Final Total Prices (bundle):\n")
+            f.write(
+                f"  Buyer1-Seller1: Buyer=${results['b1s1_buyer_price']:.2f} | Seller=${results['b1s1_seller_price']:.2f}\n"
+                if results.get("b1s1_buyer_price") is not None and results.get("b1s1_seller_price") is not None
+                else "  Buyer1-Seller1: Not specified\n"
+            )
+            f.write(
+                f"  Buyer1-Seller2: Buyer=${results['b1s2_buyer_price']:.2f} | Seller=${results['b1s2_seller_price']:.2f}\n"
+                if results.get("b1s2_buyer_price") is not None and results.get("b1s2_seller_price") is not None
+                else "  Buyer1-Seller2: Not specified\n"
+            )
+            f.write(
+                f"  Buyer2-Seller1: Buyer=${results['b2s1_buyer_price']:.2f} | Seller=${results['b2s1_seller_price']:.2f}\n"
+                if results.get("b2s1_buyer_price") is not None and results.get("b2s1_seller_price") is not None
+                else "  Buyer2-Seller1: Not specified\n"
+            )
+            f.write(
+                f"  Buyer2-Seller2: Buyer=${results['b2s2_buyer_price']:.2f} | Seller=${results['b2s2_seller_price']:.2f}\n\n"
+                if results.get("b2s2_buyer_price") is not None and results.get("b2s2_seller_price") is not None
+                else "  Buyer2-Seller2: Not specified\n\n"
+            )
+            pin = results.get("product_info", {}) or {}
             f.write("Products:\n")
-            if 'products' in product_info:
-                for i, p in enumerate(product_info['products'], 1):
-                    f.write(f"  {i}. {p.get('name', 'N/A')} by {p.get('brand', 'N/A')} - ${p.get('price', 0):.2f}\n")
-                total_price = sum(p.get('price', 0) for p in product_info.get('products', []))
-                f.write(f"  Total Product Price: ${total_price:.2f}\n")
+            for i, p in enumerate(pin.get("products", []), 1):
+                price_val = p.get("list_price", p.get("price", p.get("original_price", 0)))
+                f.write(f"  {i}. {p.get('name', 'N/A')} by {p.get('brand', 'N/A')} — list ${float(price_val):.2f}\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:

@@ -34,6 +34,7 @@ class SellerAgent(BaseAgent):
         super().__init__(model, role_description, name)
         self.seller_min_price = seller_min_price
         self.system_prompt_suffix = system_prompt_suffix
+        self.last_selected_buyer: Optional[int] = None
     
     def respond(
         self,
@@ -52,6 +53,7 @@ class SellerAgent(BaseAgent):
         if not self.initialized:
             raise ValueError("Agent not initialized. Call initialize() first.")
         
+        self.last_selected_buyer = None
         prompt = self._build_prompt(conversation_history, current_state)
         
         # Get seller's minimum acceptable price (bottom price)
@@ -99,6 +101,53 @@ class SellerAgent(BaseAgent):
         personality_section = ""
         if self.system_prompt_suffix:
             personality_section = f"\n{self.system_prompt_suffix}\n"
+
+        num_buyers = current_state.get("num_buyers", 1)
+        try:
+            num_buyers = int(num_buyers)
+        except (TypeError, ValueError):
+            num_buyers = 1
+        num_buyers = max(1, num_buyers)
+        task_instruction = current_state.get("instruction", "")
+        task_instruction_section = ""
+        if task_instruction:
+            task_instruction_section = f"\nTASK INSTRUCTION:\n- {task_instruction}\n"
+        selected_buyer_rules = f"""
+- MULTI-BUYER ROUTING: You are negotiating with multiple potential buyers.
+- You MUST choose exactly one buyer for this turn and output it in a dedicated `<selected_buyer>` block.
+- `<selected_buyer>` must contain exactly one integer from `1` to `{num_buyers}`.
+- Base your choice on the conversation history, current offers, and your strategy.
+- Do NOT put any extra text inside `<selected_buyer>`.
+"""
+        selected_buyer_format = f"""<selected_buyer>
+[one integer from 1 to {num_buyers}]
+</selected_buyer>
+"""
+        if num_buyers >= 2:
+            structure_tail = f"""{task_instruction_section}
+{selected_buyer_rules}
+You MUST format your entire output as follows (do NOT skip any block):
+<mental_model>
+[Opponent Reservation Price]: <your estimate and confidence score>
+[Opponent Strategy]: <your inference about the buyer's tactic>
+[My Strategy]: <your chosen tactic and reasoning>
+</mental_model>
+{selected_buyer_format}<message>
+[Your actual negotiation message to the chosen buyer. Must include exactly one ### SELLER_PRICE($X) ### and obey all IMPORTANT rules above.]
+</message>
+"""
+        else:
+            structure_tail = f"""{task_instruction_section}
+You MUST format your entire output as follows (do NOT skip either block):
+<mental_model>
+[Opponent Reservation Price]: <your estimate and confidence score>
+[Opponent Strategy]: <your inference about the buyer's tactic>
+[My Strategy]: <your chosen tactic and reasoning>
+</mental_model>
+<message>
+[Your actual negotiation message to the buyer. Must include exactly one ### SELLER_PRICE($X) ### and obey all IMPORTANT rules above.]
+</message>
+"""
         
         seller_guidance = f"""
 IMPORTANT REMINDERS:
@@ -125,15 +174,7 @@ Think privately about the following three aspects:
 2. [Opponent Strategy]: What negotiation tactic or strategy is the buyer currently using? (e.g., aggressive lowballing, anchoring low, comparison shopping threat, value questioning, etc.)
 3. [My Strategy]: What is your current negotiation strategy and why? (e.g., holding firm on value, slow concession, urgency creation, bundle offer, etc.)
 
-You MUST format your entire output as follows (do NOT skip either block):
-<mental_model>
-[Opponent Reservation Price]: <your estimate and confidence score>
-[Opponent Strategy]: <your inference about the buyer's tactic>
-[My Strategy]: <your chosen tactic and reasoning>
-</mental_model>
-<message>
-[Your actual negotiation message to the buyer. Must include exactly one ### SELLER_PRICE($X) ### and obey all IMPORTANT rules above.]
-</message>
+{structure_tail}
 """
 
         full_prompt = prompt + seller_guidance
@@ -174,6 +215,12 @@ You MUST format your entire output as follows (do NOT skip either block):
             mental_model_content = mental_model_match.group(1).strip()
             logger.info(f"\n{'='*50}\n[{self.name} MENTAL MODEL]\n{mental_model_content}\n{'='*50}")
 
+        selected_buyer_match = re.search(r'<selected_buyer>\s*(\d+)\s*</selected_buyer>', response, flags=re.DOTALL | re.IGNORECASE)
+        if selected_buyer_match:
+            parsed = int(selected_buyer_match.group(1))
+            if 1 <= parsed <= num_buyers:
+                self.last_selected_buyer = parsed
+
         # Extract <message> block — this is the only part that enters conversation history
         message_match = re.search(r'<message>(.*?)</message>', response, flags=re.DOTALL | re.IGNORECASE)
         if message_match:
@@ -181,7 +228,8 @@ You MUST format your entire output as follows (do NOT skip either block):
         else:
             # Fallback: strip mental_model tags and use remainder as message
             logger.warning(f"[{self.name}] Output did not follow <mental_model>/<message> format. Using fallback.")
-            final_message = re.sub(r'<mental_model>.*?</mental_model>', '', response, flags=re.DOTALL | re.IGNORECASE).strip()
+            final_message = re.sub(r'<mental_model>.*?</mental_model>', '', response, flags=re.DOTALL | re.IGNORECASE)
+            final_message = re.sub(r'<selected_buyer>.*?</selected_buyer>', '', final_message, flags=re.DOTALL | re.IGNORECASE).strip()
 
         return final_message
 

@@ -35,6 +35,7 @@ class BuyerAgent(BaseAgent):
         super().__init__(model, role_description, name)
         self.buyer_max_price = buyer_max_price
         self.system_prompt_suffix = system_prompt_suffix
+        self.last_selected_seller: Optional[int] = None
     
     def respond(
         self,
@@ -54,6 +55,7 @@ class BuyerAgent(BaseAgent):
             raise ValueError("Agent not initialized. Call initialize() first.")
         
         prompt = self._build_prompt(conversation_history, current_state)
+        self.last_selected_seller = None
         
         # Get buyer's maximum acceptable price (bottom price)
         max_price = self.buyer_max_price or self.context.get('max_price', 'unknown')
@@ -135,6 +137,33 @@ class BuyerAgent(BaseAgent):
         personality_section = ""
         if self.system_prompt_suffix:
             personality_section = f"\n{self.system_prompt_suffix}\n"
+
+        num_sellers = current_state.get("num_sellers")
+        if num_sellers is None:
+            num_sellers = self.context.get("num_sellers", 1)
+        try:
+            num_sellers = int(num_sellers)
+        except (TypeError, ValueError):
+            num_sellers = 1
+        num_sellers = max(1, num_sellers)
+
+        task_instruction = current_state.get("instruction", "")
+        task_instruction_section = ""
+        if task_instruction:
+            task_instruction_section = f"\nTASK INSTRUCTION:\n- {task_instruction}\n"
+
+        selected_seller_rules = f"""
+- MULTI-SELLER ROUTING: You are negotiating in a multi-seller setting.
+- You MUST choose exactly one seller for this turn and output it in a dedicated `<selected_seller>` block.
+- `<selected_seller>` must contain exactly one integer from `1` to `{num_sellers}`.
+- If there is only one seller in the task, you MUST output `1`.
+- Base your choice on the conversation history, current offers, and your strategy.
+- Do NOT put any extra text inside `<selected_seller>`.
+"""
+        selected_seller_format = f"""<selected_seller>
+[one integer from 1 to {num_sellers}]
+</selected_seller>
+"""
         
 #         buyer_guidance = f"""
 # IMPORTANT:
@@ -171,6 +200,7 @@ IMPORTANT:
 {available_products_info}
 - Consider the environment: {self.context.get('environment_info', {})}.
 {personality_section}
+{task_instruction_section}
 - **CRITICAL: In each turn, you MUST include exactly ONE ### BUYER_PRICE($X) ### inside `<message>` — including when you accept or confirm a deal.** There are no exceptions: if you only say you accept without this tag, the environment keeps your previous numeric offer and the deal will fail to register as agreed.
 - When you accept the seller's price, set $X to the total you agree to pay (typically the seller's last stated price in ### SELLER_PRICE($Y) ### that you are accepting). When counter-offering, $X is your new offer.
 - **IMPORTANT: BUYER_PRICE($X) must be the TOTAL PRICE for the entire order/transaction, NOT a per-unit price.**
@@ -181,6 +211,7 @@ IMPORTANT:
 - Example (accepting their price): "Deal — I'll take it at ### BUYER_PRICE($6.50) ###. MAKE_DEAL"
 - This specific format is required for the system to correctly extract your offer price.
 - NEVER reveal your maximum acceptable price to the seller.
+{selected_seller_rules}
 
 DEAL AGREEMENT INSTRUCTION:
 - Only finalize the transaction when you believe the price is reasonably balanced.
@@ -197,13 +228,13 @@ Think privately about the following three aspects:
 2. [Opponent Strategy]: What negotiation tactic or strategy is the seller currently using? (e.g., anchoring high, slow concession, urgency creation, value emphasis, etc.)
 3. [My Strategy]: What is your current negotiation strategy and why? (e.g., aggressive lowballing, gradual concession, value questioning, walking-away threat, etc.)
 
-You MUST format your entire output as follows (do NOT skip either block):
+You MUST format your entire output exactly as follows:
 <mental_model>
 [Opponent Reservation Price]: <your estimate and confidence score>
 [Opponent Strategy]: <your inference about the seller's tactic>
 [My Strategy]: <your chosen tactic and reasoning>
 </mental_model>
-<message>
+{selected_seller_format}<message>
 [Your actual negotiation message to the seller. Must include exactly one ### BUYER_PRICE($X) ### and obey all IMPORTANT / DEAL AGREEMENT rules above.]
 </message>
 """
@@ -245,14 +276,21 @@ You MUST format your entire output as follows (do NOT skip either block):
             mental_model_content = mental_model_match.group(1).strip()
             logger.info(f"\n{'='*50}\n[{self.name} MENTAL MODEL]\n{mental_model_content}\n{'='*50}")
 
+        selected_seller_match = re.search(r'<selected_seller>\s*(\d+)\s*</selected_seller>', response, flags=re.DOTALL | re.IGNORECASE)
+        if selected_seller_match:
+            parsed_selected_seller = int(selected_seller_match.group(1))
+            if 1 <= parsed_selected_seller <= num_sellers:
+                self.last_selected_seller = parsed_selected_seller
+
         # Extract <message> block — this is the only part that enters conversation history
         message_match = re.search(r'<message>(.*?)</message>', response, flags=re.DOTALL | re.IGNORECASE)
         if message_match:
             final_message = message_match.group(1).strip()
         else:
-            # Fallback: strip mental_model tags and use remainder as message
-            logger.warning(f"[{self.name}] Output did not follow <mental_model>/<message> format. Using fallback.")
-            final_message = re.sub(r'<mental_model>.*?</mental_model>', '', response, flags=re.DOTALL | re.IGNORECASE).strip()
+            # Fallback: strip structured tags and use remainder as message
+            logger.warning(f"[{self.name}] Output did not follow the expected structured format. Using fallback.")
+            final_message = re.sub(r'<mental_model>.*?</mental_model>', '', response, flags=re.DOTALL | re.IGNORECASE)
+            final_message = re.sub(r'<selected_seller>.*?</selected_seller>', '', final_message, flags=re.DOTALL | re.IGNORECASE).strip()
 
         return final_message
 
