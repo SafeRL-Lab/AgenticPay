@@ -10,11 +10,19 @@ if __name__ == "__main__":
         sys.path.insert(0, str(_project_root))
 
 from typing import Optional, Union, List, Any
+import logging
 import os
 import base64
 import io
 import requests
 from agenticpay.models.base_vlm import BaseVLM
+
+logger = logging.getLogger(__name__)
+
+# Prefixed to the user prompt when all image(s) failed to load so the model still runs text-only.
+_IMAGE_UNAVAILABLE_NOTE = (
+    "[System note: Product image(s) could not be loaded. Continue using only the text below.]\n\n"
+)
 
 
 class OpenAIVLM(BaseVLM):
@@ -64,6 +72,13 @@ class OpenAIVLM(BaseVLM):
                 "OpenAI package is required. Install it with: pip install openai"
             )
     
+    @staticmethod
+    def _image_input_repr(image_input: Any) -> str:
+        if isinstance(image_input, (str, Path)):
+            s = str(image_input)
+            return s if len(s) < 120 else s[:117] + "..."
+        return type(image_input).__name__
+
     def _encode_image_to_base64(self, image_input: Union[str, Path, Any]) -> str:
         """Encode image to base64 string for OpenAI API
         
@@ -89,7 +104,8 @@ class OpenAIVLM(BaseVLM):
         if isinstance(image_input, str):
             # If it's a URL, download and encode
             if image_input.startswith(("http://", "https://")):
-                response = requests.get(image_input)
+                response = requests.get(image_input, timeout=30)
+                response.raise_for_status()
                 image_bytes = response.content
                 image_base64 = base64.b64encode(image_bytes).decode('utf-8')
                 # Determine image format from URL or content
@@ -206,46 +222,58 @@ class OpenAIVLM(BaseVLM):
             
         Returns:
             Generated text response
+
+        If one or more images fail to load (network, HTTP error, missing file, invalid data),
+        those inputs are skipped. If every image fails, generation continues as text-only and
+        a short system note is prepended to the prompt.
         """
         # Validate image input
         if images is not None and not self._validate_image_input(images):
             raise ValueError("Invalid image input format")
-        
-        try:
-            # Prepare message content
-            content = []
-            
-            # Add images if provided
-            if images is not None:
-                # Convert to list if single image
-                if not isinstance(images, list):
-                    images = [images]
-                
-                # Encode all images
-                for image in images:
-                    image_url = self._encode_image_to_base64(image)
-                    content.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": image_url
+
+        user_prompt = prompt
+        content: list = []
+
+        if images is not None:
+            if not isinstance(images, list):
+                image_list: List[Any] = [images]
+            else:
+                image_list = list(images)
+
+            for image in image_list:
+                try:
+                    data_url = self._encode_image_to_base64(image)
+                    content.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": data_url},
                         }
-                    })
-            
-            # Add text prompt
-            content.append({
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Skipping unreadable image (%s): %s",
+                        self._image_input_repr(image),
+                        e,
+                    )
+
+            if not content and image_list:
+                user_prompt = _IMAGE_UNAVAILABLE_NOTE + prompt
+                logger.warning(
+                    "All %d image(s) failed to load; continuing with text-only generation.",
+                    len(image_list),
+                )
+
+        # Add text prompt (after any image parts, per OpenAI multimodal convention)
+        content.append(
+            {
                 "type": "text",
-                "text": prompt
-            })
-            
-            # Create message
-            messages = [
-                {
-                    "role": "user",
-                    "content": content
-                }
-            ]
-            
-            # Call OpenAI API
+                "text": user_prompt,
+            }
+        )
+
+        try:
+            messages = [{"role": "user", "content": content}]
+
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -253,7 +281,7 @@ class OpenAIVLM(BaseVLM):
                 max_tokens=max_tokens,
                 **kwargs,
             )
-            
+
             return response.choices[0].message.content.strip()
 
         except Exception as e:
