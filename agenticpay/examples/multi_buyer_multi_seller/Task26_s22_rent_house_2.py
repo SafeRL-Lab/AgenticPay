@@ -167,7 +167,8 @@ def main(model_name=None):
     print("Starting new sequential negotiation — two Barcelona rentals (terrace apt vs center room)...")
     print("="*60)
     
-    product_image_url = "https://a0.muscache.com/im/pictures/20306590/6a9f9a20_original.jpg?aki_policy=large"
+    # picture_url for listing 1332929 in airbnb_embeddings_sample10.jsonl (host profile image in scrape)
+    product_image_url = "https://a0.muscache.com/im/users/7218242/profile_pic/1372707884/original.jpg?aki_policy=large"
 
     observation, info = env.reset(
         user_requirement=user_requirement,

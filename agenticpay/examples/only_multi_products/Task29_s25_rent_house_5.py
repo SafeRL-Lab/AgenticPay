@@ -115,7 +115,7 @@ def main(model_name=None):
     user_profile = "Budget traveler stringing together two cities: a quiet private room in Istanbul and an independent suite in Rio (Jacarepaguá). Wants one negotiated combined monthly rent for both."
     print(f"User Profile: {user_profile}")
     
-    # Listings from airbnb_embeddings_sample10.jsonl (lines 8 and 9); images from images.picture_url
+    # Listings from airbnb_embeddings_sample10.jsonl (lines 8 and 9); image_url matches images.picture_url there
     product_info = {
         "products": [
             {
@@ -133,7 +133,7 @@ def main(model_name=None):
                 "seller_name": "Ezgi",
                 "asin": "AIRBNB-25845370",
                 "full_description": "Bright living room and quiet bedrooms facing the garden. House rules: no shoes inside, no smoking, no noise. Negotiation uses $515/mo as opening monthly rent (long-term framing). Listing: https://www.airbnb.com/rooms/25845370",
-                "image_url": "https://a0.muscache.com/im/pictures/50e1b259-08e4-4ebc-af30-fc5e9f493e8e.jpg?aki_policy=large",
+                "image_url": "https://a0.muscache.com/im/users/19791689/profile_pic/1407696819/original.jpg?aki_policy=large",
             },
             {
                 "name": "Alugo suíte individual — Private suite (Rio de Janeiro)",

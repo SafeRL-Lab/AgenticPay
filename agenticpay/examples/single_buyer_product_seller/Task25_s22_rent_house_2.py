@@ -1,11 +1,11 @@
-"""Task25 Scenario 22: Rent House (Barcelona El Poble-sec 2BR + terrace) Negotiation
+"""Task25 Scenario 22: Rent House (Barcelona center room + balcony) Negotiation
 
 Category: Real Estate
-Scenario: Entire apartment with terrace (Airbnb-style listing: El Poble-sec, host Antoni) between landlord and prospective tenant.
+Scenario: Private room with balcony in central Barcelona (Airbnb-style sample listing) between landlord and prospective tenant.
 Tests agent's ability to negotiate monthly rent and lease terms for a rental listing.
 
-Listing copy, host, review counts, and image URL are aligned with the second record in
-``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 1332929).
+Listing copy, review counts, and image URL are aligned with the sixth record in
+``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 23160633).
 Monthly rent negotiation parameters are set for a plausible long-term lease framing, with
 ``seller_min_price < buyer_max_price`` so the parties have an overlapping acceptable range.
 """
@@ -99,9 +99,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 22: Rent House — monthly rent negotiation (Barcelona entire apt + terrace; Airbnb sample 1332929).
-    buyer_max_price = 2180.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
-    seller_min_price = 2000.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
+    # Scenario 22: Rent House — monthly rent negotiation (Barcelona center private room + balcony; Airbnb sample 23160633).
+    buyer_max_price = 1650.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
+    seller_min_price = 1500.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -113,14 +113,14 @@ def main(model_name=None):
         buyer_agent=buyer,
         seller_agent=seller,
         max_rounds=max_rounds,
-        initial_seller_price=2145.0,  # Opening ask (within possible zone vs buyer_max); long-term lease framing
+        initial_seller_price=1580.0,  # Opening ask (within possible zone vs buyer_max); long-term lease framing
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller_min_price=seller_min_price,  # Seller bottom price (confidential)
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",
             "availability_status": "Available starting next month.",
-            "listing_age": "Listing ID 1332929 (sample scrape 2019-03-08)"
+            "listing_age": "Listing ID 23160633 (sample scrape 2019-03-08)"
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -143,10 +143,10 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Remote-friendly tenant relocating to Barcelona who wants El Poble-sec walkability and a quiet terrace. Cares about clear monthly rent, utilities, and move-in timing."
+    user_profile = "Remote-friendly tenant moving to Barcelona who wants central walkability (Universitat / Sant Antoni) and a room with a balcony. Cares about clear monthly rent, shared-space expectations, and move-in timing."
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I'm interested in the penthouse apartment with terrace near Poble-sec (Airbnb listing). I'd like to negotiate the monthly rent before committing and confirm what's included (utilities, terrace use)."
+    user_requirement = "I'm interested in the 'Double room in Barcelona Center with balcony' on Airbnb. I'd like to negotiate the monthly rent for a longer stay and confirm what's included (shared vs private, utilities, balcony use)."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -154,25 +154,25 @@ def main(model_name=None):
     print("Starting new negotiation...")
     print("="*60)
     
-    # Listing photo for VLM (from airbnb_embeddings_sample10.jsonl: listing 1332929 images.picture_url)
-    product_image_url = "https://a0.muscache.com/im/pictures/20306590/6a9f9a20_original.jpg?aki_policy=large"
+    # Listing photo for VLM (from airbnb_embeddings_sample10.jsonl: listing 23160633 images.picture_url)
+    product_image_url = "https://a0.muscache.com/im/pictures/e051cbb3-0418-4200-8254-95b0bb8db441.jpg?aki_policy=large"
     
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "name": "5* Super host Apartment + terrace — El Poble-sec, Barcelona",
-            "condition": "Bright penthouse with terrace",
-            "brand": "Host: Antoni",
+            "name": "Double room in Barcelona Center with balcony — Eixample / Sant Antoni",
+            "condition": "Private room · access to shared apartment spaces · balcony (per listing summary)",
+            "brand": "Host: listing 23160633 (Barcelona center)",
             "color": "N/A",
-            "size": "Entire apt · 2 bedrooms · 1 bath · terrace (5th floor, lift)",
-            "original_price": 2145.0,
+            "size": "Private room · 1 bed · 1 bath (in apartment; ~2 min to Pl. Universitat per scrape)",
+            "original_price": 1580.0,
             "availability_status": "Available starting next month.",
-            "product_category": "Real Estate › Rentals › Apartments › Entire home (Airbnb listing 1332929)",
-            "average_rating": 4.7,
-            "total_reviews": 320,
-            "seller_name": "Antoni",
-            "asin": "AIRBNB-1332929",
-            "full_description": "Bright penthouse near Poble-sec with sun-filled terrace (table for four). ~8 minutes from La Rambla per listing title. Negotiation uses an opening monthly rent ask framed as a long-term lease (listing reference: https://www.airbnb.com/rooms/1332929). Host is a Superhost with strong review scores on the scrape.",
+            "product_category": "Real Estate › Rentals › Apartments › Private room (Airbnb listing 23160633)",
+            "average_rating": 4.2,
+            "total_reviews": 4,
+            "seller_name": "Barcelona host",
+            "asin": "AIRBNB-23160633",
+            "full_description": "Scrape copy highlights a central Barcelona location: ~2 min walk to Pl. Universitat, ~10 min to Pl. Catalunya, ~2 min to Sant Antoni Market. Negotiation uses an opening monthly rent ask framed as a long-term stay (listing reference: https://www.airbnb.com/rooms/23160633). Property type is Apartment with room_type Private room on the sample.",
             "image_url": product_image_url,
         },
         user_profile=user_profile,  # Pass user profile
@@ -186,7 +186,7 @@ def main(model_name=None):
     results = {
         "task": "Task25_s22_rent_house_2",
         "category": "Real Estate",
-        "scenario": "Barcelona El Poble-sec 2BR + terrace monthly rent negotiation (Airbnb sample listing)",
+        "scenario": "Barcelona center private room + balcony monthly rent negotiation (Airbnb sample listing 23160633)",
         "timestamp": datetime.now().isoformat(),
         "user_requirement": user_requirement,
         "user_profile": user_profile,
@@ -334,15 +334,15 @@ def main(model_name=None):
                 "buyer_max_price": buyer_max_price,
                 "seller_min_price": seller_min_price,
                 "product_info": {
-                    "name": "5* Super host Apartment + terrace — El Poble-sec, Barcelona",
-                    "brand": "Host: Antoni",
+                    "name": "Double room in Barcelona Center with balcony — Eixample / Sant Antoni",
+                    "brand": "Host: listing 23160633 (Barcelona center)",
                     "color": "N/A",
-                    "original_price": 2145.0,
-                    "product_category": "Real Estate › Rentals › Apartments › Entire home (Airbnb listing 1332929)",
-                    "average_rating": 4.7,
-                    "total_reviews": 320,
-                    "asin": "AIRBNB-1332929",
-                    "image_url": "https://a0.muscache.com/im/pictures/20306590/6a9f9a20_original.jpg?aki_policy=large",
+                    "original_price": 1580.0,
+                    "product_category": "Real Estate › Rentals › Apartments › Private room (Airbnb listing 23160633)",
+                    "average_rating": 4.2,
+                    "total_reviews": 4,
+                    "asin": "AIRBNB-23160633",
+                    "image_url": "https://a0.muscache.com/im/pictures/e051cbb3-0418-4200-8254-95b0bb8db441.jpg?aki_policy=large",
                 },
                 "model": get_model_name(model),
             })
@@ -382,7 +382,7 @@ def main(model_name=None):
         output_file = run_dir / "Task25_s22_rent_house_2_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task25 Scenario 22: Rent House (Barcelona El Poble-sec / Airbnb sample) Negotiation Results\n")
+            f.write("Task25 Scenario 22: Rent House (Barcelona center room + balcony / Airbnb sample 23160633) Negotiation Results\n")
             f.write("Category: Real Estate\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -433,7 +433,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task25 Scenario 22: Rent House Negotiation (Barcelona, Airbnb sample listing)")
+    parser = argparse.ArgumentParser(description="Task25 Scenario 22: Rent House Negotiation (Barcelona center, Airbnb sample 23160633)")
     parser.add_argument(
         "--model",
         type=str,

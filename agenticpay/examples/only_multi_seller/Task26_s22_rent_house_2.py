@@ -1,8 +1,9 @@
-"""Task26 Scenario 22: Barcelona Terrace Apartment — Sequential Two-Seller Rent Negotiation
+"""Task26 Scenario 22: Barcelona center room + balcony — Sequential Two-Seller Rent Negotiation
 
-The tenant wants one lease (the same property) from the marketplace. Product info is a single listing
-without per-seller details; two independent sellers each negotiate that same unit with different
-confidential floor (minimum) monthly rent.
+The tenant wants one lease (the same property) from the marketplace. Product info matches
+``single_buyer_product_seller/Task25_s22_rent_house_2`` (Airbnb sample ``_id`` 23160633 in
+``airbnb_embeddings_sample10.jsonl``). Two independent sellers each negotiate that same unit with
+different confidential floor (minimum) monthly rent.
 Category: Real Estate › Residential Rental
 """
 
@@ -102,9 +103,9 @@ def main(model_name=None):
     
     # Same property from two offers: each seller has a different confidential floor monthly rent
     print("Creating agents...")
-    buyer_max_price = 1900.0  # Max acceptable monthly rent (confidential)
-    seller1_min_price = 1720.0  # Seller 1 floor (confidential; lower)
-    seller2_min_price = 1760.0  # Seller 2 floor (confidential; higher than seller 1)
+    buyer_max_price = 1650.0  # Max acceptable monthly rent (confidential; aligned with single-buyer Task25)
+    seller1_min_price = 1500.0  # Seller 1 floor (confidential; lower)
+    seller2_min_price = 1530.0  # Seller 2 floor (confidential; higher than seller 1)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -117,14 +118,16 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=1980.0,  # Opening ask — same unit, different channel
-        initial_seller2_price=2050.0,  # Opening ask — same unit, different channel
+        initial_seller1_price=1600.0,  # Opening ask — same unit, different channel (reference ask ~1580)
+        initial_seller2_price=1630.0,  # Opening ask — same unit, different channel
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
         environment_info={
-            "platform": "Rental marketplace",
-            "market_type": "B2C",
+            "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
+            "market_type": "Residential Rental",
+            "availability_status": "Available starting next month.",
+            "listing_age": "Listing ID 23160633 (sample scrape 2019-03-08)",
             "note": "Multiple third-party offers exist for the same property listing.",
         },
         price_tolerance=price_tolerance,
@@ -132,7 +135,7 @@ def main(model_name=None):
     )
     
     # User profile (preferences only; no seller identity)
-    user_profile = "Wants a fair monthly rent; open to comparing offers for the same apartment with terrace near Ramblas."
+    user_profile = "Remote-friendly tenant moving to Barcelona who wants central walkability (Universitat / Sant Antoni) and a room with a balcony. Cares about clear monthly rent, shared-space expectations, and move-in timing; open to comparing two offers for the same listing."
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -144,7 +147,7 @@ def main(model_name=None):
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
     # One-lease user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "Looking for a 1-month lease on the Ramblas terrace apartment."
+    user_requirement = "I'm interested in the 'Double room in Barcelona Center with balcony' on Airbnb. I'd like to compare two offers for the same unit, negotiate the monthly rent for a longer stay, and confirm what's included (shared vs private, utilities, balcony use)."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -153,22 +156,25 @@ def main(model_name=None):
     print("="*60)
     
     # Product image for VLM: URL or local path (OpenAIVLM supports both)
-    product_image_url = "https://a0.muscache.com/im/pictures/20306590/6a9f9a20_original.jpg?aki_policy=large"
+    product_image_url = "https://a0.muscache.com/im/pictures/e051cbb3-0418-4200-8254-95b0bb8db441.jpg?aki_policy=large"
     
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "name": "Apartment with terrace — 8 min from Ramblas (Barcelona)",
-            "condition": "Move-in ready",
-            "size": "Apartment · terrace · entire home/apt",
-            "original_price": 1980.0,
+            "name": "Double room in Barcelona Center with balcony — Eixample / Sant Antoni",
+            "condition": "Private room · access to shared apartment spaces · balcony (per listing summary)",
+            "brand": "Host: listing 23160633 (Barcelona center)",
+            "color": "N/A",
+            "size": "Private room · 1 bed · 1 bath (in apartment; ~2 min to Pl. Universitat per scrape)",
+            "original_price": 1580.0,
             "availability_quantity": 1,
-            "availability_status": "Available now.",
-            "product_category": "Real Estate › Rentals › Apartments",
-            "average_rating": 4.7,
-            "total_reviews": 320,
-            "full_description": "Bright apartment with a sun-filled terrace near Ramblas; lift access. Monthly rent in USD; long-term lease framing.",
-            "asin": "AIRBNB-1332929",
+            "availability_status": "Available starting next month.",
+            "product_category": "Real Estate › Rentals › Apartments › Private room (Airbnb listing 23160633)",
+            "average_rating": 4.2,
+            "total_reviews": 4,
+            "seller_name": "Barcelona host",
+            "full_description": "Scrape copy highlights a central Barcelona location: ~2 min walk to Pl. Universitat, ~10 min to Pl. Catalunya, ~2 min to Sant Antoni Market. Negotiation uses an opening monthly rent ask framed as a long-term stay (listing reference: https://www.airbnb.com/rooms/23160633). Property type is Apartment with room_type Private room on the sample.",
+            "asin": "AIRBNB-23160633",
             "image_url": product_image_url,  # For VLM: listing image (image + text)
         },
         user_profile=user_profile,  # Pass user profile
@@ -424,17 +430,20 @@ def main(model_name=None):
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
                 "product_info": {
-                    "name": "Apartment with terrace — 8 min from Ramblas (Barcelona)",
-                    "condition": "Move-in ready",
-                    "size": "Apartment · terrace · entire home/apt",
-                    "original_price": 1980.0,
+                    "name": "Double room in Barcelona Center with balcony — Eixample / Sant Antoni",
+                    "condition": "Private room · access to shared apartment spaces · balcony (per listing summary)",
+                    "brand": "Host: listing 23160633 (Barcelona center)",
+                    "color": "N/A",
+                    "size": "Private room · 1 bed · 1 bath (in apartment; ~2 min to Pl. Universitat per scrape)",
+                    "original_price": 1580.0,
                     "availability_quantity": 1,
-                    "availability_status": "Available now.",
-                    "product_category": "Real Estate › Rentals › Apartments",
-                    "average_rating": 4.7,
-                    "total_reviews": 320,
-                    "full_description": "Bright apartment with a sun-filled terrace near Ramblas; lift access. Monthly rent in USD; long-term lease framing.",
-                    "asin": "AIRBNB-1332929",
+                    "availability_status": "Available starting next month.",
+                    "product_category": "Real Estate › Rentals › Apartments › Private room (Airbnb listing 23160633)",
+                    "average_rating": 4.2,
+                    "total_reviews": 4,
+                    "seller_name": "Barcelona host",
+                    "full_description": "Scrape copy highlights a central Barcelona location: ~2 min walk to Pl. Universitat, ~10 min to Pl. Catalunya, ~2 min to Sant Antoni Market. Negotiation uses an opening monthly rent ask framed as a long-term stay (listing reference: https://www.airbnb.com/rooms/23160633). Property type is Apartment with room_type Private room on the sample.",
+                    "asin": "AIRBNB-23160633",
                     "image_url": product_image_url,
                 },
                 "model": get_model_name(model),
@@ -475,7 +484,7 @@ def main(model_name=None):
         output_file = run_dir / "Task26_s22_rent_house_2_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task26 Scenario 22: Barcelona terrace apt — Sequential Two-Seller Negotiation Results\n")
+            f.write("Task26 Scenario 22: Barcelona center room + balcony (23160633) — Sequential Two-Seller Negotiation Results\n")
             f.write("Category: Real Estate › Residential Rental\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -532,7 +541,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task26 Scenario 22: Barcelona rent — sequential two-seller negotiation")
+    parser = argparse.ArgumentParser(description="Task26 Scenario 22: Barcelona center room + balcony (Airbnb 23160633) — sequential two-seller negotiation")
     parser.add_argument(
         "--model",
         type=str,

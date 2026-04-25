@@ -156,10 +156,12 @@ def main(model_name=None):
                 "total_reviews": 2,
                 "asin": "AIRBNB-25845370",
                 "full_description": (
-                    "Private room in a light-filled apartment; quiet bedrooms facing the garden. "
+                    "Listing 25845370 (airbnb_embeddings_sample10.jsonl): "
+                    "Salon ve yatak odalari isik aliyor; yatak odalari bahceye baktigi icin sessiz. "
+                    "VLM image uses jsonl images.picture_url (host profile). "
                     "Monthly component for bundle-pricing scenarios."
                 ),
-                "image_url": "https://a0.muscache.com/im/pictures/50e1b259-08e4-4ebc-af30-fc5e9f493e8e.jpg?aki_policy=large",
+                "image_url": "https://a0.muscache.com/im/users/19791689/profile_pic/1407696819/original.jpg?aki_policy=large",
             },
             {
                 "name": "Alugo suíte individual",

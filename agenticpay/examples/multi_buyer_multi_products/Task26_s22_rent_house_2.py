@@ -159,7 +159,7 @@ def main(model_name=None):
                     "Bright apartment with sun and terrace seating; upper floor with lift; two rooms with natural light. "
                     "Monthly component for bundle-pricing scenarios."
                 ),
-                "image_url": "https://a0.muscache.com/im/pictures/20306590/6a9f9a20_original.jpg?aki_policy=large",
+                "image_url": "https://a0.muscache.com/im/users/7218242/profile_pic/1372707884/original.jpg?aki_policy=large",
             },
             {
                 "name": "Double room in Barcelona Center with balcony!!!!",

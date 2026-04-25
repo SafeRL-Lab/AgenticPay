@@ -89,9 +89,9 @@ def main(model_name=None):
     
     # Agents: prices are TOTAL for the two-item bundle (all-in delivered; confidential to each party)
     print("Creating agents...")
-    buyer_max_price = 20.0
-    seller1_min_price = 16.0
-    seller2_min_price = 15.5
+    buyer_max_price = 25.0
+    seller1_min_price = 20.0
+    seller2_min_price = 19.5
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -104,8 +104,8 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=18.26,
-        initial_seller2_price=18.80,
+        initial_seller1_price=22.78,
+        initial_seller2_price=23.32,
         buyer_max_price=buyer_max_price,
         seller1_min_price=seller1_min_price,
         seller2_min_price=seller2_min_price,
@@ -121,7 +121,7 @@ def main(model_name=None):
     
     user_profile = "Budget-aware customer balancing a hearty late-night snack and a lightweight add-on while comparing final delivered totals."
     print(f"User Profile: {user_profile}")
-    user_requirement = "Dripped nachos and 1% low-fat milk—what's the best all-in total?"
+    user_requirement = "Dripped nachos and a Cinnamon Toast Crunch milkshake—what's the best all-in total?"
     print(f"Using default requirement: {user_requirement}")
     
     bundle_product_info = {
@@ -147,24 +147,24 @@ def main(model_name=None):
                 "image_url": "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/47d1ce98-66be-4bc9-9f0e-c41e08b60f4a-retina-large.jpg",
             },
             {
-                "name": "1% Low Fat Milk (110 Cals)",
-                "condition": "Prepared and packed for immediate delivery",
-                "brand": "Subway",
-                "flavor": "Light dairy beverage to pair with sandwiches or snacks",
-                "size": "Single bottle",
-                "original_price": 2.19,
-                "price": 5.12,
-                "delivery_distance_miles": 2.9,
-                "delivery_distance_km": 4.7,
-                "delivery_fee": 1.94,
+                "name": "Cinnamon Toast Crunch Milkshake",
+                "condition": "Prepared fresh to order",
+                "brand": "BunSlut",
+                "flavor": "Sweet blended cereal milkshake",
+                "size": "Single cup",
+                "original_price": 7.50,
+                "price": 9.65,
+                "delivery_distance_miles": 2.8,
+                "delivery_distance_km": 4.5,
+                "delivery_fee": 2.39,
                 "service_fee": 0.99,
                 "availability_status": "Available for delivery.",
-                "product_category": "Food Delivery › Drinks › Milk",
-                "average_rating": 4.57,
-                "total_reviews": 566,
-                "asin": "DD-HOU-SUBWAY-LOW-FAT-MILK-110CALS",
-                "full_description": "1% low-fat milk bottle, meal add-on. Line reference (menu + line fees) $5.12.",
-                "image_url": "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/7b121fd6-b760-4d35-9356-57ca8a3e56a9-retina-large.png",
+                "product_category": "Food Delivery › Drinks › Milkshakes",
+                "average_rating": 4.35,
+                "total_reviews": 482,
+                "asin": "DD-HOU-BUNSLUT-CINNAMON-TOAST-CRUNCH-MILKSHAKE",
+                "full_description": "Cinnamon Toast Crunch milkshake. Line reference (menu + line fees) $9.65.",
+                "image_url": "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/564cd7ff-e419-4dc3-b07e-69b3b3a259eb-456ca35d-48e5-479a-86a1-444a3fc1114e-retina-large.JPG",
             },
         ],
     }

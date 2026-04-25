@@ -178,7 +178,7 @@ def main(model_name=None):
                 "total_reviews": 320,
                 "asin": "AIRBNB-1332929",
                 "full_description": "Space text (jsonl excerpt): bright apartment with sun and terrace with table for four; penthouse 5th floor with lift; two rooms with natural light. Nightly sample price in data: $63 — monthly bundle component. https://www.airbnb.com/rooms/1332929",
-                "image_url": "https://a0.muscache.com/im/pictures/20306590/6a9f9a20_original.jpg?aki_policy=large",
+                "image_url": "https://a0.muscache.com/im/users/7218242/profile_pic/1372707884/original.jpg?aki_policy=large",
             },
             {
                 "name": "Double room in Barcelona Center with balcony!!!!",

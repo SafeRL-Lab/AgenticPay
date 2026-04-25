@@ -1,6 +1,6 @@
 """Task23 Scenario 19: Food delivery two-item bundle — sequential two-buyer two-product negotiation (image + text)
 
-One seller negotiating with two buyers for dripped nachos + 1% low-fat milk (total delivered price).
+One seller negotiating with two buyers for dripped nachos + Cinnamon Toast Crunch milkshake (total delivered price).
 Seller chooses which buyer to negotiate with each round (aligned with Task5 / Task3 multi-buyer two-product).
 Category: Food Delivery
 """
@@ -99,9 +99,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer1_max_price = 17.2
-    buyer2_max_price = 17.6
-    seller_min_price = 15.4
+    buyer1_max_price = 21.5
+    buyer2_max_price = 21.9
+    seller_min_price = 19.6
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -113,7 +113,7 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        initial_seller_price=18.26,
+        initial_seller_price=22.78,
         buyer1_max_price=buyer1_max_price,
         buyer2_max_price=buyer2_max_price,
         seller_min_price=seller_min_price,
@@ -171,31 +171,31 @@ def main(model_name=None):
                 ),
             },
             {
-                "name": "1% Low Fat Milk (110 Cals)",
-                "condition": "Prepared and packed for immediate delivery",
-                "brand": "Subway",
-                "flavor": "Light dairy beverage to pair with sandwiches or snacks",
-                "size": "Single bottle",
-                "original_price": 2.19,
-                "price": 5.12,
-                "delivery_distance_miles": 2.9,
-                "delivery_distance_km": 4.7,
-                "delivery_fee": 1.94,
+                "name": "Cinnamon Toast Crunch Milkshake",
+                "condition": "Prepared fresh to order",
+                "brand": "BunSlut",
+                "flavor": "Sweet blended cereal milkshake",
+                "size": "Single cup",
+                "original_price": 7.50,
+                "price": 9.65,
+                "delivery_distance_miles": 2.8,
+                "delivery_distance_km": 4.5,
+                "delivery_fee": 2.39,
                 "service_fee": 0.99,
                 "availability_status": "Available for delivery.",
-                "product_category": "Food Delivery › Drinks › Milk",
-                "average_rating": 4.57,
-                "total_reviews": 566,
-                "asin": "DD-HOU-SUBWAY-LOW-FAT-MILK-110CALS",
+                "product_category": "Food Delivery › Drinks › Milkshakes",
+                "average_rating": 4.35,
+                "total_reviews": 482,
+                "asin": "DD-HOU-BUNSLUT-CINNAMON-TOAST-CRUNCH-MILKSHAKE",
                 "full_description": (
-                    "1% low-fat milk bottle, meal add-on. "
-                    "Line reference (menu + line-typical delivery-related fees) $5.12."
+                    "Cinnamon Toast Crunch milkshake. "
+                    "Line reference (menu + line-typical delivery-related fees) $9.65."
                 ),
-                "small_description": "Beverage add-on with transparent line-level delivered pricing.",
+                "small_description": "Dessert drink add-on with transparent line-level delivered pricing.",
                 "image_url": (
                     "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/"
                     "https://doordash-static.s3.amazonaws.com/media/photosV2/"
-                    "7b121fd6-b760-4d35-9356-57ca8a3e56a9-retina-large.png"
+                    "564cd7ff-e419-4dc3-b07e-69b3b3a259eb-456ca35d-48e5-479a-86a1-444a3fc1114e-retina-large.JPG"
                 ),
             },
         ],
@@ -207,7 +207,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Reference: ${total_product_price:.2f}")
 
-    user_requirement = "Dripped nachos + low-fat milk—all-in delivered total?"
+    user_requirement = "Dripped nachos + cinnamon milkshake—all-in delivered total?"
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

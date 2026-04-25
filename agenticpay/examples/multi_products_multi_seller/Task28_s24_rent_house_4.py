@@ -118,7 +118,8 @@ def main(model_name=None):
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://a0.muscache.com/im/pictures/30722181/864b3975_original.jpg?aki_policy=large"
-    img2 = "https://a0.muscache.com/im/pictures/50e1b259-08e4-4ebc-af30-fc5e9f493e8e.jpg?aki_policy=large"
+    # Airbnb 25845370: airbnb_embeddings_sample10.jsonl images.picture_url (same as only_multi_products Task29)
+    img2 = "https://a0.muscache.com/im/users/19791689/profile_pic/1407696819/original.jpg?aki_policy=large"
 
     bundle_product_info = {
         "products": [
@@ -138,7 +139,7 @@ def main(model_name=None):
                 "listing_age": "Listing 2290346",
             },
             {
-                "name": "Home sweet home (Airbnb 25845370)",
+                "name": "Home sweat home (Airbnb 25845370)",
                 "condition": "Move-in ready",
                 "size": "1 bed · Apartment · Private room · 1.0 bath",
                 "price": 980.0,
@@ -148,7 +149,7 @@ def main(model_name=None):
                 "average_rating": 5.0,
                 "total_reviews": 2,
                 "asin": "AIRBNB-25845370",
-                "full_description": "Quiet private room; bright living and garden outlook. List reference $980/mo as a line item toward a two-unit long-term package.",
+                "full_description": "airbnb_embeddings_sample10.jsonl _id 25845370: Salon ve yatak odalari isik aliyor; yatak odalari bahceye baktigi icin sessiz. List reference $980/mo as a line item toward a two-unit long-term package. Image: jsonl images.picture_url.",
                 "image_url": img2,
                 "listing_age": "Listing 25845370",
             },

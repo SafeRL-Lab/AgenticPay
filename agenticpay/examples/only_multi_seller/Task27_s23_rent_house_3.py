@@ -1,8 +1,9 @@
-"""Task27 Scenario 23: Sydney CBD Studio — Sequential Two-Seller Rent Negotiation
+"""Task27 Scenario 23: Rio de Janeiro private suite — Sequential Two-Seller Rent Negotiation
 
-The tenant wants one lease (the same property) from the marketplace. Product info is a single listing
-without per-seller details; two independent sellers each negotiate that same unit with different
-confidential floor (minimum) monthly rent.
+The tenant wants one lease (the same property) from the marketplace. Product info matches
+``single_buyer_product_seller/Task26_s23_rent_house_3`` (Airbnb sample ``_id`` 462902 in
+``airbnb_embeddings_sample10.jsonl``). Two independent sellers each negotiate that same unit with
+different confidential floor (minimum) monthly rent.
 Category: Real Estate › Residential Rental
 """
 
@@ -102,9 +103,9 @@ def main(model_name=None):
     
     # Same property from two offers: each seller has a different confidential floor monthly rent
     print("Creating agents...")
-    buyer_max_price = 2700.0  # Max acceptable monthly rent (confidential)
-    seller1_min_price = 2480.0  # Seller 1 floor (confidential; lower)
-    seller2_min_price = 2520.0  # Seller 2 floor (confidential; higher than seller 1)
+    buyer_max_price = 2050.0  # Max acceptable monthly rent (confidential; aligned with single-buyer Task26)
+    seller1_min_price = 1780.0  # Seller 1 floor (confidential; lower)
+    seller2_min_price = 1810.0  # Seller 2 floor (confidential; higher than seller 1)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -117,14 +118,16 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=2850.0,  # Opening ask — same unit, different channel
-        initial_seller2_price=2950.0,  # Opening ask — same unit, different channel
+        initial_seller1_price=1990.0,  # Opening ask — same unit, different channel (reference ask ~1950)
+        initial_seller2_price=2020.0,  # Opening ask — same unit, different channel
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
         seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
         environment_info={
-            "platform": "Rental marketplace",
-            "market_type": "B2C",
+            "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
+            "market_type": "Residential Rental",
+            "availability_status": "Available for longer stays; confirm dates with host.",
+            "listing_age": "Listing ID 462902 (sample scrape 2019-02-11)",
             "note": "Multiple third-party offers exist for the same property listing.",
         },
         price_tolerance=price_tolerance,
@@ -132,7 +135,7 @@ def main(model_name=None):
     )
     
     # User profile (preferences only; no seller identity)
-    user_profile = "Wants a fair monthly rent; open to comparing offers for the same CBD studio near Circular Quay."
+    user_profile = "Remote worker basing in Rio for a few months who wants a quiet private suite, reliable Wi‑Fi, and clear house rules. Cares about bath privacy, what's shared in the home, and a predictable monthly all-in number; open to comparing two offers for the same listing."
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -144,7 +147,7 @@ def main(model_name=None):
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
     # One-lease user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want a 1-month lease on the Sydney CBD studio by Circular Quay."
+    user_requirement = "I'm interested in the 'Alugo suíte individual' listing on Airbnb (Rio de Janeiro; transit notes in the copy). I'd like to compare two offers for the same unit, negotiate the monthly rent for a longer stay, and confirm what's private vs shared (kitchen/TV, pool/sauna access, utilities, Wi‑Fi)."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -153,22 +156,25 @@ def main(model_name=None):
     print("="*60)
     
     # Product image for VLM: URL or local path (OpenAIVLM supports both)
-    product_image_url = "https://a0.muscache.com/im/pictures/7d45563e-089a-431d-b917-636852413380.jpg?aki_policy=large"
+    product_image_url = "https://a0.muscache.com/im/pictures/37894063/4cab868f_original.jpg?aki_policy=large"
     
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "name": "Mezzos Studio in Sydney CBD (Circular Quay area)",
-            "condition": "Furnished",
-            "size": "Studio ~45 sqm · entire home/apt",
-            "original_price": 2850.0,
+            "name": "Alugo suíte individual — private suite in house (Rio de Janeiro)",
+            "condition": "Private room/suite with private bath; shared kitchen and TV per scrape copy",
+            "brand": "Host: listing 462902 (Rio suite)",
+            "color": "N/A",
+            "size": "Private room in house · 1 bedroom · 1 private bath (shared kitchen/TV, amenities per listing)",
+            "original_price": 1950.0,
             "availability_quantity": 1,
-            "availability_status": "Available now.",
-            "product_category": "Real Estate › Rentals › Studio",
-            "average_rating": 4.45,
-            "total_reviews": 221,
-            "full_description": "Self-contained furnished studio in Sydney CBD / Circular Quay; kitchen, laundry, Wi‑Fi. Monthly rent in USD; long-term lease framing.",
-            "asin": "AIRBNB-14096512",
+            "availability_status": "Available for longer stays; confirm dates with host.",
+            "product_category": "Real Estate › Rentals › House › Private room (Airbnb listing 462902)",
+            "average_rating": 0.0,
+            "total_reviews": 0,
+            "seller_name": "Rio host",
+            "full_description": "2019 scrape copy (Portuguese) describes a suite with private bath, closet, ceiling fan, minibar, wireless; shared kitchen and TV area; on-site amenities mentioned include sauna, pool, grill; transit in listing notes (buses, taxis, BRT, vans 'at the door' in Rio). Negotiation uses a long-term monthly opening ask (listing reference: https://www.airbnb.com/rooms/462902). Scrape shows zero reviews; confirm details with the host.",
+            "asin": "AIRBNB-462902",
             "image_url": product_image_url,  # For VLM: listing image (image + text)
         },
         user_profile=user_profile,  # Pass user profile
@@ -424,17 +430,20 @@ def main(model_name=None):
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
                 "product_info": {
-                    "name": "Mezzos Studio in Sydney CBD (Circular Quay area)",
-                    "condition": "Furnished",
-                    "size": "Studio ~45 sqm · entire home/apt",
-                    "original_price": 2850.0,
+                    "name": "Alugo suíte individual — private suite in house (Rio de Janeiro)",
+                    "condition": "Private room/suite with private bath; shared kitchen and TV per scrape copy",
+                    "brand": "Host: listing 462902 (Rio suite)",
+                    "color": "N/A",
+                    "size": "Private room in house · 1 bedroom · 1 private bath (shared kitchen/TV, amenities per listing)",
+                    "original_price": 1950.0,
                     "availability_quantity": 1,
-                    "availability_status": "Available now.",
-                    "product_category": "Real Estate › Rentals › Studio",
-                    "average_rating": 4.45,
-                    "total_reviews": 221,
-                    "full_description": "Self-contained furnished studio in Sydney CBD / Circular Quay; kitchen, laundry, Wi‑Fi. Monthly rent in USD; long-term lease framing.",
-                    "asin": "AIRBNB-14096512",
+                    "availability_status": "Available for longer stays; confirm dates with host.",
+                    "product_category": "Real Estate › Rentals › House › Private room (Airbnb listing 462902)",
+                    "average_rating": 0.0,
+                    "total_reviews": 0,
+                    "seller_name": "Rio host",
+                    "full_description": "2019 scrape copy (Portuguese) describes a suite with private bath, closet, ceiling fan, minibar, wireless; shared kitchen and TV area; on-site amenities mentioned include sauna, pool, grill; transit in listing notes (buses, taxis, BRT, vans 'at the door' in Rio). Negotiation uses a long-term monthly opening ask (listing reference: https://www.airbnb.com/rooms/462902). Scrape shows zero reviews; confirm details with the host.",
+                    "asin": "AIRBNB-462902",
                     "image_url": product_image_url,
                 },
                 "model": get_model_name(model),
@@ -475,7 +484,7 @@ def main(model_name=None):
         output_file = run_dir / "Task27_s23_rent_house_3_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task27 Scenario 23: Sydney CBD studio — Sequential Two-Seller Negotiation Results\n")
+            f.write("Task27 Scenario 23: Rio private suite (462902) — Sequential Two-Seller Negotiation Results\n")
             f.write("Category: Real Estate › Residential Rental\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -532,7 +541,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task27 Scenario 23: Sydney rent — sequential two-seller negotiation")
+    parser = argparse.ArgumentParser(description="Task27 Scenario 23: Rio private suite (Airbnb 462902) — sequential two-seller negotiation")
     parser.add_argument(
         "--model",
         type=str,

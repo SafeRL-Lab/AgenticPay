@@ -118,7 +118,7 @@ def main(model_name=None):
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://a0.muscache.com/im/pictures/9f7b13d2-1c37-4c46-9f05-0a7046acba30.jpg?aki_policy=large"
-    img2 = "https://a0.muscache.com/im/pictures/20306590/6a9f9a20_original.jpg?aki_policy=large"
+    img2 = "https://a0.muscache.com/im/users/7218242/profile_pic/1372707884/original.jpg?aki_policy=large"
 
     bundle_product_info = {
         "products": [

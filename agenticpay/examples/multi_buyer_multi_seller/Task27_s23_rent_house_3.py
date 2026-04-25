@@ -167,7 +167,8 @@ def main(model_name=None):
     print("Starting new sequential negotiation — two Sydney rentals (CBD studio vs Bondi area)...")
     print("="*60)
     
-    product_image_url = "https://a0.muscache.com/im/pictures/7d45563e-089a-431d-b917-636852413380.jpg?aki_policy=large"
+    # picture_url for listing 14096512 in airbnb_embeddings_sample10.jsonl
+    product_image_url = "https://a0.muscache.com/im/pictures/0c59647f-273c-4510-a1f3-eb8a3f6cc650.jpg?aki_policy=large"
 
     observation, info = env.reset(
         user_requirement=user_requirement,

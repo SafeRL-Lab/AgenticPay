@@ -3,6 +3,7 @@
 import re
 from typing import Dict, List, Any, Optional, Union
 from agenticpay.agents.base_agent import BaseAgent
+from agenticpay.agents.structured_message import extract_message_content
 from agenticpay.models.base_llm import BaseLLM
 from agenticpay.models.base_vlm import BaseVLM
 from loguru import logger
@@ -236,11 +237,9 @@ Think privately about the following three aspects:
                 self.last_selected_buyer = parsed
 
         # Extract <message> block — this is the only part that enters conversation history
-        message_match = re.search(r'<message>(.*?)</message>', response, flags=re.DOTALL | re.IGNORECASE)
-        if message_match:
-            final_message = message_match.group(1).strip()
-        else:
-            # Fallback: strip mental_model tags and use remainder as message
+        final_message = extract_message_content(response)
+        if final_message is None:
+            # No <message> tag: strip structured blocks and use remainder
             logger.warning(f"[{self.name}] Output did not follow <mental_model>/<message> format. Using fallback.")
             final_message = re.sub(r'<mental_model>.*?</mental_model>', '', response, flags=re.DOTALL | re.IGNORECASE)
             final_message = re.sub(r'<selected_buyer>.*?</selected_buyer>', '', final_message, flags=re.DOTALL | re.IGNORECASE).strip()

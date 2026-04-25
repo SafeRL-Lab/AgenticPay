@@ -115,7 +115,7 @@ def main(model_name=None):
     user_profile = "Digital nomad planning a split stay: bright Barcelona apartment near Ramblas and a self-contained studio at Circular Quay, Sydney. Wants a single negotiated total monthly rent for both."
     print(f"User Profile: {user_profile}")
     
-    # Listings from airbnb_embeddings_sample10.jsonl (lines 2 and 3); images from images.picture_url
+    # Listings from airbnb_embeddings_sample10.jsonl (lines 2 and 3); image_url matches images.picture_url there
     product_info = {
         "products": [
             {
@@ -133,7 +133,7 @@ def main(model_name=None):
                 "seller_name": "Antoni",
                 "asin": "AIRBNB-1332929",
                 "full_description": "Bright apartment with sun and a terrace for four; penthouse with lift. Negotiation uses $1,180/mo as opening monthly rent for this unit (long-term framing). Listing: https://www.airbnb.com/rooms/1332929",
-                "image_url": "https://a0.muscache.com/im/pictures/20306590/6a9f9a20_original.jpg?aki_policy=large",
+                "image_url": "https://a0.muscache.com/im/users/7218242/profile_pic/1372707884/original.jpg?aki_policy=large",
             },
             {
                 "name": "Mezzos Studio in Sydney CBD — Entire studio",
@@ -150,7 +150,7 @@ def main(model_name=None):
                 "seller_name": "Jared SSP",
                 "asin": "AIRBNB-14096512",
                 "full_description": "Self-contained furnished studio at Circular Quay, ~45 sqm, Wi‑Fi, kitchen, laundry. Negotiation uses $1,320/mo as opening monthly rent for this unit. Listing: https://www.airbnb.com/rooms/14096512",
-                "image_url": "https://a0.muscache.com/im/pictures/7d45563e-089a-431d-b917-636852413380.jpg?aki_policy=large",
+                "image_url": "https://a0.muscache.com/im/pictures/0c59647f-273c-4510-a1f3-eb8a3f6cc650.jpg?aki_policy=large",
             },
         ]
     }

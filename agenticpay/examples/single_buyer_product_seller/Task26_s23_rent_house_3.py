@@ -1,11 +1,11 @@
-"""Task26 Scenario 23: Rent House (Sydney CBD studio) Negotiation
+"""Task26 Scenario 23: Rent House (Rio de Janeiro private suite) Negotiation
 
 Category: Real Estate
-Scenario: Entire studio near Circular Quay (Airbnb-style listing: Sydney CBD, host Jared SSP) between landlord and prospective tenant.
+Scenario: Private room / suite in a house (Airbnb-style sample listing) between landlord and prospective tenant.
 Tests agent's ability to negotiate monthly rent and lease terms for a rental listing.
 
-Listing copy, host, review counts, and image URL are aligned with the third record in
-``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 14096512).
+Listing copy, review counts, and image URL are aligned with the eighth record in
+``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 462902).
 Monthly rent negotiation parameters are set for a plausible long-term lease framing, with
 ``seller_min_price < buyer_max_price`` so the parties have an overlapping acceptable range.
 """
@@ -99,9 +99,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 23: Rent House — monthly rent negotiation (Sydney CBD entire studio; Airbnb sample 14096512).
-    buyer_max_price = 3080.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
-    seller_min_price = 2820.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
+    # Scenario 23: Rent House — monthly rent negotiation (Rio private suite in house; Airbnb sample 462902).
+    buyer_max_price = 2050.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
+    seller_min_price = 1780.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -113,14 +113,14 @@ def main(model_name=None):
         buyer_agent=buyer,
         seller_agent=seller,
         max_rounds=max_rounds,
-        initial_seller_price=3050.0,  # Initial monthly rent asked by landlord (opening ask; long-term lease framing)
+        initial_seller_price=1950.0,  # Initial monthly rent asked by landlord (opening ask; long-term lease framing)
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller_min_price=seller_min_price,  # Seller bottom price (confidential)
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",
-            "availability_status": "Available immediately.",
-            "listing_age": "Listing ID 14096512 (sample scrape 2019-03-07)"
+            "availability_status": "Available for longer stays; confirm dates with host.",
+            "listing_age": "Listing ID 462902 (sample scrape 2019-02-11)"
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -143,10 +143,10 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Consultant splitting time in Sydney who wants a walkable CBD base near Circular Quay. Cares about Wi‑Fi, furnished setup, and predictable monthly rent for a longer stay."
+    user_profile = "Remote worker basing in Rio for a few months who wants a quiet private suite, reliable Wi‑Fi, and clear house rules. Cares about bath privacy, what’s shared in the home, and a predictable monthly all-in number."
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I'm interested in the Mezzos Studio in Sydney CBD on Airbnb. I'd like to negotiate the monthly rent for a longer lease and confirm what's included (utilities, Wi‑Fi)."
+    user_requirement = "I'm interested in the 'Alugo suíte individual' listing on Airbnb (Rio de Janeiro; transit notes in the copy). I'd like to negotiate the monthly rent for a longer stay and confirm what's private vs shared (kitchen/TV, pool/sauna access, utilities, Wi‑Fi)."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -154,25 +154,25 @@ def main(model_name=None):
     print("Starting new negotiation...")
     print("="*60)
     
-    # Listing photo for VLM (from airbnb_embeddings_sample10.jsonl: listing 14096512 images.picture_url)
-    product_image_url = "https://a0.muscache.com/im/pictures/7d45563e-089a-431d-b917-636852413380.jpg?aki_policy=large"
+    # Listing photo for VLM (from airbnb_embeddings_sample10.jsonl: listing 462902 images.picture_url)
+    product_image_url = "https://a0.muscache.com/im/pictures/37894063/4cab868f_original.jpg?aki_policy=large"
     
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "name": "Mezzos Studio — Entire studio (Sydney CBD / Circular Quay)",
-            "condition": "Furnished · move-in ready",
-            "brand": "Host: Jared SSP",
+            "name": "Alugo suíte individual — private suite in house (Rio de Janeiro)",
+            "condition": "Private room/suite with private bath; shared kitchen and TV per scrape copy",
+            "brand": "Host: listing 462902 (Rio suite)",
             "color": "N/A",
-            "size": "Studio · 1 bath · entire home/apt (CBD)",
-            "original_price": 3050.0,
-            "availability_status": "Available immediately.",
-            "product_category": "Real Estate › Rentals › Apartments › Studio (Airbnb listing 14096512)",
-            "average_rating": 4.5,
-            "total_reviews": 221,
-            "seller_name": "Jared SSP",
-            "asin": "AIRBNB-14096512",
-            "full_description": "Entire studio near Circular Quay in Sydney CBD; listing highlights furnished stay and free Wi‑Fi. Negotiation uses an opening monthly rent ask framed as a long-term lease (listing reference: https://www.airbnb.com/rooms/14096512). Review scores reflect the 2019 scrape snapshot.",
+            "size": "Private room in house · 1 bedroom · 1 private bath (shared kitchen/TV, amenities per listing)",
+            "original_price": 1950.0,
+            "availability_status": "Available for longer stays; confirm dates with host.",
+            "product_category": "Real Estate › Rentals › House › Private room (Airbnb listing 462902)",
+            "average_rating": 0.0,
+            "total_reviews": 0,
+            "seller_name": "Rio host",
+            "asin": "AIRBNB-462902",
+            "full_description": "2019 scrape copy (Portuguese) describes a suite with private bath, closet, ceiling fan, minibar, wireless; shared kitchen and TV area; on-site amenities mentioned include sauna, pool, grill; transit in listing notes (buses, taxis, BRT, vans 'at the door' in Rio). Negotiation uses a long-term monthly opening ask (listing reference: https://www.airbnb.com/rooms/462902). Scrape shows zero reviews; confirm details with the host.",
             "image_url": product_image_url,
         },
         user_profile=user_profile,  # Pass user profile
@@ -186,7 +186,7 @@ def main(model_name=None):
     results = {
         "task": "Task26_s23_rent_house_3",
         "category": "Real Estate",
-        "scenario": "Sydney CBD studio monthly rent negotiation (Airbnb sample listing)",
+        "scenario": "Rio de Janeiro private suite monthly rent negotiation (Airbnb sample listing 462902)",
         "timestamp": datetime.now().isoformat(),
         "user_requirement": user_requirement,
         "user_profile": user_profile,
@@ -334,15 +334,15 @@ def main(model_name=None):
                 "buyer_max_price": buyer_max_price,
                 "seller_min_price": seller_min_price,
                 "product_info": {
-                    "name": "Mezzos Studio — Entire studio (Sydney CBD / Circular Quay)",
-                    "brand": "Host: Jared SSP",
+                    "name": "Alugo suíte individual — private suite in house (Rio de Janeiro)",
+                    "brand": "Host: listing 462902 (Rio suite)",
                     "color": "N/A",
-                    "original_price": 3050.0,
-                    "product_category": "Real Estate › Rentals › Apartments › Studio (Airbnb listing 14096512)",
-                    "average_rating": 4.5,
-                    "total_reviews": 221,
-                    "asin": "AIRBNB-14096512",
-                    "image_url": "https://a0.muscache.com/im/pictures/7d45563e-089a-431d-b917-636852413380.jpg?aki_policy=large",
+                    "original_price": 1950.0,
+                    "product_category": "Real Estate › Rentals › House › Private room (Airbnb listing 462902)",
+                    "average_rating": 0.0,
+                    "total_reviews": 0,
+                    "asin": "AIRBNB-462902",
+                    "image_url": "https://a0.muscache.com/im/pictures/37894063/4cab868f_original.jpg?aki_policy=large",
                 },
                 "model": get_model_name(model),
             })
@@ -382,7 +382,7 @@ def main(model_name=None):
         output_file = run_dir / "Task26_s23_rent_house_3_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task26 Scenario 23: Rent House (Sydney CBD studio / Airbnb sample) Negotiation Results\n")
+            f.write("Task26 Scenario 23: Rent House (Rio private suite / Airbnb sample 462902) Negotiation Results\n")
             f.write("Category: Real Estate\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -433,7 +433,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task26 Scenario 23: Rent House Negotiation (Sydney CBD, Airbnb sample listing)")
+    parser = argparse.ArgumentParser(description="Task26 Scenario 23: Rent House Negotiation (Rio private suite, Airbnb sample 462902)")
     parser.add_argument(
         "--model",
         type=str,

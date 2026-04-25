@@ -176,8 +176,8 @@ def main(model_name=None):
                 "average_rating": 5.0,
                 "total_reviews": 2,
                 "asin": "AIRBNB-25845370",
-                "full_description": "Summary (jsonl, host language): Salon ve yatak odalari isik aliyor; yatak odalari bahceye baktigi icin sessiz. Nightly sample price in data: $79 — first component of combined monthly bundle. https://www.airbnb.com/rooms/25845370",
-                "image_url": "https://a0.muscache.com/im/pictures/50e1b259-08e4-4ebc-af30-fc5e9f493e8e.jpg?aki_policy=large",
+                "full_description": "Summary (jsonl, host language): Salon ve yatak odalari isik aliyor; yatak odalari bahceye baktigi icin sessiz. Nightly sample price in data: $79 — first component of combined monthly bundle. Image: airbnb_embeddings_sample10.jsonl images.picture_url. https://www.airbnb.com/rooms/25845370",
+                "image_url": "https://a0.muscache.com/im/users/19791689/profile_pic/1407696819/original.jpg?aki_policy=large",
             },
             {
                 "name": "Alugo suíte individual",

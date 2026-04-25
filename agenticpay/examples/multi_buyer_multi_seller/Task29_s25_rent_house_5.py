@@ -167,7 +167,8 @@ def main(model_name=None):
     print("Starting new sequential negotiation — Home sweat home vs private suite (Brazil)...")
     print("="*60)
     
-    product_image_url = "https://a0.muscache.com/im/pictures/50e1b259-08e4-4ebc-af30-fc5e9f493e8e.jpg?aki_policy=large"
+    # Listing 25845370: jsonl images.picture_url (host profile) — not a separate listing photo in sample
+    product_image_url = "https://a0.muscache.com/im/users/19791689/profile_pic/1407696819/original.jpg?aki_policy=large"
 
     observation, info = env.reset(
         user_requirement=user_requirement,
@@ -182,7 +183,7 @@ def main(model_name=None):
             "average_rating": 5.0,
             "total_reviews": 2,
             "asin": "AIRBNB-25845370",
-            "full_description": "Living and bedrooms get natural light; bedrooms face the garden for quiet. Framed as monthly rent negotiation.",
+            "full_description": "Listing 25845370 (airbnb_embeddings_sample10.jsonl): Salon ve yatak odalari isik aliyor; yatak odalari bahceye baktigi icin sessiz. Image from jsonl images.picture_url. Framed as monthly rent negotiation.",
             "image_url": product_image_url,
         },
         user_profile=user_profile,

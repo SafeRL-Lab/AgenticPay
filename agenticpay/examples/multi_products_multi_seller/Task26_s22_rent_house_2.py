@@ -117,7 +117,7 @@ def main(model_name=None):
     user_requirement = "Sydney CBD studio + Bondi 2BR—what's your best total monthly rent for both?"
     print(f"Using default requirement: {user_requirement}")
 
-    img1 = "https://a0.muscache.com/im/pictures/7d45563e-089a-431d-b917-636852413380.jpg?aki_policy=large"
+    img1 = "https://a0.muscache.com/im/pictures/0c59647f-273c-4510-a1f3-eb8a3f6cc650.jpg?aki_policy=large"
     img2 = "https://a0.muscache.com/im/pictures/0c59647f-273c-4510-a1f3-eb8a3f6cc650.jpg?aki_policy=large"
 
     bundle_product_info = {

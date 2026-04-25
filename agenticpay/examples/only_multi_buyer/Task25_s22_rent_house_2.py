@@ -1,7 +1,8 @@
-"""Task25 Scenario 22: Rent House (Barcelona Poble Sec + terrace) — Sequential Two-Buyer Negotiation
+"""Task25 Scenario 22: Rent House (Barcelona center room + balcony) — Sequential Two-Buyer Negotiation
 
-One landlord negotiating with two prospective tenants for an entire apartment. Data aligned with row 1 in
-``airbnb_embeddings_sample10.jsonl`` (``_id`` 1332929). Monthly rent; overlapping acceptable range for both tenants.
+One landlord negotiating with two prospective tenants for the same listing. Product info matches
+``single_buyer_product_seller/Task25_s22_rent_house_2`` (Airbnb sample ``_id`` 23160633 in
+``airbnb_embeddings_sample10.jsonl``). Monthly rent; overlapping acceptable range for both tenants.
 Category: Real Estate
 """
 
@@ -123,9 +124,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 668.0  # Max acceptable monthly rent for tenant 1 (confidential)
-    buyer2_max_price = 655.0  # Max acceptable monthly rent for tenant 2 (confidential)
-    seller_min_price = 615.0  # Min acceptable monthly rent for landlord (confidential); < both buyer_max
+    buyer1_max_price = 1650.0  # Max acceptable monthly rent for tenant 1 (confidential; aligned with single-buyer Task25)
+    buyer2_max_price = 1620.0  # Max acceptable monthly rent for tenant 2 (confidential)
+    seller_min_price = 1500.0  # Min acceptable monthly rent for landlord (confidential); < both buyer_max
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -138,52 +139,61 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        initial_seller_price=695.0,  # Landlord opening monthly rent ask (long-term lease framing)
+        initial_seller_price=1580.0,  # Landlord opening monthly rent ask (long-term lease framing; aligned with single-buyer Task25)
         buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
         buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
         seller_min_price=seller_min_price,  # Seller bottom price (confidential)
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",
-            "availability_status": "Available for requested move-in window.",
-            "listing_age": "Listing ID 1332929 (sample scrape 2019-03-08)",
+            "availability_status": "Available starting next month.",
+            "listing_age": "Listing ID 23160633 (sample scrape 2019-03-08)",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Digital nomad couple planning a medium-term stay in Barcelona. Want a quiet terrace, good light, and a clear monthly rent cap near Poble Sec / Ramblas access."
+    user_profile = (
+        "Two remote-friendly tenants competing for the same Barcelona listing; both want central walkability "
+        "(Universitat / Sant Antoni), a room with a balcony, clear monthly rent, shared-space expectations, and move-in timing."
+    )
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm interested in the 5* Super host apartment with terrace (Airbnb listing near Ramblas). I need to negotiate monthly rent with the host while another applicant is also in the running."
+    user_requirement = (
+        "I'm interested in the 'Double room in Barcelona Center with balcony' on Airbnb. I'd like to negotiate "
+        "the monthly rent for a longer stay and confirm what's included (shared vs private, utilities, balcony use), "
+        "knowing another prospective tenant may also be negotiating with the host."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
     print("\n" + "="*60)
-    print("Starting new sequential negotiation with two prospective tenants (Barcelona apartment rental)...")
+    print("Starting new sequential negotiation with two prospective tenants (Barcelona center room + balcony rental)...")
     print("="*60)
     
-    # Listing photo from airbnb_embeddings_sample10.jsonl row 1 (listing 1332929)
-    product_image_url = "https://a0.muscache.com/im/pictures/20306590/6a9f9a20_original.jpg?aki_policy=large"
+    # Listing photo for VLM (from airbnb_embeddings_sample10.jsonl: listing 23160633 images.picture_url)
+    product_image_url = "https://a0.muscache.com/im/pictures/e051cbb3-0418-4200-8254-95b0bb8db441.jpg?aki_policy=large"
     
     observation, info = env.reset(
         user_requirement=user_requirement,
         product_info={
-            "name": "5*Super host Apartment+terrace — Poble Sec, Barcelona",
-            "condition": "Furnished",
-            "brand": "Host: Antoni",
-            "original_price": 695.0,
-            "availability_status": "Available for requested move-in window.",
-            "product_category": "Real Estate › Rentals › Apartments › 2 BR + terrace (Airbnb listing 1332929)",
-            "average_rating": 4.7,
-            "total_reviews": 320,
-            "seller_name": "Antoni",
-            "asin": "AIRBNB-1332929",
-            "full_description": "Bright penthouse (5th floor, lift) with sun-filled terrace; 2 bedrooms, living room with sofa bed, A/C and heating. Quiet Poble Sec location minutes from Parallel metro. Opening ask framed as $695/mo long-term rent. Listing: https://www.airbnb.com/rooms/1332929",
-            "small_description": "Entire apartment, 2 BR, terrace — near Ramblas & metro.",
+            "name": "Double room in Barcelona Center with balcony — Eixample / Sant Antoni",
+            "condition": "Private room · access to shared apartment spaces · balcony (per listing summary)",
+            "brand": "Host: listing 23160633 (Barcelona center)",
+            "color": "N/A",
+            "size": "Private room · 1 bed · 1 bath (in apartment; ~2 min to Pl. Universitat per scrape)",
+            "original_price": 1580.0,
+            "availability_status": "Available starting next month.",
+            "product_category": "Real Estate › Rentals › Apartments › Private room (Airbnb listing 23160633)",
+            "average_rating": 4.2,
+            "total_reviews": 4,
+            "seller_name": "Barcelona host",
+            "asin": "AIRBNB-23160633",
+            "full_description": "Scrape copy highlights a central Barcelona location: ~2 min walk to Pl. Universitat, ~10 min to Pl. Catalunya, ~2 min to Sant Antoni Market. Negotiation uses an opening monthly rent ask framed as a long-term stay (listing reference: https://www.airbnb.com/rooms/23160633). Property type is Apartment with room_type Private room on the sample.",
+            "small_description": "Private room with balcony — Universitat / Sant Antoni.",
             "image_url": product_image_url,
         },
         user_profile=user_profile,  # Pass user profile
@@ -453,13 +463,13 @@ def main(model_name=None):
                 "buyer2_max_price": buyer2_max_price,
                 "seller_min_price": seller_min_price,
                 "product_info": {
-                    "name": "5*Super host Apartment+terrace — Poble Sec, Barcelona",
-                    "brand": "Host: Antoni",
-                    "original_price": 695.0,
-                    "product_category": "Real Estate › Rentals › Apartments › 2 BR + terrace (Airbnb listing 1332929)",
-                    "average_rating": 4.7,
-                    "total_reviews": 320,
-                    "asin": "AIRBNB-1332929",
+                    "name": "Double room in Barcelona Center with balcony — Eixample / Sant Antoni",
+                    "brand": "Host: listing 23160633 (Barcelona center)",
+                    "original_price": 1580.0,
+                    "product_category": "Real Estate › Rentals › Apartments › Private room (Airbnb listing 23160633)",
+                    "average_rating": 4.2,
+                    "total_reviews": 4,
+                    "asin": "AIRBNB-23160633",
                 },
                 "model": get_model_name(model),
             })
@@ -499,7 +509,7 @@ def main(model_name=None):
         output_file = run_dir / "Task25_s22_rent_house_2_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task25 Scenario 22: Barcelona terrace apartment — Sequential Two-Buyer Negotiation Results\n")
+            f.write("Task25 Scenario 22: Barcelona center room + balcony — Sequential Two-Buyer Negotiation Results\n")
             f.write("Category: Real Estate\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -556,7 +566,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task25 Scenario 22: Barcelona rental — sequential two-buyer negotiation")
+    parser = argparse.ArgumentParser(description="Task25 Scenario 22: Barcelona center room + balcony — sequential two-buyer negotiation")
     parser.add_argument(
         "--model",
         type=str,

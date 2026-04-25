@@ -49,7 +49,7 @@ save_run_history() {
 # If the list is empty, each script will use its default model
 # Example:
 # MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "claude-opus-4-7")
-MODELS=("gpt-5.5")
+MODELS=("gpt-5.4")
 
 
 # ============================================
@@ -66,27 +66,32 @@ MODELS=("gpt-5.5")
 # )
 
 TASKS=(
-    "Task4"
-    "Task5"
-    "Task6"
-    "Task7"
-    "Task8"
-    "Task14"
-    "Task15"
-    "Task16"
-    "Task17"
-    "Task18"
-    "Task19"
-    "Task20"
-    "Task21"
     "Task22"
     "Task23"
-    "Task24"
-    "Task25"
-    "Task26"
-    "Task27"
-    "Task28"
 )
+
+# TASKS=(
+#     "Task4"
+#     "Task5"
+#     "Task6"
+#     "Task7"
+#     "Task8"
+#     "Task14"
+#     "Task15"
+#     "Task16"
+#     "Task17"
+#     "Task18"
+#     "Task19"
+#     "Task20"
+#     "Task21"
+#     "Task22"
+#     "Task23"
+#     "Task24"
+#     "Task25"
+#     "Task26"
+#     "Task27"
+#     "Task28"
+# )
 # TASKS=()   # 取消上面数组并置空，则运行本目录下全部任务
 
 # ============================================

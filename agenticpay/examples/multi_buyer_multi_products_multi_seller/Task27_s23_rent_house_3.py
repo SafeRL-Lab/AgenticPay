@@ -177,7 +177,7 @@ def main(model_name=None):
                 "total_reviews": 221,
                 "asin": "AIRBNB-14096512",
                 "full_description": "Summary (jsonl): ENTIRE studio at Circular Quay in Sydney's CBD; fully furnished with FREE Wi‑Fi. Nightly sample price in data: $149 — first component of combined monthly bundle. https://www.airbnb.com/rooms/14096512",
-                "image_url": "https://a0.muscache.com/im/pictures/7d45563e-089a-431d-b917-636852413380.jpg?aki_policy=large",
+                "image_url": "https://a0.muscache.com/im/pictures/0c59647f-273c-4510-a1f3-eb8a3f6cc650.jpg?aki_policy=large",
             },
             {
                 "name": "Whole sunny apartment near Bondi Beach",
