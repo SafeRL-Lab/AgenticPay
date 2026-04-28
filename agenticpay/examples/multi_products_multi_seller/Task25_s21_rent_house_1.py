@@ -81,11 +81,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
-    # Bundle total monthly rent; line-item list prices 1395 + 1280 = 2675
+    # List-reference bundle total (quoted_price) = 1395 + 1280 = 2675. True reservation band below anchor: Seller1_min > Seller2_min; buyer_max/quoted rises monotonically s21→s25 (here lowest tier ~75%); ZOPA vs Seller1 ~8% of quoted.
     print("Creating agents...")
-    buyer_max_price = 2750.0
-    seller1_min_price = 2550.0
-    seller2_min_price = 2480.0
+    buyer_max_price = 2009.0
+    seller1_min_price = 1790.0
+    seller2_min_price = 1668.0
 
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -111,7 +111,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = "Prospective tenant on a fixed monthly housing budget. Cares about location, reviews, and predictable total rent for a two-unit bundle."
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = "East Village studio plus Ramblas terrace—what's your best total monthly rent for both?"

@@ -123,9 +123,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 19.0  # Maximum acceptable price for buyer1 (confidential) - CTS Air Plants
-    buyer2_max_price = 18.0  # Maximum acceptable price for buyer2 (confidential, different from buyer1)
-    seller_min_price = 15.0  # Minimum acceptable price for seller (confidential) - CTS Air Plants
+    buyer1_max_price = 14.97  # Maximum acceptable price for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 16.15  # Maximum acceptable price for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 12.97  # Minimum acceptable price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -145,14 +145,13 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Plant enthusiast looking for air plants for home decor. Prefers medium-sized tillandsia for orbs and terrariums. Values variety, healthy plants, and fast shipping. Makes gifts for friends and family."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -175,7 +174,6 @@ def main(model_name=None):
             "condition": "New",
             "brand": "Visit the CTS Air Plants Store",
             "original_price": 19.95,
-            "availability_status": "In Stock.",
             "product_category": "Patio, Lawn & Garden › Gardening & Lawn Care › Plants, Seeds & Bulbs › Cacti & Succulents",
             "average_rating": 4.7,
             "total_reviews": 25,

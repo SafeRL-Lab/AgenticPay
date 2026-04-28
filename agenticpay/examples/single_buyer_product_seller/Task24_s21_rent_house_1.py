@@ -6,7 +6,7 @@ Tests agent's ability to negotiate monthly rent and lease terms for a rental lis
 
 Listing copy, host, review counts, and image URL are aligned with the first record in
 ``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 13183672).
-Negotiation dollar amounts (monthly rent) are chosen so ``seller_min_price < buyer_max_price`` (overlapping acceptable range).
+Confidential reservation prices are set strictly below the listing ``original_price`` anchor: ``seller_min_price < buyer_max_price < original_price``, so the agent must infer the deal window rather than settle near the public list rent.
 """
 
 import os
@@ -99,8 +99,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     # Scenario 21: Rent House — monthly rent negotiation (NYC East Village studio; listing sourced from airbnb_embeddings_sample10.jsonl).
-    buyer_max_price = 1350.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
-    seller_min_price = 1260.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
+    buyer_max_price = 1088.10  # Maximum acceptable monthly rent for tenant/buyer (confidential); below listing original_price
+    seller_min_price = 892.80  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -118,7 +118,7 @@ def main(model_name=None):
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",
-            "availability_status": "Available now.",
+            # "availability_status": "Available now.",
             "listing_age": "Listing ID 13183672 (sample scrape 2019-03-06)"
         },
         price_tolerance=price_tolerance,
@@ -142,7 +142,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Remote worker moving to Manhattan who wants a walkable East Village base and clear monthly rent. Cares about cleanliness, communication, and predictable recurring cost."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm interested in the East Village studio (East Village Living on Airbnb). I'd like to negotiate the monthly rent before committing, keeping total recurring cost predictable."
@@ -165,7 +165,7 @@ def main(model_name=None):
             "color": "N/A",
             "size": "Studio · 1 bath · 0 bedrooms (entire home/apt)",
             "original_price": 1395.0,
-            "availability_status": "Available now.",
+            # "availability_status": "Available now.",
             "product_category": "Real Estate › Rentals › Apartments › Studio (Airbnb listing 13183672)",
             "average_rating": 4.95,
             "total_reviews": 32,

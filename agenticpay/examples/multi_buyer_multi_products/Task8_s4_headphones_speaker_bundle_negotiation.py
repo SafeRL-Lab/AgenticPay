@@ -112,11 +112,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
-    # Bundle list ~$123.48; buyers' caps and seller floor are for the pair total (same SKU set for all parties).
+    # Public reference: sum of SKU original prices ~$123.48. Negotiation bounds below that reference (confidential).
     print("Creating agents...")
-    buyer1_max_price = 110.0
-    buyer2_max_price = 115.0
-    seller_min_price = 100.0
+    buyer1_max_price = 92.61  # Maximum acceptable total for buyer1 (confidential)
+    buyer2_max_price = 101.25  # Maximum acceptable total for buyer2 (confidential)
+    seller_min_price = 82.06  # Minimum acceptable total for seller (confidential)
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -136,7 +136,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "2 weeks",
-            "availability_status": "In Stock.",
             "bundle_context": (
                 "Several sellers list this exact two-item bundle; offers are for the bundle total. "
                 "Each seller has a different internal floor for the pair; buyers only see product facts, not seller identities."
@@ -146,9 +145,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Electronics shopper bundling kids headphones with a portable speaker. Wants one shipped total."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     product1_image_url = "https://m.media-amazon.com/images/I/41B+OC0qnOL.jpg"
@@ -162,7 +159,6 @@ def main(model_name=None):
                 "price": 14.99,
                 "brand": "NVRADCHUA",
                 "original_price": 14.99,
-                "availability_status": "In Stock.",
                 "product_category": "Electronics › Headphones › Over-Ear Headphones",
                 "average_rating": 4.0,
                 "total_reviews": 2,
@@ -176,7 +172,6 @@ def main(model_name=None):
                 "price": 108.49,
                 "brand": "Sony",
                 "original_price": 108.49,
-                "availability_status": "Only 1 left in stock - order soon.",
                 "product_category": "Electronics › Portable Audio & Video › Portable Speakers & Docks › Portable Bluetooth Speakers",
                 "average_rating": 4.5,
                 "total_reviews": 962,

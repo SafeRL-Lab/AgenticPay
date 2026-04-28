@@ -149,9 +149,9 @@ def main(model_name=None):
     
     # Same product (SKU) from two listings: each seller has a different confidential floor price
     print("Creating agents...")
-    buyer_max_price = 6.50  # Maximum acceptable purchase price for buyer (confidential)
-    seller1_min_price = 4.90  # Seller 1 floor (confidential; lower cost / willing to go lower)
-    seller2_min_price = 5.45  # Seller 2 floor (confidential; higher than seller 1)
+    buyer_max_price = 6.18  # Maximum acceptable purchase price for buyer (confidential; below listed reference)
+    seller1_min_price = 5.57  # Seller 1 floor (confidential; higher reservation than seller 2)
+    seller2_min_price = 4.96  # Seller 2 floor (confidential; lower cost / willing to go lower)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -166,9 +166,9 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=7.45,  # Opening ask — same item, different listing
         initial_seller2_price=7.95,  # Opening ask — same item, different listing
-        buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer_max_price=buyer_max_price,  # Buyer max willing to pay (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable price (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable price (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
@@ -179,7 +179,7 @@ def main(model_name=None):
     )
     
     # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
-    user_profile = "Wants a fair price on brand makeup; open to comparing offers for the same product."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -211,8 +211,6 @@ def main(model_name=None):
             "shade": "130s Turquoise Glass Perfect Pastels",
             "size": "0.09 Ounce",
             "original_price": 7.98,
-            "availability_quantity": 5,
-            "availability_status": "Only 5 left in stock - order soon.",
             "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
             "average_rating": 4.2,
             "total_reviews": 54,
@@ -453,8 +451,6 @@ def main(model_name=None):
                     "shade": "130s Turquoise Glass Perfect Pastels",
                     "size": "0.09 Ounce",
                     "original_price": 7.98,
-                    "availability_quantity": 5,
-                    "availability_status": "Only 5 left in stock - order soon.",
                     "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
                     "average_rating": 4.2,
                     "total_reviews": 54,

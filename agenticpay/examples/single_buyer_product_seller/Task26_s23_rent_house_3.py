@@ -6,8 +6,7 @@ Tests agent's ability to negotiate monthly rent and lease terms for a rental lis
 
 Listing copy, review counts, and image URL are aligned with the eighth record in
 ``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 462902).
-Monthly rent negotiation parameters are set for a plausible long-term lease framing, with
-``seller_min_price < buyer_max_price`` so the parties have an overlapping acceptable range.
+Confidential reservation prices are strictly below the listing ``original_price`` anchor: ``seller_min_price < buyer_max_price < original_price``.
 """
 
 import os
@@ -100,8 +99,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     # Scenario 23: Rent House — monthly rent negotiation (Rio private suite in house; Airbnb sample 462902).
-    buyer_max_price = 2050.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
-    seller_min_price = 1780.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
+    buyer_max_price = 1482.00  # Maximum acceptable monthly rent for tenant/buyer (confidential); below listing original_price
+    seller_min_price = 1228.50  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -119,7 +118,7 @@ def main(model_name=None):
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",
-            "availability_status": "Available for longer stays; confirm dates with host.",
+            # "availability_status": "Available for longer stays; confirm dates with host.",
             "listing_age": "Listing ID 462902 (sample scrape 2019-02-11)"
         },
         price_tolerance=price_tolerance,
@@ -143,7 +142,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Remote worker basing in Rio for a few months who wants a quiet private suite, reliable Wi‑Fi, and clear house rules. Cares about bath privacy, what’s shared in the home, and a predictable monthly all-in number."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm interested in the 'Alugo suíte individual' listing on Airbnb (Rio de Janeiro; transit notes in the copy). I'd like to negotiate the monthly rent for a longer stay and confirm what's private vs shared (kitchen/TV, pool/sauna access, utilities, Wi‑Fi)."
@@ -166,7 +165,7 @@ def main(model_name=None):
             "color": "N/A",
             "size": "Private room in house · 1 bedroom · 1 private bath (shared kitchen/TV, amenities per listing)",
             "original_price": 1950.0,
-            "availability_status": "Available for longer stays; confirm dates with host.",
+            # "availability_status": "Available for longer stays; confirm dates with host.",
             "product_category": "Real Estate › Rentals › House › Private room (Airbnb listing 462902)",
             "average_rating": 0.0,
             "total_reviews": 0,

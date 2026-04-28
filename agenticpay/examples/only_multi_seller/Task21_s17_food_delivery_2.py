@@ -102,9 +102,9 @@ def main(model_name=None):
     
     # Same dish from two offers: each seller has a different confidential floor (all-in total)
     print("Creating agents...")
-    buyer_max_price = 14.80  # Maximum acceptable all-in order total for buyer (confidential)
-    seller1_min_price = 13.20  # Seller 1 floor (confidential; lower cost / willing to go lower)
-    seller2_min_price = 13.60  # Seller 2 floor (confidential; higher than seller 1)
+    buyer_max_price = 8.95  # Maximum acceptable all-in order total for buyer (confidential; below menu list reference)
+    seller1_min_price = 8.06  # Seller 1 floor (confidential; higher reservation than seller 2)
+    seller2_min_price = 7.18  # Seller 2 floor (confidential; lower cost / willing to go lower)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -119,9 +119,9 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=15.15,  # Opening ask — same item, different offer
         initial_seller2_price=15.65,  # Opening ask — same item, different offer
-        buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer_max_price=buyer_max_price,  # Buyer max willing to pay (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable price (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable price (confidential)
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
@@ -132,7 +132,7 @@ def main(model_name=None):
     )
     
     # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
-    user_profile = "Wants a fair all-in delivered price on one chicken sliders and fries combo; open to comparing offers for the same item."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement

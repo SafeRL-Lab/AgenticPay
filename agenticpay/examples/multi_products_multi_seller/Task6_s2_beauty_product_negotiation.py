@@ -88,9 +88,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    buyer_max_price = 21.0
-    seller1_min_price = 19.0
-    seller2_min_price = 18.0
+    buyer_max_price = 17.65
+    seller1_min_price = 15.69
+    seller2_min_price = 13.98
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -111,14 +111,13 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
         },
         price_tolerance=0,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Health-conscious buyer interested in oral care and hair care. Values natural ingredients, good reviews. Prefers quality products from Beauty & Personal Care category."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I need the ARM & HAMMER Peroxicare pack and the BFWood paddle brush—best total for both?"
@@ -133,7 +132,6 @@ def main(model_name=None):
                 "size": "6 Ounce (Pack of 6)",
                 "price": 16.0,
                 "original_price": 16.0,
-                "availability_status": "In Stock",
                 "product_category": "Beauty & Personal Care › Oral Care › Toothpaste",
                 "average_rating": 4.8,
                 "total_reviews": 538,
@@ -147,7 +145,6 @@ def main(model_name=None):
                 "brand": "BFWood",
                 "price": 6.48,
                 "original_price": 6.48,
-                "availability_status": "In Stock.",
                 "product_category": "Beauty & Personal Care › Hair Care › Styling Tools & Appliances › Hair Brushes",
                 "average_rating": 4.5,
                 "total_reviews": 1652,

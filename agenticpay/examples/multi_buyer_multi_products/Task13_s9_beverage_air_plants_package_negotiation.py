@@ -119,12 +119,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total expected cost for beverage + air plants package
+    # Create Agents (bottom prices confidential). Public list total ~$51.95 (one line has original=list; one line list-only).
     print("Creating agents...")
-    buyer1_max_price = 46.0  # Maximum acceptable total price for buyer1 (confidential) - Beverage ~$35 + Air Plants ~$20
-    buyer2_max_price = 48.0  # Maximum acceptable total price for buyer2 (confidential)
-    seller_min_price = 42.0  # Minimum acceptable total price for seller (confidential) - Beverage ~$24 + Air Plants ~$15
+    buyer1_max_price = 38.97  # Maximum acceptable total price for buyer1 (confidential)
+    buyer2_max_price = 42.37  # Maximum acceptable total price for buyer2 (confidential)
+    seller_min_price = 34.06  # Minimum acceptable total price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -144,7 +143,6 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
             "listing_age": "3 days",
             "bundle_context": (
                 "Several sellers list this exact two-item bundle; offers are for the bundle total. "
@@ -155,9 +153,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Host stocking an organic sparkling case and a Tillandsia 6-pack; negotiates both as one delivered total."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products (from Task12_s9_beverage example + sampled_products2.jsonl sample 9)
@@ -172,7 +168,6 @@ def main(model_name=None):
                 "condition": "New",
                 "size": "8.4 Fl Oz, 24 per case",
                 "original_price": 32.0,
-                "availability_status": "In Stock",
                 "product_category": "Grocery › Beverages",
                 "average_rating": 4.9,
                 "total_reviews": 13,
@@ -185,7 +180,6 @@ def main(model_name=None):
                 "brand": "CTS Air Plants",
                 "price": 19.95,
                 "condition": "New",
-                "availability_status": "In Stock.",
                 "product_category": "Patio, Lawn & Garden › Gardening & Lawn Care › Plants, Seeds & Bulbs › Cacti & Succulents",
                 "average_rating": 4.7,
                 "total_reviews": 25,

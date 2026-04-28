@@ -87,8 +87,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for bundled fare components
     print("Creating agents...")
-    buyer_max_price = 20.58  # Historical all-in total from sampled trip (confidential)
-    seller_min_price = 17.38  # Minimum acceptable bundled total for seller (confidential)
+    buyer_max_price = 21.06  # Maximum acceptable bundled all-in total for buyer (confidential; below opening quote)
+    seller_min_price = 17.68  # Minimum acceptable bundled total for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -111,7 +111,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Price-sensitive rider who prefers short rides to have clear and fair all-in pricing, with no hidden charges."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     product_image_url = os.path.join(

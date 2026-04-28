@@ -69,9 +69,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer_max_price = 41.5
-    seller1_min_price = 34.0
-    seller2_min_price = 36.0
+    buyer_max_price = 32.17
+    seller1_min_price = 28.60
+    seller2_min_price = 25.49
 
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -98,7 +98,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = "Casual summer shopper; wants comfy flip flops and licensed Marvel gear—values fit and price, not which storefront."
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = "I want the men's black flip flops (size 44) and the Marvel Avengers Endgame Cap tee—best total for both?"
@@ -114,7 +114,6 @@ def main(model_name=None):
                 "color": "R011 Black",
                 "price": 17.99,
                 "original_price": 17.99,
-                "availability_status": "In stock. Usually ships within 3 to 4 days.",
                 "product_category": "Clothing, Shoes & Jewelry › Men › Shoes › Sandals",
                 "average_rating": 4.0,
                 "total_reviews": 0,
@@ -128,7 +127,6 @@ def main(model_name=None):
                 "brand": "Marvel",
                 "price": 22.99,
                 "original_price": 22.99,
-                "availability_status": "In Stock.",
                 "product_category": "Clothing, Shoes & Jewelry › Novelty & More › Clothing › Novelty › Women › Tops & Tees › T-Shirts",
                 "average_rating": 5,
                 "total_reviews": 2,

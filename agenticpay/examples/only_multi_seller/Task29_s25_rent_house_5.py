@@ -102,9 +102,10 @@ def main(model_name=None):
     
     # Same property from two offers: each seller has a different confidential floor monthly rent
     print("Creating agents...")
-    buyer_max_price = 6200.0  # Max acceptable monthly rent (confidential)
-    seller1_min_price = 5600.0  # Seller 1 floor (confidential; lower)
-    seller2_min_price = 5750.0  # Seller 2 floor (confidential; higher than seller 1)
+    # Confidential band vs listing reference (6600): across scenarios s21→s25, seller floors (as % of quoted) decrease and buyer ceiling increases
+    buyer_max_price = 5297.0  # Max acceptable monthly rent (confidential — highest buyer cap among s21–s25 suite)
+    seller1_min_price = 4092.0  # Seller 1 floor (confidential — lowest Seller1 floor among s21–s25; ties 0.62×quoted)
+    seller2_min_price = 4323.0  # Seller 2 floor (confidential — lowest Seller2 floor among s21–s25)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -162,7 +163,6 @@ def main(model_name=None):
             "condition": "Luxury furnished",
             "size": "Villa · multi-level · entire home/apt · pool",
             "original_price": 6600.0,
-            "availability_quantity": 1,
             "availability_status": "Available now.",
             "product_category": "Real Estate › Rentals › Villas",
             "average_rating": 0.0,
@@ -428,7 +428,6 @@ def main(model_name=None):
                     "condition": "Luxury furnished",
                     "size": "Villa · multi-level · entire home/apt · pool",
                     "original_price": 6600.0,
-                    "availability_quantity": 1,
                     "availability_status": "Available now.",
                     "product_category": "Real Estate › Rentals › Villas",
                     "average_rating": 0.0,

@@ -114,9 +114,10 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer1_max_price = 3360.0
-    buyer2_max_price = 3320.0
-    seller_min_price = 2920.0
+    # Private band vs listing sum ($3115): seller floor ~62%; Buyer1/Buyer2 ceilings spread apart; both below public reference.
+    buyer1_max_price = 2100.0  # Maximum acceptable bundle total for Buyer1 (stricter than Buyer2).
+    buyer2_max_price = 2430.0  # Maximum acceptable bundle total for Buyer2.
+    seller_min_price = 1932.0  # Minimum acceptable bundle total for seller (reservation floor).
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -146,10 +147,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Two roommates need one combined monthly rent for a furnished East Village studio plus a nearby 1BR "
-        "(long-term lease, not nightly). Buyer1 is more price-sensitive; Buyer2 cares more about layout."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     product_info = {

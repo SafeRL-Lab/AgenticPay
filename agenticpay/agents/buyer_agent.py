@@ -20,7 +20,7 @@ class BuyerAgent(BaseAgent):
         self,
         model: Union[BaseLLM, BaseVLM],
         name: str = "Buyer",
-        role_description: str = "You are a buyer looking for a good deal. You are polite, strategic, and want to get the best price within your budget.",
+        role_description: str = "You are a buyer looking for a good deal.",
         buyer_max_price: Optional[float] = None,
         system_prompt_suffix: Optional[str] = None,
     ):
@@ -209,16 +209,16 @@ IMPORTANT:
   - Example: For 10,000 units at $0.40 each, use ### BUYER_PRICE($4000) ###, NOT ### BUYER_PRICE($0.40) ###
 - Example: "I can offer ### BUYER_PRICE($10) ### for this product."
 - Example: "How about ### BUYER_PRICE($12.50) ###?"
-- Example (accepting their price): "Deal — I'll take it at ### BUYER_PRICE($6.50) ###. MAKE_DEAL"
+- Example (accepting their price): "Deal — I'll take it at ### BUYER_PRICE($6.50) ###."
 - This specific format is required for the system to correctly extract your offer price.
 - NEVER reveal your maximum acceptable price to the seller.
 {selected_seller_rules}
 
 DEAL AGREEMENT INSTRUCTION:
 - Only finalize the transaction when you believe the price is reasonably balanced.
-- If you decide to accept the deal, you MUST include BOTH in `<message>`: (1) the exact phrase "MAKE_DEAL", AND (2) ### BUYER_PRICE($X) ### with $X equal to the agreed total you will pay (same as the price you are accepting).
-- Wrong: "That sounds acceptable to me. MAKE_DEAL" with no ### BUYER_PRICE(...) ### — this breaks agreement detection.
-- Right: "I accept your offer at ### BUYER_PRICE($6.50) ###. MAKE_DEAL"
+- When you accept, state it clearly in `<message>` and include ### BUYER_PRICE($X) ### with $X equal to the agreed total you will pay (same as the price you are accepting). Do not use any special deal-finalization keyword beyond that.
+- Wrong: accepting verbally with no ### BUYER_PRICE(...) ### — the environment keeps your previous numeric offer and agreement may not register.
+- Right: "I accept your offer at ### BUYER_PRICE($6.50) ###."
 
 {preference_guidance}
 

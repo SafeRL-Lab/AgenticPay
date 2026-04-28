@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 17: Karaage Sliders & Fries all-in order total includes menu price plus delivery/service fees.
-    buyer_max_price = 14.80  # Maximum acceptable all-in order total for buyer (confidential)
-    seller_min_price = 13.20  # Minimum acceptable all-in order total for seller (confidential)
+    # Scenario 17: Karaage Sliders & Fries — public all-in reference (quoted_total_price $15.15); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 12.00  # Maximum acceptable all-in order total for buyer (confidential)
+    seller_min_price = 10.20  # Minimum acceptable all-in order total for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -114,7 +114,7 @@ def main(model_name=None):
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "estimated_delivery_time": "25-40 minutes",
             "restaurant_price_range": "$$",
             "restaurant_address": "Sticky's Chicken, 2311 Edwards St Suite 190, Houston, TX 77007, USA",
@@ -147,7 +147,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Young professional ordering dinner after work. Enjoys crispy Japanese-style fried chicken and combo meals, and focuses on the final checkout total including delivery and service fees."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm ordering Karaage Sliders & Fries from Sticky's Chicken for dinner. Please quote and negotiate using the all-in checkout total, including delivery and service fees, so it stays budget-friendly."
@@ -176,7 +176,7 @@ def main(model_name=None):
             "delivery_fee": 2.39,
             "service_fee": 1.21,
             "quoted_total_price": 15.15,
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "product_category": "Food Delivery › Chicken › Sliders & Fries",
             "average_rating": 4.68,
             "total_reviews": 405,

@@ -124,11 +124,10 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # Scenario: Sony Extra Bass Portable Bluetooth Speaker (Renewed) - $108.49 list price
     print("Creating agents...")
-    buyer1_max_price = 105.0  # Maximum acceptable price for buyer1 (confidential)
-    buyer2_max_price = 102.0  # Maximum acceptable price for buyer2 (confidential, slightly lower)
-    seller_min_price = 85.0  # Minimum acceptable selling price for seller (confidential)
+    buyer1_max_price = 81.37  # Maximum acceptable price for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 86.78  # Maximum acceptable price for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 69.43  # Minimum acceptable selling price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -149,14 +148,13 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "2 days",
-            "availability_status": "Only 1 left in stock - order soon.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Music enthusiast looking for portable Bluetooth speaker for outdoor use. Values battery life, waterproof design, and good bass. Prefers renewed/refurbished options for better value."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -179,7 +177,6 @@ def main(model_name=None):
             "condition": "Renewed",
             "brand": "Visit the Amazon Renewed Store",
             "original_price": 108.49,
-            "availability_status": "Only 1 left in stock - order soon.",
             "product_category": "Electronics › Portable Audio & Video › Portable Speakers & Docks › Portable Bluetooth Speakers",
             "average_rating": 4.5,
             "total_reviews": 962,

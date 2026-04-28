@@ -93,8 +93,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 145.0  # Maximum acceptable total purchase price for buyer (confidential) - Bookshelf + Wall Sconce
-    seller_min_price = 123.0  # Minimum acceptable total selling price for seller (confidential) - $28 + $95
+    buyer_max_price = 116.22  # Maximum acceptable total purchase price for buyer (confidential; below opening bundle reference)
+    seller_min_price = 96.60  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -116,7 +116,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Home office organizer looking for practical storage solutions. Values sturdy construction, easy assembly, and good value. For lighting, prefers wall sconces with clear glass shade for bathroom, living room, or dining room."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices
@@ -130,7 +130,6 @@ def main(model_name=None):
                 "price": 36.94,
                 "condition": "New",
                 "brand": "Brand: Kcelarec",
-                "availability_status": "In Stock.",
                 "product_category": "Home & Kitchen › Furniture › Home Office Furniture › Bookcases",
                 "average_rating": 5.0,
                 "total_reviews": 1,
@@ -144,7 +143,6 @@ def main(model_name=None):
                 "price": 113.99,
                 "condition": "New",
                 "brand": "Visit the Fanyate Store",
-                "availability_status": "In Stock.",
                 "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Wall Lights › Wall Lamps & Sconces",
                 "average_rating": 4.7,
                 "total_reviews": 55,

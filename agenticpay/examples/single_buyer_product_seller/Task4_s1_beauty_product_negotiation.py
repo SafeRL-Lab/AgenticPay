@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 1-1: Maybelline Eyeshadow - buyer_max_price: $6.50 (wants discount), seller_min_price: $5.00 (cost basis)
-    buyer_max_price = 6.50  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 5.00  # Minimum acceptable selling price for seller (confidential)
+    # Scenario 1-1: Maybelline Eyeshadow — public list reference (original_price $7.98); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 6.22  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 5.11  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -115,7 +115,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "3 days",
-            "availability_status": "Only 5 left in stock - order soon."
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -138,7 +137,8 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Beauty-conscious user who researches product reviews before buying. Cares about brand quality and value for money. Prefers to buy from sellers with good ratings and reasonable prices."
+    user_profile = None
+    
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -170,8 +170,6 @@ def main(model_name=None):
             "shade": "130s Turquoise Glass Perfect Pastels",
             "size": "0.09 Ounce",
             "original_price": 7.98,
-            "availability_quantity": 5,
-            "availability_status": "Only 5 left in stock - order soon.",
             "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
             "average_rating": 4.2,
             "total_reviews": 54,
@@ -345,8 +343,6 @@ def main(model_name=None):
                     "shade": "130s Turquoise Glass Perfect Pastels",
                     "size": "0.09 Ounce",
                     "original_price": 7.98,
-                    "availability_quantity": 5,
-                    "availability_status": "Only 5 left in stock - order soon.",
                     "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
                     "average_rating": 4.2,
                     "total_reviews": 54,

@@ -1,7 +1,7 @@
 """Task20 Scenario 16: Food Delivery — Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two marketplace offers on the same platform: the listing text shows item details only; two fulfillment
-offers have different confidential floors. Two buyers each pick one offer per round (structured routing).
+Same Izakaya karaage order on DoorDash: two all-in quotes (fees/routing differ). Listing text shows item details only;
+two fulfillment offers have different confidential floors. Two buyers each pick one offer per round (structured routing).
 Category: Food Delivery
 """
 
@@ -118,10 +118,10 @@ def main(model_name=None):
     
     # Two offers: each has a different confidential floor (all-in order totals)
     print("Creating agents...")
-    buyer1_max_price = 12.30  # all-in cap (buyer 1)
-    buyer2_max_price = 14.80  # all-in cap (buyer 2)
-    seller1_min_price = 10.80
-    seller2_min_price = 13.20
+    buyer1_max_price = 9.64  # Maximum acceptable all-in total for Buyer 1 — offer 1 (confidential; below quoted total anchor)
+    buyer2_max_price = 10.43  # Maximum acceptable all-in total for Buyer 2 — offer 2 (confidential; below quoted total anchor)
+    seller1_min_price = 8.93  # Minimum acceptable all-in total for Seller 1 (confidential; below quoted total anchor)
+    seller2_min_price = 7.99  # Minimum acceptable all-in total for Seller 2 (confidential; below quoted total anchor)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -136,16 +136,15 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=12.78,  # all-in quote (menu + fees) — Task19
-        initial_seller2_price=15.15,  # all-in quote — Task20 single (Sticky's)
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        initial_seller1_price=12.78,  # all-in quote — same karaage order, offer 1
+        initial_seller2_price=14.65,  # all-in quote — same karaage order, offer 2
+        buyer1_max_price=buyer1_max_price,  # Buyer1 max willingness (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 max willingness (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable (confidential)
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
-            "note": "Multiple item listings exist; offer copy is item-focused—each offer has a different confidential floor.",
             "availability_status": "Available for delivery.",
             "estimated_delivery_time": "25-40 minutes",
             "restaurant_price_range": "$$",
@@ -156,11 +155,14 @@ def main(model_name=None):
     )
     
     # Preferences only; no merchant identity in the listing text
-    user_profile = "Two buyers want a fair all-in food-delivery total; both are open to comparing two item offers on the same platform."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Concise English user query (simulated search / assistant request)
-    user_requirement = "I want Japanese-style fried chicken delivered—compare the two options and the best all-in price with fees."
+    user_requirement = (
+        "I want the listed order only: Izakaya Karaage Chicken with spicy yuzu peel marmalade (single appetizer)—"
+        "negotiate the all-in total including menu, delivery, and service fees; matching the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -204,7 +206,7 @@ def main(model_name=None):
     results = {
         "task": "Task20_s16_food_delivery_1",
         "category": "Food Delivery",
-        "scenario": "Karaage chicken offer vs karaage sliders combo offer",
+        "scenario": "Same Izakaya karaage order; two DoorDash all-in quotes",
         "timestamp": datetime.now().isoformat(),
         "user_requirement": user_requirement,
         "user_profile": user_profile,
@@ -549,7 +551,7 @@ def main(model_name=None):
         output_file = run_dir / "Task20_s16_food_delivery_1_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task20 Scenario 16: Food Delivery (Karaage Chicken & Karaage Sliders) — Sequential Two-Buyer Two-Seller Negotiation Results\n")
+            f.write("Task20 Scenario 16: Food Delivery (Izakaya Karaage — two all-in quotes) — Sequential Two-Buyer Two-Seller Negotiation Results\n")
             f.write("Category: Food Delivery\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")

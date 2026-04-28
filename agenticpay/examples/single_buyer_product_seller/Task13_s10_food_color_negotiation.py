@@ -104,9 +104,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 10: Food Color - buyer_max_price: $6.00, seller_min_price: $4.50
-    buyer_max_price = 5.5  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 4.5  # Minimum acceptable selling price for seller (confidential)
+    # Scenario 10: Food coloring — public list reference (original_price $6.25); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 4.90  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 3.95  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -124,7 +124,6 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock.",
             "listing_age": "5 days"
         },
         price_tolerance=price_tolerance,
@@ -148,7 +147,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Home baker and cake decorator who values professional-grade food coloring. Prefers concentrated colors that go far and work well with non-dairy icings. Values quality brands with good reviews."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm looking for AmeriColor AmeriMist Lemon Yellow airbrush food color for cake decorating. Need something that works on non-dairy whipped toppings."
@@ -171,7 +170,6 @@ def main(model_name=None):
             "color": "Lemon Yellow",
             "size": "0.65 oz",
             "original_price": 6.25,
-            "availability_status": "In Stock.",
             "product_category": "Grocery & Gourmet Food › Pantry Staples › Cooking & Baking › Food Coloring",
             "average_rating": 5.0,
             "total_reviews": 1,

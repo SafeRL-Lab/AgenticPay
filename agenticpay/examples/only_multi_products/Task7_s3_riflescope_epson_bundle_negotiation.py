@@ -107,10 +107,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
-    # Riflescope $218.79 + Epson $320 = $538.79 total
     print("Creating agents...")
-    buyer_max_price = 520.0  # Maximum acceptable total purchase price for buyer (confidential)
-    seller_min_price = 480.0  # Minimum acceptable total selling price for seller (confidential)
+    buyer_max_price = 426.0  # Maximum acceptable total purchase price for buyer (confidential; below list/original reference total)
+    seller_min_price = 356.0  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -132,7 +131,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Outdoor enthusiast and small business owner. Needs riflescope for hunting and thermal receipt printer for retail POS. Values quality brands (Crimson Trace, Epson) and prefers buying from reputable sellers."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products with individual prices (image + text format with image_url for VLM)
@@ -148,8 +147,6 @@ def main(model_name=None):
                 "style": "2.5-10x42mm Plex",
                 "price": 218.79,
                 "original_price": 218.79,
-                "availability_quantity": 14,
-                "availability_status": "Only 14 left in stock (more on the way).",
                 "product_category": "Sports & Outdoors › Hunting & Fishing › Shooting › Optics › Gun Scopes › Rifle Scopes",
                 "average_rating": 4.3,
                 "total_reviews": 28,
@@ -166,7 +163,6 @@ def main(model_name=None):
                 "style": "Ethernet Interface, Dark Grey",
                 "price": 320.0,
                 "original_price": 320.0,
-                "availability_status": "In stock. Usually ships within 3 to 4 days.",
                 "product_category": "Office Products › Office Electronics",
                 "average_rating": 4.1,
                 "total_reviews": 4,

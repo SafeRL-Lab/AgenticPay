@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 16: Karaage Chicken all-in order total includes menu price plus delivery/service fees.
-    buyer_max_price = 12.30  # Maximum acceptable all-in order total for buyer (confidential)
-    seller_min_price = 10.80  # Minimum acceptable all-in order total for seller (confidential)
+    # Scenario 16: Karaage Chicken — public all-in reference (quoted_total_price $12.78); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 9.90  # Maximum acceptable all-in order total for buyer (confidential)
+    seller_min_price = 8.70  # Minimum acceptable all-in order total for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -114,7 +114,7 @@ def main(model_name=None):
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "estimated_delivery_time": "25-35 minutes",
             "restaurant_price_range": "$$",
             "restaurant_address": "318 Gray St, Houston, TX 77002, USA",
@@ -147,7 +147,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Office worker ordering dinner after a long day. Likes Japanese comfort food, prefers crispy chicken snacks with bold flavor, and cares about the final checkout total including delivery-related fees for a short local delivery."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm ordering Karaage Chicken from Izakaya for dinner. The restaurant is about 3.2 miles away, so I care about the final checkout total, not just the menu price, and the quoted price should include delivery and service fees while still staying reasonable."
@@ -176,7 +176,7 @@ def main(model_name=None):
             "delivery_fee": 2.49,
             "service_fee": 1.29,
             "quoted_total_price": 12.78,
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "product_category": "Food Delivery › Japanese › Small Plates",
             "average_rating": 4.66,
             "total_reviews": 1041,

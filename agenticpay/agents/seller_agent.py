@@ -19,7 +19,7 @@ class SellerAgent(BaseAgent):
         self,
         model: Union[BaseLLM, BaseVLM],
         name: str = "Seller",
-        role_description: str = "You are a seller trying to maximize profit while being reasonable. You are professional, friendly, and want to close a deal that benefits both parties.",
+        role_description: str = "You are a seller looking to make a good deal.",
         seller_min_price: Optional[float] = None,
         system_prompt_suffix: Optional[str] = None,
     ):

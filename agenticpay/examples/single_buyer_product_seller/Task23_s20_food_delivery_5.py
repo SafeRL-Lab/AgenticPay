@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 20: Sprite all-in order total includes menu price plus delivery/service fees.
-    buyer_max_price = 5.60  # Maximum acceptable all-in order total for buyer (confidential)
-    seller_min_price = 4.95  # Minimum acceptable all-in order total for seller (confidential)
+    # Scenario 20: Sprite — public all-in reference (quoted_total_price $5.58); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 4.50  # Maximum acceptable all-in order total for buyer (confidential)
+    seller_min_price = 3.75  # Minimum acceptable all-in order total for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -114,7 +114,7 @@ def main(model_name=None):
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "estimated_delivery_time": "15-30 minutes",
             "restaurant_price_range": "$$",
             "restaurant_address": "1731 Westheimer Rd, Houston, TX 77098, USA",
@@ -147,7 +147,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Budget-conscious customer ordering a canned drink add-on with food delivery. Cares about transparent final checkout pricing and quick delivery."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm adding a Sprite from Dripped Birria to my order. Please negotiate using the all-in delivered total, including delivery and service fees."
@@ -176,7 +176,7 @@ def main(model_name=None):
             "delivery_fee": 1.99,
             "service_fee": 1.09,
             "quoted_total_price": 5.58,
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "product_category": "Food Delivery › Drinks › Soft Drinks",
             "average_rating": 4.31,
             "total_reviews": 557,

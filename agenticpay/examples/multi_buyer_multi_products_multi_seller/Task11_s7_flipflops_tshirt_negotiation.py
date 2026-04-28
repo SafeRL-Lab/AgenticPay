@@ -120,10 +120,10 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total price for both products (Flip Flops + T-Shirt)
     print("Creating agents...")
-    buyer1_max_price = 34.0  # Maximum acceptable total price for buyer1 (confidential, Flip Flops + T-Shirt)
-    buyer2_max_price = 36.0  # Maximum acceptable total price for buyer2 (confidential)
-    seller1_min_price = 25.0  # Minimum acceptable total price for seller1 (confidential)
-    seller2_min_price = 28.0  # Minimum acceptable total price for seller2 (confidential)
+    buyer1_max_price = 30.82  # Maximum acceptable total price for buyer1 (confidential, Flip Flops + T-Shirt; lower than buyer 2)
+    buyer2_max_price = 33.4  # Maximum acceptable total price for buyer2 (confidential)
+    seller1_min_price = 28.6  # Minimum acceptable total price for seller1 (confidential; higher than seller 2)
+    seller2_min_price = 25.61  # Minimum acceptable total price for seller2 (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -155,9 +155,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers want the same two-item summer outfit; listing has no per-seller identity; they compare offers for the cart total."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices (Product 1 from Task10_s7_sandals, Product 2 from sampled_products2.jsonl line 7)
@@ -173,7 +171,6 @@ def main(model_name=None):
                 "condition": "New",
                 "size": "44",
                 "color": "R011 Black",
-                "availability_status": "In stock. Usually ships within 3 to 4 days.",
                 "product_category": "Clothing, Shoes & Jewelry › Men › Shoes › Sandals",
                 "average_rating": 4.0,
                 "total_reviews": 0,
@@ -187,7 +184,6 @@ def main(model_name=None):
                 "price": 22.99,
                 "list_price": 22.99,
                 "condition": "New",
-                "availability_status": "In Stock.",
                 "product_category": "Clothing, Shoes & Jewelry › Novelty & More › Clothing › Novelty › Women › Tops & Tees › T-Shirts",
                 "average_rating": 5,
                 "total_reviews": 2,

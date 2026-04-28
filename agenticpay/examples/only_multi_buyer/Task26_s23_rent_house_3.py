@@ -3,6 +3,7 @@
 One landlord negotiating with two prospective tenants for the same listing. Product info matches
 ``single_buyer_product_seller/Task26_s23_rent_house_3`` (Airbnb sample ``_id`` 462902 in
 ``airbnb_embeddings_sample10.jsonl``).
+Confidential reservation prices are set below the listing reference (``original_price``); deal zone remains between seller floor and buyer ceilings.
 Category: Real Estate
 """
 
@@ -124,9 +125,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 2050.0  # Max acceptable monthly rent for tenant 1 (confidential; aligned with single-buyer Task26)
-    buyer2_max_price = 2020.0  # Max acceptable monthly rent for tenant 2 (confidential)
-    seller_min_price = 1780.0  # Min acceptable monthly rent for landlord (confidential); < both buyer_max
+    buyer1_max_price = 1465.0  # Buyer 1 — lower confidential ceiling than Buyer 2 (stricter budget)
+    buyer2_max_price = 1575.0  # Buyer 2 — higher confidential ceiling than Buyer 1
+    seller_min_price = 1264.0  # Landlord reservation (sm/q below s21–s22); < both buyer_max < listing reference
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -154,10 +155,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = (
-        "Two remote workers basing in Rio for a few months who want a quiet private suite, reliable Wi‑Fi, and clear house rules. "
-        "Both care about bath privacy, what's shared in the home, and a predictable monthly all-in number."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement

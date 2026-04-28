@@ -1,9 +1,8 @@
-"""Task10 Scenario 6: Bookshelf & Wall Sconce - Sequential Two-Buyer Two-Seller Negotiation (image + text)
+"""Task10 Scenario 6: 4-Tier Bookshelf (two listings) - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two marketplace listings in one session: listing A is a 4-tier ladder bookshelf; listing B is a 2-light wall
-sconce. The visible product info has no per-seller identity; two sellers each have a different confidential floor.
-Two buyers each pick one seller per round (structured routing).
-Category: Home & Kitchen / Tools & Home Improvement
+Same Kcelarec ladder bookshelf from two marketplace listings. The visible product info has no per-seller identity;
+two sellers each have a different confidential floor. Two buyers each pick one seller per round (structured routing).
+Category: Home & Kitchen
 """
 
 import os
@@ -113,10 +112,10 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer1_max_price = 35.0
-    buyer2_max_price = 34.0
-    seller1_min_price = 28.0  # Listing A (bookshelf) — lower floor
-    seller2_min_price = 95.0  # Listing B (sconce) — higher floor
+    buyer1_max_price = 27.85  # Maximum acceptable for Buyer 1 — listing 1 (confidential; below list anchor)
+    buyer2_max_price = 30.14  # Maximum acceptable for Buyer 2 — listing 2 (confidential; below list anchor)
+    seller1_min_price = 25.82  # Minimum acceptable for Seller 1 (confidential; below list anchor)
+    seller2_min_price = 23.09  # Minimum acceptable for Seller 2 (confidential; below list anchor)
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -130,8 +129,8 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=36.94,
-        initial_seller2_price=113.99,
+        initial_seller1_price=36.94,  # Opening ask — same bookshelf, listing 1
+        initial_seller2_price=39.99,  # Opening ask — same bookshelf, listing 2
         buyer1_max_price=buyer1_max_price,
         buyer2_max_price=buyer2_max_price,
         seller1_min_price=seller1_min_price,
@@ -139,16 +138,18 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "note": "Multiple third-party offers exist for the listings shown in this session.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
     )
 
-    user_profile = "Home office and lighting shopper; wants sturdy storage or a bronze sconce with clear glass, good value."
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I need either a black 4-tier iron ladder bookshelf or a 2-pack oil-rubbed bronze wall sconce with clear glass, new."
+    user_requirement = (
+        "I want the listed product only: Kcelarec 4-tier iron ladder bookshelf organizer, black open bookcase, "
+        "new—matching the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)
@@ -166,7 +167,6 @@ def main(model_name=None):
             "material": "Iron; 44–88 lb load; easy install",
             "dimensions_inches": "23.62 x 13.78 x 57.87",
             "original_price": 36.94,
-            "availability_status": "In Stock",
             "average_rating": 5.0,
             "total_reviews": 1,
             "product_category": "Home & Kitchen › Furniture › Home Office Furniture › Bookcases",
@@ -483,7 +483,7 @@ def main(model_name=None):
         output_file = run_dir / "Task10_s6_bookshelf_sconce_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("=" * 80 + "\n")
-            f.write("Task10 Scenario 6: Bookshelf & Wall Sconce - Sequential Two-Buyer Two-Seller Negotiation Results\n")
+            f.write("Task10 Scenario 6: 4-Tier Bookshelf (two listings) - Sequential Two-Buyer Two-Seller Negotiation Results\n")
             f.write("Category: Home & Kitchen / Tools & Home Improvement\n")
             f.write("=" * 80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -548,7 +548,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task10 Scenario 6: Bookshelf & Wall Sconce - Sequential Two-Buyer Two-Seller Negotiation")
+    parser = argparse.ArgumentParser(description="Task10 Scenario 6: 4-Tier Bookshelf (two listings) - Sequential Two-Buyer Two-Seller Negotiation")
     parser.add_argument(
         "--model",
         type=str,

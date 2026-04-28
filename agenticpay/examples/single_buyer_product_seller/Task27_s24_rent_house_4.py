@@ -6,8 +6,7 @@ Tests agent's ability to negotiate monthly rent and lease terms for a rental lis
 
 Listing copy, host, review counts, and image URL are aligned with the fourth record in
 ``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 16289600).
-Monthly rent negotiation parameters are set for a plausible long-term lease framing, with
-``seller_min_price < buyer_max_price`` so the parties have an overlapping acceptable range.
+Confidential reservation prices are strictly below the listing ``original_price`` anchor: ``seller_min_price < buyer_max_price < original_price``.
 """
 
 import os
@@ -100,8 +99,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     # Scenario 24: Rent House — monthly rent negotiation (Bondi area entire apt; Airbnb sample 16289600).
-    buyer_max_price = 2620.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
-    seller_min_price = 2380.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
+    buyer_max_price = 2117.20  # Maximum acceptable monthly rent for tenant/buyer (confidential); below listing original_price
+    seller_min_price = 1768.80  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -119,7 +118,7 @@ def main(model_name=None):
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",
-            "availability_status": "Available now.",
+            # "availability_status": "Available now.",
             "listing_age": "Listing ID 16289600 (sample scrape 2019-03-07)"
         },
         price_tolerance=price_tolerance,
@@ -143,7 +142,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Beach-minded renter moving to Sydney's east who wants Bondi access without giving up transit links at Bondi Junction. Cares about sunlight, furnishing timeline, and predictable monthly rent."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm looking at the whole sunny apartment near Bondi Beach on Airbnb. I'd like to negotiate the monthly rent for a longer lease and confirm furnishing dates and inclusions."
@@ -166,7 +165,7 @@ def main(model_name=None):
             "color": "N/A",
             "size": "Entire apt · 2 bedrooms · 1 bath (between Bondi Junction and Bondi Beach)",
             "original_price": 2680.0,
-            "availability_status": "Available now.",
+            # "availability_status": "Available now.",
             "product_category": "Real Estate › Rentals › Apartments › Entire home (Airbnb listing 16289600)",
             "average_rating": 3.0,
             "total_reviews": 1,

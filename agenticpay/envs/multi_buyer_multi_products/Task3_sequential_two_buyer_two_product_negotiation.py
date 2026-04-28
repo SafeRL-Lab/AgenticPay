@@ -59,7 +59,8 @@ class Task3SequentialTwoBuyerTwoProductNegotiation(BaseEnv):
             seller_agent: Seller Agent
             max_rounds: Maximum number of negotiation rounds
             initial_seller_price: Initial total price offered by seller for both products
-            buyer1_max_price: Maximum acceptable total price for buyer1 (confidential, for both products)
+            buyer1_max_price: Maximum acceptable total price for buyer1 (confidential, for both products).
+                Must be **strictly less than** buyer2_max_price when both are set (Buyer1 has the tighter cap).
             buyer2_max_price: Maximum acceptable total price for buyer2 (confidential, for both products)
             seller_min_price: Minimum acceptable total price for seller (confidential, for both products)
             environment_info: Environment information (e.g., season, weather, etc.)
@@ -89,6 +90,15 @@ class Task3SequentialTwoBuyerTwoProductNegotiation(BaseEnv):
         self.initial_seller_price = initial_seller_price
         self.buyer1_max_price = buyer1_max_price
         self.buyer2_max_price = buyer2_max_price
+        if (
+            self.buyer1_max_price is not None
+            and self.buyer2_max_price is not None
+            and self.buyer1_max_price >= self.buyer2_max_price
+        ):
+            raise ValueError(
+                "buyer1_max_price must be strictly less than buyer2_max_price "
+                "(lower buyer index => lower maximum acceptable price)."
+            )
         self.seller_min_price = seller_min_price
         self.environment_info = environment_info or {}
         self.price_tolerance = price_tolerance

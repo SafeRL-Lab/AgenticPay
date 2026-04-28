@@ -107,8 +107,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 120.0  # Maximum acceptable total purchase price for buyer (confidential) - Headphones + Speaker bundle
-    seller_min_price = 95.0  # Minimum acceptable total selling price for seller (confidential) - Headphones $10 + Speaker $85
+    buyer_max_price = 93.84  # Maximum acceptable total purchase price for buyer (confidential; below opening bundle reference)
+    seller_min_price = 77.79  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -125,13 +125,12 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock.",
         },
         price_tolerance=price_tolerance,
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Parent looking for affordable kids headphones for school and travel, plus a portable Bluetooth speaker for outdoor activities. Values volume control for child safety, durability, good battery life, and good value."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices (Product 1 from Task7 example, Product 2 from sampled_products2.jsonl 4th)
@@ -142,7 +141,6 @@ def main(model_name=None):
                 "price": 14.99,
                 "condition": "New",
                 "brand": "Brand: NVRADCHUA",
-                "availability_status": "In Stock.",
                 "product_category": "Electronics › Headphones › Over-Ear Headphones",
                 "average_rating": 4.0,
                 "total_reviews": 2,
@@ -156,7 +154,6 @@ def main(model_name=None):
                 "price": 108.49,
                 "condition": "Renewed",
                 "brand": "Visit the Amazon Renewed Store",
-                "availability_status": "Only 1 left in stock - order soon.",
                 "product_category": "Electronics › Portable Audio & Video › Portable Bluetooth Speakers",
                 "average_rating": 4.5,
                 "total_reviews": 962,

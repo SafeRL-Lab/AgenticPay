@@ -117,12 +117,12 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # All-in bundle totals (only_multi_products Task24; CSV menu subtotals $18.40 + $21.20)
+    # Menu-derived reference totals are in product_info; buyer/seller reservation prices are confidential below.
     print("Creating agents...")
-    buyer1_max_price = 47.50  # Maximum acceptable all-in bundle total for buyer1 (confidential)
-    buyer2_max_price = 49.50  # Maximum acceptable all-in bundle total for buyer2 (confidential)
-    seller1_min_price = 42.20  # Minimum acceptable all-in bundle total for seller1 (confidential)
-    seller2_min_price = 41.50  # Minimum acceptable all-in bundle total for seller2 (confidential)
+    buyer1_max_price = 29.78  # Maximum acceptable all-in bundle total for buyer1 (confidential)
+    buyer2_max_price = 32.27  # Maximum acceptable all-in bundle total for buyer2 (confidential)
+    seller1_min_price = 27.64  # Minimum acceptable all-in bundle total for seller1 (confidential)
+    seller2_min_price = 24.75  # Minimum acceptable all-in bundle total for seller2 (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -164,11 +164,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers want fair value on a two-item takeout cart; both compare third-party offers for the "
-        "same menu items (listing has no per-seller identity). Buyer1 is firmer on the all-in total; "
-        "Buyer2 will pay more for the shrimp entree."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     product_info = {

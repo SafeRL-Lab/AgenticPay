@@ -129,9 +129,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 110.0  # Maximum acceptable price for buyer1 (confidential)
-    buyer2_max_price = 108.0  # Maximum acceptable price for buyer2 (confidential, different from buyer1)
-    seller_min_price = 95.0  # Minimum acceptable price for seller (confidential)
+    buyer1_max_price = 85.50  # Maximum acceptable price for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 90.03  # Maximum acceptable price for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 71.81  # Minimum acceptable price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -152,14 +152,13 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "3 days",
-            "availability_status": "In Stock.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Looking for wall sconces with clear glass shade for bathroom, living room, or dining room. Prefers vanity light, oil rubbed bronze finish, metal construction."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -180,7 +179,6 @@ def main(model_name=None):
             "condition": "New",
             "brand": "Visit the Fanyate Store",
             "original_price": 113.99,
-            "availability_status": "In Stock.",
             "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Wall Lights › Wall Lamps & Sconces",
             "average_rating": 4.7,
             "total_reviews": 55,

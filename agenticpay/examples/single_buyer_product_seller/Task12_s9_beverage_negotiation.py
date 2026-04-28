@@ -104,9 +104,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario: Belvoir Elderflower Rose beverage (24 per case) - buyer_max_price: $35, seller_min_price: $24
-    buyer_max_price = 30.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 24.0  # Minimum acceptable selling price for seller (confidential)
+    # Belvoir Elderflower Rose (24/case) — public list reference (original_price $32.00); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 25.00  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 20.20  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -124,7 +124,6 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock"
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -147,7 +146,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Health-conscious consumer who prefers organic beverages. Likes elderflower and floral flavors. Often buys in bulk for gatherings and prefers products with good reviews."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm looking for Belvoir Sparkling Elderflower Rose organic beverage. Interested in a case (24 bottles) for a party. Prefer organic and natural ingredients."
@@ -169,7 +168,6 @@ def main(model_name=None):
             "brand": "Belvoir",
             "size": "8.4 Fl Oz, 24 per case",
             "original_price": 32.0,
-            "availability_status": "In Stock",
             "product_category": "Grocery › Beverages",
             "average_rating": 4.9,
             "total_reviews": 13,

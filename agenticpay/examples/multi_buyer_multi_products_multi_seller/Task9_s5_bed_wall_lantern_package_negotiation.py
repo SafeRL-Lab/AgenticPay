@@ -119,10 +119,10 @@ def main(model_name=None):
     
     # Same two-SKU bundle from two offers: each seller has a different confidential floor (total USD)
     print("Creating agents...")
-    buyer1_max_price = 270.0  # Buyer 1 max WTP (confidential)
-    buyer2_max_price = 262.0  # Buyer 2 max WTP (confidential; lower)
-    seller1_min_price = 238.0  # Seller 1 floor (confidential; higher cost)
-    seller2_min_price = 228.0  # Seller 2 floor (confidential; lower)
+    buyer1_max_price = 216  # Buyer 1 max WTP (confidential; lower than buyer 2)
+    buyer2_max_price = 234  # Buyer 2 max WTP (confidential)
+    seller1_min_price = 201  # Seller 1 floor (confidential; higher than seller 2)
+    seller2_min_price = 180  # Seller 2 floor (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -152,10 +152,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers compare third-party offers for the same two-SKU cart (outdoor lantern + queen bed); "
-        "listings have no per-seller identity."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I want these two, new: Sea Gull Wynfield one-light wall lantern 85200-12 and Hillsdale Cole queen bed 1601BQR."
@@ -170,8 +167,6 @@ def main(model_name=None):
                 "list_price": 61.17,
                 "condition": "New",
                 "model": "85200-12",
-                "availability_quantity": 7,
-                "availability_status": "Only 7 left in stock - order soon.",
                 "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Outdoor Lighting › Porch & Patio Lights › Wall Lights",
                 "average_rating": 4.4,
                 "total_reviews": 11,
@@ -186,8 +181,6 @@ def main(model_name=None):
                 "list_price": 226.20,
                 "condition": "New",
                 "model": "1601BQR",
-                "availability_quantity": 2,
-                "availability_status": "Only 2 left in stock - order soon.",
                 "product_category": "Home & Kitchen › Furniture › Bedroom Furniture › Beds, Frames & Bases › Beds",
                 "average_rating": 4.5,
                 "total_reviews": 14,

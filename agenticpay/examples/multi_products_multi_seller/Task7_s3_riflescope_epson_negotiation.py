@@ -87,9 +87,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    buyer_max_price = 500.0
-    seller1_min_price = 460.0
-    seller2_min_price = 450.0
+    buyer_max_price = 423.0
+    seller1_min_price = 376.0
+    seller2_min_price = 335.0
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -116,7 +116,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = "Outdoor enthusiast and small business owner. Wants quality optics plus a reliable receipt printer; compares bundle totals."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I want the Crimson Trace Brushline Pro scope and the Epson TM-T20 printer—what's your best combined price?"
@@ -135,8 +135,6 @@ def main(model_name=None):
                 "style": "2.5-10x42mm Plex",
                 "price": 218.79,
                 "original_price": 218.79,
-                "availability_quantity": 14,
-                "availability_status": "Only 14 left in stock (more on the way).",
                 "product_category": "Sports & Outdoors › Hunting & Fishing › Shooting › Optics › Gun Scopes › Rifle Scopes",
                 "average_rating": 4.3,
                 "total_reviews": 28,
@@ -151,7 +149,6 @@ def main(model_name=None):
                 "model": "C31CB10023",
                 "price": 320.0,
                 "original_price": 320.0,
-                "availability_status": "In stock. Usually ships within 3 to 4 days.",
                 "product_category": "Office Products › Office Electronics",
                 "average_rating": 4.1,
                 "total_reviews": 4,

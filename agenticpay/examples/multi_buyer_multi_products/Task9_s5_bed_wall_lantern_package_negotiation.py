@@ -112,11 +112,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
-    # Bundle list ~$287.37; buyers' caps and seller floor are for the pair total (same SKU set for all parties).
+    # Public reference: sum of SKU original prices ~$287.37. Negotiation bounds below that reference (confidential).
     print("Creating agents...")
-    buyer1_max_price = 250.0
-    buyer2_max_price = 260.0
-    seller_min_price = 225.0
+    buyer1_max_price = 215.53  # Maximum acceptable total for buyer1 (confidential)
+    buyer2_max_price = 233.85  # Maximum acceptable total for buyer2 (confidential)
+    seller_min_price = 187.88  # Minimum acceptable total for seller (confidential)
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -136,7 +136,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "6 days",
-            "availability_status": "In Stock.",
             "bundle_context": (
                 "Several sellers list this exact two-item bundle; offers are for the bundle total. "
                 "Each seller has a different internal floor for the pair; buyers only see product facts, not seller identities."
@@ -146,9 +145,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Home buyer bundling outdoor lighting with a queen bed frame. Negotiates one delivered total."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     product1_image_url = "https://m.media-amazon.com/images/I/51c3GuGWaSL.jpg"
@@ -163,8 +160,6 @@ def main(model_name=None):
                 "brand": "Sea Gull Lighting",
                 "model": "85200-12",
                 "original_price": 61.17,
-                "availability_quantity": 7,
-                "availability_status": "Only 7 left in stock - order soon.",
                 "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Outdoor Lighting › Porch & Patio Lights › Wall Lights",
                 "average_rating": 4.4,
                 "total_reviews": 11,
@@ -179,8 +174,6 @@ def main(model_name=None):
                 "brand": "Hillsdale Furniture",
                 "model": "1601BQR",
                 "original_price": 226.20,
-                "availability_quantity": 2,
-                "availability_status": "Only 2 left in stock - order soon.",
                 "product_category": "Home & Kitchen › Furniture › Bedroom Furniture › Beds, Frames & Bases › Beds",
                 "average_rating": 4.5,
                 "total_reviews": 14,

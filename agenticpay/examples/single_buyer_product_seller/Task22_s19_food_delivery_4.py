@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 19: Dripped Nachos all-in order total includes menu price plus delivery/service fees.
-    buyer_max_price = 12.80  # Maximum acceptable all-in order total for buyer (confidential)
-    seller_min_price = 11.50  # Minimum acceptable all-in order total for seller (confidential)
+    # Scenario 19: Dripped Nachos — public all-in reference (quoted_total_price $13.14); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 10.20  # Maximum acceptable all-in order total for buyer (confidential)
+    seller_min_price = 8.80  # Minimum acceptable all-in order total for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -114,7 +114,7 @@ def main(model_name=None):
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "estimated_delivery_time": "25-40 minutes",
             "restaurant_price_range": "$$",
             "restaurant_address": "1731 Westheimer Rd, Houston, TX 77098, USA",
@@ -147,7 +147,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Food enthusiast ordering a shareable snack for game night. Likes loaded Mexican-style sides and pays close attention to the final delivery checkout amount."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I want Dripped Nachos from Dripped Birria. Please negotiate the all-in total that includes delivery and service fees, because I care about the final amount I pay."
@@ -176,7 +176,7 @@ def main(model_name=None):
             "delivery_fee": 2.49,
             "service_fee": 1.15,
             "quoted_total_price": 13.14,
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "product_category": "Food Delivery › Mexican › Nachos",
             "average_rating": 4.31,
             "total_reviews": 557,

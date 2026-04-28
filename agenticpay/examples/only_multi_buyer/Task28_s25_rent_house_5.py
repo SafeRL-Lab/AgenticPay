@@ -1,7 +1,7 @@
 """Task28 Scenario 25: Rent House (Bungan Beach luxury villa) — Sequential Two-Buyer Negotiation
 
 One landlord negotiating with two high-budget prospective tenants for an entire beachfront-style villa. Data aligned with row 4 in
-``airbnb_embeddings_sample10.jsonl`` (``_id`` 22123688). Monthly rent figures are framed for long-term lease (distinct from high nightly short-stay rate).
+``airbnb_embeddings_sample10.jsonl`` (``_id`` 22123688). Monthly rent figures are framed for long-term lease (distinct from high nightly short-stay rate); private floors/ceilings sit below the listing reference.
 Category: Real Estate
 """
 
@@ -123,9 +123,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 11800.0  # Max acceptable monthly rent for tenant 1 (confidential)
-    buyer2_max_price = 11550.0  # Max acceptable monthly rent for tenant 2 (confidential)
-    seller_min_price = 11000.0  # Min acceptable monthly rent for landlord (confidential); < both buyer_max
+    buyer1_max_price = 9310.0  # Buyer 1 — lower confidential ceiling than Buyer 2 (stricter budget)
+    buyer2_max_price = 10044.0  # Buyer 2 — higher confidential ceiling than Buyer 1
+    seller_min_price = 7688.0  # Landlord reservation (lowest sm/q in s21–s25 series); < both buyer_max < listing reference
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -153,7 +153,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Executive planning an extended Sydney-area stay with extended family; wants a high-end entire-home rental with beach access and concierge-style support, with room to negotiate monthly rent."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement

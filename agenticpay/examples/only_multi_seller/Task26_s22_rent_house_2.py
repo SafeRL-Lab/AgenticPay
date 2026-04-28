@@ -103,9 +103,10 @@ def main(model_name=None):
     
     # Same property from two offers: each seller has a different confidential floor monthly rent
     print("Creating agents...")
-    buyer_max_price = 1650.0  # Max acceptable monthly rent (confidential; aligned with single-buyer Task25)
-    seller1_min_price = 1500.0  # Seller 1 floor (confidential; lower)
-    seller2_min_price = 1530.0  # Seller 2 floor (confidential; higher than seller 1)
+    # Confidential band vs listing reference (1580): across scenarios s21→s25, seller floors (as % of quoted) decrease and buyer ceiling increases
+    buyer_max_price = 1213.0  # Max acceptable monthly rent (confidential — buyer cap steps up vs s21)
+    seller1_min_price = 999.0  # Seller 1 floor (confidential — lower than s21; higher than s23–s25)
+    seller2_min_price = 1073.0  # Seller 2 floor (confidential — lower than s21; higher than s23–s25)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -118,7 +119,7 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=1600.0,  # Opening ask — same unit, different channel (reference ask ~1580)
+        initial_seller1_price=1600.0,  # Opening ask — same unit, different channel
         initial_seller2_price=1630.0,  # Opening ask — same unit, different channel
         buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
         seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
@@ -167,7 +168,6 @@ def main(model_name=None):
             "color": "N/A",
             "size": "Private room · 1 bed · 1 bath (in apartment; ~2 min to Pl. Universitat per scrape)",
             "original_price": 1580.0,
-            "availability_quantity": 1,
             "availability_status": "Available starting next month.",
             "product_category": "Real Estate › Rentals › Apartments › Private room (Airbnb listing 23160633)",
             "average_rating": 4.2,
@@ -436,7 +436,6 @@ def main(model_name=None):
                     "color": "N/A",
                     "size": "Private room · 1 bed · 1 bath (in apartment; ~2 min to Pl. Universitat per scrape)",
                     "original_price": 1580.0,
-                    "availability_quantity": 1,
                     "availability_status": "Available starting next month.",
                     "product_category": "Real Estate › Rentals › Apartments › Private room (Airbnb listing 23160633)",
                     "average_rating": 4.2,

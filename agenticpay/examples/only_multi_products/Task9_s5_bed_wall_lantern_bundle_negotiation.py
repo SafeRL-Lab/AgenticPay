@@ -107,8 +107,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 280.0  # Maximum acceptable total purchase price for buyer (confidential) - Wall Lantern + Queen Bed
-    seller_min_price = 225.0  # Minimum acceptable total selling price for seller (confidential) - $45 + $180
+    buyer_max_price = 224.15  # Maximum acceptable total purchase price for buyer (confidential; below opening bundle reference)
+    seller_min_price = 186.79  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -130,7 +130,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Homeowner looking to furnish bedroom and enhance outdoor lighting. Values quality fixtures, UL listing for wet locations for outdoor use. For bedroom, prefers metal frame with assembly option, queen size."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices
@@ -145,8 +145,6 @@ def main(model_name=None):
                 "condition": "New",
                 "brand": "Visit the Sea Gull Lighting Store",
                 "model": "85200-12",
-                "availability_quantity": 7,
-                "availability_status": "Only 7 left in stock - order soon.",
                 "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Outdoor Lighting › Porch & Patio Lights › Wall Lights",
                 "average_rating": 4.4,
                 "total_reviews": 11,
@@ -161,8 +159,6 @@ def main(model_name=None):
                 "condition": "New",
                 "brand": "Visit the Hillsdale Store",
                 "model": "1601BQR",
-                "availability_quantity": 2,
-                "availability_status": "Only 2 left in stock - order soon.",
                 "product_category": "Home & Kitchen › Furniture › Bedroom Furniture › Beds, Frames & Bases › Beds",
                 "average_rating": 4.5,
                 "total_reviews": 14,

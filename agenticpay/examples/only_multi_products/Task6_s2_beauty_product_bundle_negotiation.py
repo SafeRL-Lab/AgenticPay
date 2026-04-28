@@ -107,9 +107,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    # NOU fragrance $21.95 + BFWood hair brush $6.48 = $28.43 total
-    buyer_max_price = 27.0  # Maximum acceptable total purchase price for buyer (confidential)
-    seller_min_price = 20.0  # Minimum acceptable total selling price for seller (confidential)
+    buyer_max_price = 21.89  # Maximum acceptable total purchase price for buyer (confidential; below opening bundle reference)
+    seller_min_price = 18.20  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -126,13 +125,12 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
         },
         price_tolerance=price_tolerance,
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Style-conscious buyer interested in men's grooming. Values natural ingredients in fragrances and quality hair care tools. Prefers products with good reviews from Beauty & Personal Care category."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products from sampled_products2.jsonl (lines 1-2: Oriental fragrance + BFWood hair brush)

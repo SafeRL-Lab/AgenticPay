@@ -1,6 +1,6 @@
-"""Task8 Scenario 4: Headphones & Bluetooth Speaker - Sequential Two-Buyer Two-Seller Negotiation (image + text)
+"""Task8 Scenario 4: Kids Headphones (two listings) - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two different SKUs from parallel marketplace offers: product text has no per-offer seller identity; each
+Same kids headphones SKU from two marketplace listings; product text has no per-offer seller identity; each
 seller has a different confidential floor. Two buyers each pick one seller per round (structured routing).
 Category: Electronics
 """
@@ -115,12 +115,12 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Two different listings: each seller has a different confidential floor
+    # Same headphones SKU from two seller listings; each has a different confidential floor
     print("Creating agents...")
-    buyer1_max_price = 14.0
-    buyer2_max_price = 110.0
-    seller1_min_price = 10.0
-    seller2_min_price = 80.0
+    buyer1_max_price = 11.30  # Maximum acceptable for Buyer 1 — listing 1 (confidential; below list anchor)
+    buyer2_max_price = 12.23  # Maximum acceptable for Buyer 2 — listing 2 (confidential; below list anchor)
+    seller1_min_price = 10.48  # Minimum acceptable for Seller 1 (confidential; below list anchor)
+    seller2_min_price = 9.37  # Minimum acceptable for Seller 2 (confidential; below list anchor)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -135,25 +135,27 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=14.99,  # Initial price offered by seller1 (Kids Headphones list price)
-        initial_seller2_price=108.49,  # Initial price offered by seller2 (Sony Speaker pricing)
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        initial_seller1_price=14.99,  # Opening ask — same headphones, listing 1 (list price)
+        initial_seller2_price=15.99,  # Opening ask — same headphones, listing 2
+        buyer1_max_price=buyer1_max_price,  # Buyer1 max willingness (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 max willingness (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "note": "Side-by-side offers for two SKUs; listing text has no per-offer seller identity.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
     )
     
-    user_profile = "A parent wants kid-safe headphones; the other wants a portable bass-heavy Bluetooth speaker for outdoors."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want either kids over-ear wireless headphones (volume limit, 3.5mm jack) or a renewed Sony SRS-XB33 extra-bass speaker — ship-ready."
+    user_requirement = (
+        "I want the listed product only: NVRADCHUA kids wireless over-ear headphones with Bluetooth, "
+        "3.5mm jack, volume control, foldable—matching the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -166,7 +168,6 @@ def main(model_name=None):
         "condition": "New",
         "brand": "NVRADCHUA",
         "original_price": 14.99,
-        "availability_status": "In Stock.",
         "product_category": "Electronics › Headphones › Over-Ear Headphones",
         "average_rating": 4.0,
         "total_reviews": 2,
@@ -530,7 +531,7 @@ def main(model_name=None):
         output_file = run_dir / "Task8_s4_headphones_speaker_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task8 Scenario 4: Headphones & Bluetooth Speaker - Sequential Two-Buyer Two-Seller Negotiation Results (image + text)\n")
+            f.write("Task8 Scenario 4: Kids Headphones (two listings) - Sequential Two-Buyer Two-Seller Negotiation Results (image + text)\n")
             f.write("Category: Electronics\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -595,7 +596,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task8 Scenario 4: Headphones & Bluetooth Speaker - Sequential Two-Buyer Two-Seller Negotiation")
+    parser = argparse.ArgumentParser(description="Task8 Scenario 4: Kids Headphones (two listings) - Sequential Two-Buyer Two-Seller Negotiation")
     parser.add_argument(
         "--model",
         type=str,

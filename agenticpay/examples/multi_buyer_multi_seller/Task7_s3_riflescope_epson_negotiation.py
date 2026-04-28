@@ -1,8 +1,8 @@
-"""Task7 Scenario 3: Riflescope & Epson Printer - Sequential Two-Buyer Two-Seller Negotiation (image + text)
+"""Task7 Scenario 3: Riflescope (two listings) - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two different SKUs from parallel marketplace offers: product text has no per-offer seller identity; each
+Same riflescope SKU from two marketplace listings; product text has no per-offer seller identity; each
 seller has a different confidential floor. Two buyers each pick one seller per round (structured routing).
-Category: Sports & Outdoors / Office Electronics
+Category: Sports & Outdoors / Optics
 """
 
 import os
@@ -115,12 +115,12 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Two different listings: each seller has a different confidential floor
+    # Same riflescope SKU from two seller listings; each has a different confidential floor
     print("Creating agents...")
-    buyer1_max_price = 210.0
-    buyer2_max_price = 215.0
-    seller1_min_price = 180.0
-    seller2_min_price = 250.0
+    buyer1_max_price = 165.0  # Maximum acceptable for Buyer 1 — listing 1 (confidential; below list anchor)
+    buyer2_max_price = 179.0  # Maximum acceptable for Buyer 2 — listing 2 (confidential; below list anchor)
+    seller1_min_price = 153.0  # Minimum acceptable for Seller 1 (confidential; below list anchor)
+    seller2_min_price = 137.0  # Minimum acceptable for Seller 2 (confidential; below list anchor)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -135,25 +135,27 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=218.79,  # Initial price for Crimson Trace Riflescope (list price)
-        initial_seller2_price=320.0,  # Initial price for Epson thermal receipt printer (list price)
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        initial_seller1_price=218.79,  # Opening ask — same riflescope, listing 1 (list price)
+        initial_seller2_price=229.99,  # Opening ask — same riflescope, listing 2
+        buyer1_max_price=buyer1_max_price,  # Buyer1 max willingness (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 max willingness (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "note": "Side-by-side offers for two SKUs; listing text has no per-offer seller identity.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
     )
     
-    user_profile = "One shopper wants a hunting scope; the other needs a small-business receipt printer—both want fair pricing."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "Find me either a 2.5–10x42 Brushline Pro riflescope or an Epson TM-T20 Ethernet receipt printer (no cable) — new."
+    user_requirement = (
+        "I want the listed product only: Crimson Trace Brushline Pro riflescope 2.5–10x42mm CT Plex reticle, "
+        "new for hunting/shooting/outdoor—matching the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -161,7 +163,7 @@ def main(model_name=None):
     print("Starting new sequential negotiation with two buyers and two sellers...")
     print("="*60)
     
-    # Product info: Seller1 = Crimson Trace Riflescope, Seller2 = Epson thermal receipt printer (with images for VLM; image + text)
+    # Product info: same Crimson Trace riflescope (VLM image + text); two marketplace listings
     riflescope_image_url = "https://m.media-amazon.com/images/I/31j7DdlfrOL.jpg"
     observation, info = env.reset(
         user_requirement=user_requirement,
@@ -531,7 +533,7 @@ def main(model_name=None):
         output_file = run_dir / "Task7_s3_riflescope_epson_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task7 Scenario 3: Riflescope & Epson - Sequential Two-Buyer Two-Seller Negotiation Results (image + text)\n")
+            f.write("Task7 Scenario 3: Riflescope (two listings) - Sequential Two-Buyer Two-Seller Negotiation Results (image + text)\n")
             f.write("Category: Sports & Outdoors / Office Electronics\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -596,7 +598,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task7 Scenario 3: Riflescope & Epson - Sequential Two-Buyer Two-Seller Negotiation (image + text)")
+    parser = argparse.ArgumentParser(description="Task7 Scenario 3: Riflescope (two listings) - Sequential Two-Buyer Two-Seller Negotiation (image + text)")
     parser.add_argument(
         "--model",
         type=str,

@@ -87,8 +87,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 40.0  # Maximum acceptable total purchase price for buyer (confidential) - Jeans $22 + T-Shirt $23
-    seller_min_price = 30.0  # Minimum acceptable total selling price for seller (confidential) - Jeans $16 + T-Shirt $14
+    buyer_max_price = 36.78  # Maximum acceptable total purchase price for buyer (confidential; below opening bundle reference)
+    seller_min_price = 31.27  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -105,13 +105,12 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
         },
         price_tolerance=price_tolerance,
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Fashion-conscious customer looking for comfortable daily wear and casual Marvel fan apparel. Cares about fit, comfort, and value. Prefers stretchy denim and officially licensed merchandise."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices
@@ -126,7 +125,6 @@ def main(model_name=None):
                 "brand": "myhehthw",
                 "material": "75% Cotton, 20% Polyester, 5% Spandex",
                 "sizes": ["Small", "Medium", "Large", "X-Large", "XX-Large"],
-                "availability_status": "In Stock",
                 "product_category": "Clothing, Shoes & Jewelry › Women › Clothing › Jeans",
                 "asin": "B09PBNZLNT",
                 "full_description": "Made of soft and stretchy denim cotton fabric, breathable to wear. Comfortable and versatile for casual, school, office, shopping. Button closure. Machine washable.",
@@ -137,7 +135,6 @@ def main(model_name=None):
                 "price": 22.99,
                 "condition": "New",
                 "brand": "Brand: Marvel",
-                "availability_status": "In Stock.",
                 "product_category": "Clothing, Shoes & Jewelry › Novelty & More › Clothing › Novelty › Women › Tops & Tees › T-Shirts",
                 "average_rating": 5,
                 "total_reviews": 2,

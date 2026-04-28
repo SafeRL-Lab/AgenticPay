@@ -86,9 +86,9 @@ def main(model_name=None):
     
     # Same product (SKU) from two listings: each seller has a different confidential floor (minimum) price
     print("Creating agents...")
-    buyer_max_price = 10.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller1_min_price = 7.60  # Seller 1 floor (confidential; lower cost / willing to go lower)
-    seller2_min_price = 8.40  # Seller 2 floor (confidential; higher than seller 1)
+    buyer_max_price = 8.52  # Maximum acceptable purchase price for buyer (confidential; below listed reference)
+    seller1_min_price = 7.67  # Seller 1 floor (confidential; higher reservation than seller 2)
+    seller2_min_price = 6.84  # Seller 2 floor (confidential; lower cost / willing to go lower)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -103,9 +103,9 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=10.99,  # Opening ask — same item, different offer
         initial_seller2_price=11.75,  # Opening ask — same item, different offer
-        buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer_max_price=buyer_max_price,  # Buyer max willing to pay (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable price (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable price (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
@@ -116,7 +116,7 @@ def main(model_name=None):
     )
     
     # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
-    user_profile = "Wants a casual JSPOYOU tie-dye / graphic tee, size M; open to comparing offers for the same product."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # One-product user query: concise, natural English (simulated search / assistant request)
@@ -136,7 +136,6 @@ def main(model_name=None):
             "condition": "New",
             "brand": "JSPOYOU",
             "original_price": 10.99,
-            "availability_status": "In Stock",
             "product_category": "Clothing, Shoes & Jewelry › Men › Clothing › Shirts › Henleys",
             "full_description": "Gender: Men Material: Polyester, Fleece, Faux Leather Pattern Type: Printed Style: Casual Fashion, Athletics Fit Type: Standard Closure Type: Elastic. Stretch 60% cotton 40%, made of superior quality modal fiber, ultra light-weight, soft & smooth. Short/long sleeve button down tshirts, big and tall tees, graphic print tops. 2021 Stylish and modern unique design. Great for beach, work, Halloween, Christmas, loungewear, casual look, daily, dating, school, gym workout, running, training, jogging.",
             "small_description": "Please check the size chart before purchase. Stretch 60% cotton 40%. Short/long sleeve button down tshirts, graphic print tops. Sizes: Medium, Large, X-Large, XX-Large, 3X-Large. Colors: A-blue, A-green, B-black, B-gray, C-gray.",
@@ -400,7 +399,6 @@ def main(model_name=None):
                     "condition": "New",
                     "brand": "JSPOYOU",
                     "original_price": 10.99,
-                    "availability_status": "In Stock",
                     "product_category": "Clothing, Shoes & Jewelry › Men › Clothing › Shirts › Henleys",
                     "asin": "B09NNMV9LN",
                     "image_url": product_image_url,

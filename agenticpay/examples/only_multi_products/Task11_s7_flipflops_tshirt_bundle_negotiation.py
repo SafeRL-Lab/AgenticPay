@@ -87,8 +87,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 40.0  # Maximum acceptable total purchase price for buyer (confidential) - Flip Flops $17 + T-Shirt $23
-    seller_min_price = 27.0  # Minimum acceptable total selling price for seller (confidential) - Flip Flops $12 + T-Shirt $15
+    buyer_max_price = 30.74  # Maximum acceptable total purchase price for buyer (confidential; below opening bundle reference)
+    seller_min_price = 25.41  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -110,7 +110,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Man looking for comfortable summer footwear and casual Marvel fan apparel. Values arch support for flip flops, and prefers officially licensed merchandise. Uses for beach, pool, and casual wear."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices
@@ -125,7 +125,6 @@ def main(model_name=None):
                 "brand": "Brand: N/C",
                 "size": "44",
                 "color": "R011 Black",
-                "availability_status": "In stock. Usually ships within 3 to 4 days.",
                 "product_category": "Clothing, Shoes & Jewelry › Men › Shoes › Sandals",
                 "average_rating": 4.0,
                 "total_reviews": 0,
@@ -139,7 +138,6 @@ def main(model_name=None):
                 "price": 22.99,
                 "condition": "New",
                 "brand": "Brand: Marvel",
-                "availability_status": "In Stock.",
                 "product_category": "Clothing, Shoes & Jewelry › Novelty & More › Clothing › Novelty › Women › Tops & Tees › T-Shirts",
                 "average_rating": 5,
                 "total_reviews": 2,

@@ -108,8 +108,8 @@ def main(model_name=None):
     # buyer_max_price and seller_min_price represent total expected cost for both products
     # Scenario: Beauty bundle - Maybelline Eyeshadow + NOU Oliban Eau de Toilette
     print("Creating agents...")
-    buyer_max_price = 24.0  # Maximum acceptable total purchase price for buyer (confidential, for both products)
-    seller_min_price = 20.0  # Minimum acceptable total selling price for seller (confidential, for both products)
+    buyer_max_price = 23.35  # Maximum acceptable total purchase price for buyer (confidential; below list/original reference total)
+    seller_min_price = 19.45  # Minimum acceptable total selling price for seller (confidential; for both products)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -127,13 +127,12 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "3 days",
-            "availability_status": "In Stock.",
         },
         price_tolerance=price_tolerance,
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Beauty-conscious user who researches product reviews before buying. Cares about brand quality and value for money. Prefers to buy from sellers with good ratings and reasonable prices."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Product images for VLM (image + text): URL or local path

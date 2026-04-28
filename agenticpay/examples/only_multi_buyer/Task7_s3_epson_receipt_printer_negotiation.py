@@ -124,11 +124,10 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # Epson TM-T20 list price $320 - two buyers with different budgets
     print("Creating agents...")
-    buyer1_max_price = 280.0  # Maximum acceptable price for buyer1 (confidential) - budget-conscious
-    buyer2_max_price = 300.0  # Maximum acceptable price for buyer2 (confidential, slightly higher budget)
-    seller_min_price = 250.0  # Minimum acceptable selling price for seller (confidential) - covers costs + margin
+    buyer1_max_price = 240.0  # Maximum acceptable price for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 253.2  # Maximum acceptable price for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 202.0  # Minimum acceptable selling price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -148,14 +147,13 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In stock. Usually ships within 3 to 4 days.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Small business owners looking for receipt printer for POS. Value reliability and Epson brand. Prefer Ethernet interface."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -180,7 +178,6 @@ def main(model_name=None):
             "model": "C31CB10023",
             "style": "Ethernet Interface, Dark Grey",
             "original_price": 320.0,
-            "availability_status": "In stock. Usually ships within 3 to 4 days.",
             "product_category": "Office Products › Office Electronics",
             "average_rating": 4.1,
             "total_reviews": 4,

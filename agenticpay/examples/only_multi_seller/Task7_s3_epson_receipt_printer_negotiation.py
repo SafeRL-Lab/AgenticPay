@@ -150,9 +150,9 @@ def main(model_name=None):
     
     # Same product (SKU) from two listings: each seller has a different confidential floor price
     print("Creating agents...")
-    buyer_max_price = 300.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller1_min_price = 260.0  # Seller 1 floor (confidential; lower cost / willing to go lower)
-    seller2_min_price = 270.0  # Seller 2 floor (confidential; higher than seller 1)
+    buyer_max_price = 248.0  # Maximum acceptable purchase price for buyer (confidential; below listed reference)
+    seller1_min_price = 223.5  # Seller 1 floor (confidential; higher reservation than seller 2)
+    seller2_min_price = 199.0  # Seller 2 floor (confidential; lower cost / willing to go lower)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -167,9 +167,9 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=320.0,  # Opening ask — same item, different listing
         initial_seller2_price=315.0,  # Opening ask — same item, different listing
-        buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer_max_price=buyer_max_price,  # Buyer max willing to pay (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable price (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable price (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
@@ -180,7 +180,7 @@ def main(model_name=None):
     )
     
     # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
-    user_profile = "Wants a fair price on an Epson TM-T20 for POS; open to comparing offers for the same product."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -212,7 +212,6 @@ def main(model_name=None):
             "model": "C31CB10023",
             "style": "Ethernet Interface, Dark Grey",
             "original_price": 320.0,
-            "availability_status": "In stock. Usually ships within 3 to 4 days.",
             "product_category": "Office Products › Office Electronics",
             "average_rating": 4.1,
             "total_reviews": 4,
@@ -453,7 +452,6 @@ def main(model_name=None):
                     "model": "C31CB10023",
                     "style": "Ethernet Interface, Dark Grey",
                     "original_price": 320.0,
-                    "availability_status": "In stock. Usually ships within 3 to 4 days.",
                     "product_category": "Office Products › Office Electronics",
                     "average_rating": 4.1,
                     "total_reviews": 4,

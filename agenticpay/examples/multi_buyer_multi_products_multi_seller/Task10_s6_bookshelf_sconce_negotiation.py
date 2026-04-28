@@ -120,12 +120,12 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total price for both products (Bookshelf + Wall Sconce)
-    # Bookshelf $36.94 + Wall Sconce $113.99 = $150.93 total
+    # Reference list total is derived from product_info; reservation prices are confidential (typically below reference).
     print("Creating agents...")
-    buyer1_max_price = 135.0  # Maximum acceptable total price for buyer1 (confidential)
-    buyer2_max_price = 140.0  # Maximum acceptable total price for buyer2 (confidential)
-    seller1_min_price = 123.0  # Minimum acceptable total price for seller1 (confidential)
-    seller2_min_price = 125.0  # Minimum acceptable total price for seller2 (confidential)
+    buyer1_max_price = 114  # Maximum acceptable total price for buyer1 (confidential; lower than buyer 2)
+    buyer2_max_price = 123  # Maximum acceptable total price for buyer2 (confidential)
+    seller1_min_price = 105  # Minimum acceptable total price for seller1 (confidential; higher than seller 2)
+    seller2_min_price = 94  # Minimum acceptable total price for seller2 (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -150,16 +150,12 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "note": "Multiple third-party offers for the same two-SKU cart; prices are bundle totals.",
-            "availability_status": "In Stock.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers want a home bundle: same two items; listing has no per-seller identity; they compare "
-        "third-party offers for the cart total."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products (from Task9_s6_bookshelf example and sampled_products2.jsonl line 6)
@@ -179,7 +175,6 @@ def main(model_name=None):
                 "asin": "B088WSDHTW",
                 "full_description": "If you are looking for a practical bookshelf, you can't miss this Widen 4 Tiers Bookshelf. This bookshelf is made of high quality material, which is stable, sturdy and durable. Its design of 4 tiers can hold a lot of books, and its strong bearing capacity can bear 44-88 lbs. You can put books in this bookshelf, and also place many other items like potting, decoration, etc. Made of high quality iron. Stable, sturdy and durable. Practical, design of 4 tiers can hold a lot of items. 44-88 lbs strong bearing capacity. Easy to install. Dimensions: (23.62 x 13.78 x 57.87) inches.",
                 "image_url": "https://m.media-amazon.com/images/I/41Tbj+f2soL.jpg",
-                "availability_status": "In Stock.",
             },
             {
                 "name": "Fanyate Antique Industrial Wall Sconce, 2-Light Bathroom Light Fixture Oil Rubbed Bronze Vanity Light with Clear Glass Shade Suitable for Bathroom Living Room Hallway ORB, 2 Pack",
@@ -193,7 +188,6 @@ def main(model_name=None):
                 "asin": "B0928LGTVF",
                 "full_description": "【ANTIQUE INDUSTRIAL STYLE】Unique Oil Rubbed Bronze painting finished metal lamp body mated with clear glass shade, adding more antique and industrial atmosphere and bringing a quiet and comfortable feeling to your life. 【PRODUCT INSPECTION】The width of this light is 13.8'', the depth is 6.6,'' and the height is 9.8''. Compatible with E26 base bulb. The max wattage of the bulb is 60W. (Bulb is not included.) 【EASY INSTALLATION】Easy installation to save your time. The installation instruction and mounting screws are included in the package for your quick installation. 【APPLICABLE SPACE】These wall lights are suitable for any space you want to decorate. Not only suitable for bathroom, also living room, study, porch, kitchen, dining room, cafe, bar, bedroom, shop, lounge decoration. 【GORGEOUS SHOPPING EXPERIENCE】You can get not only good value from this lamp but also our services and a 1-year warranty that will guarantee your complete satisfaction with your purchase.",
                 "image_url": "https://m.media-amazon.com/images/I/41icQciKVIS.jpg",
-                "availability_status": "In Stock.",
             },
         ]
     }

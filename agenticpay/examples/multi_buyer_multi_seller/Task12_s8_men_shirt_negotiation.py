@@ -114,12 +114,12 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Create Agents (confidential buyer/seller reservation prices; unknown to counterparties)
     print("Creating agents...")
-    buyer1_max_price = 10.0  # Maximum acceptable price for buyer1 (confidential)
-    buyer2_max_price = 9.5  # Maximum acceptable price for buyer2 (confidential)
-    seller1_min_price = 8.0  # Minimum acceptable price for seller1 (confidential)
-    seller2_min_price = 9.0  # Minimum acceptable price for seller2 (confidential)
+    buyer1_max_price = 8.29  # Maximum acceptable for Buyer 1 (confidential; below public list anchor)
+    buyer2_max_price = 8.97  # Maximum acceptable for Buyer 2 (confidential; below public list anchor)
+    seller1_min_price = 7.68  # Minimum acceptable for Seller 1 (confidential; below public list anchor)
+    seller2_min_price = 6.87  # Minimum acceptable for Seller 2 (confidential; below public list anchor)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -136,23 +136,25 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=10.99,  # Initial price offered by seller1 - JSPOYOU Men's Shirt
         initial_seller2_price=11.99,  # Initial price offered by seller2 (slightly higher)
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer1_max_price=buyer1_max_price,  # Buyer1 max willingness (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 max willingness (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "note": "Multiple third-party offers exist for the same product listing.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = "Two buyers want a casual men's graphic tee; care about fit and price."
+    user_profile = None
     print(f"User Profile: {user_profile}")
-
-    user_requirement = "I want the JSPOYOU men's 3D graphic crewneck tunic, M or L, C-gray or B-black, new."
+    
+    user_requirement = (
+        "I want the listed product only: JSPOYOU men's short-sleeve crewneck 3D graphic tunic shirt, "
+        "new—size and color per the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -173,7 +175,6 @@ def main(model_name=None):
             "sizes": ["Medium", "Large", "X-Large", "XX-Large", "3X-Large"],
             "colors": ["A-blue", "A-green", "B-black", "B-gray", "C-gray"],
             "original_price": 10.99,
-            "availability_status": "In Stock",
             "product_category": "Clothing, Shoes & Jewelry › Men › Clothing › Shirts › Henleys",
             "asin": "B09NNMV9LN",
             "full_description": "Men's casual printed tee; stretch cotton-modal blend; graphic print; suitable for beach, gym, loungewear, daily wear.",

@@ -103,9 +103,9 @@ def main(model_name=None):
     
     # Same product (SKU) from two listings: each seller has a different confidential floor (minimum) price
     print("Creating agents...")
-    buyer_max_price = 18.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller1_min_price = 15.0  # Seller 1 floor (confidential; lower cost / willing to go lower)
-    seller2_min_price = 16.25  # Seller 2 floor (confidential; higher than seller 1)
+    buyer_max_price = 15.46  # Maximum acceptable purchase price for buyer (confidential; below listed reference)
+    seller1_min_price = 13.93  # Seller 1 floor (confidential; higher reservation than seller 2)
+    seller2_min_price = 12.41  # Seller 2 floor (confidential; lower cost / willing to go lower)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -120,9 +120,9 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=19.95,  # Opening ask — same item, different offer
         initial_seller2_price=21.50,  # Opening ask — same item, different offer
-        buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer_max_price=buyer_max_price,  # Buyer max willing to pay (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable price (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable price (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
@@ -133,7 +133,7 @@ def main(model_name=None):
     )
     
     # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
-    user_profile = "Wants medium tillandsia air plants for orbs/terrariums; open to comparing offers for the same product."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # One-product user query: concise, natural English (simulated search / assistant request)
@@ -153,7 +153,6 @@ def main(model_name=None):
             "condition": "New",
             "brand": "CTS Air Plants",
             "original_price": 19.95,
-            "availability_status": "In Stock.",
             "product_category": "Patio, Lawn & Garden › Gardening & Lawn Care › Plants, Seeds & Bulbs › Cacti & Succulents",
             "average_rating": 4.7,
             "total_reviews": 25,
@@ -419,7 +418,6 @@ def main(model_name=None):
                     "condition": "New",
                     "brand": "CTS Air Plants",
                     "original_price": 19.95,
-                    "availability_status": "In Stock.",
                     "product_category": "Patio, Lawn & Garden › Gardening & Lawn Care › Plants, Seeds & Bulbs › Cacti & Succulents",
                     "average_rating": 4.7,
                     "total_reviews": 25,

@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 2: ARM & HAMMER Toothpaste 6-pack - buyer_max_price: $18 (wants discount), seller_min_price: $12 (cost basis)
-    buyer_max_price = 14.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 12.0  # Minimum acceptable selling price for seller (confidential)
+    # Scenario 2: ARM & HAMMER Toothpaste 6-pack — public list reference (original_price $16.00); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 12.32  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 10.40  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -115,7 +115,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "5 days",
-            "availability_status": "In Stock"
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -138,7 +137,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Health-conscious user who cares about oral hygiene. Prefers fluoride toothpaste with good reviews. Values quality and value for money when buying household products."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -168,7 +167,6 @@ def main(model_name=None):
             "brand": "Visit the Arm & Hammer Store",
             "size": "6 Ounce (Pack of 6)",
             "original_price": 16.0,
-            "availability_status": "In Stock",
             "product_category": "Beauty & Personal Care › Oral Care › Toothpaste",
             "average_rating": 4.8,
             "total_reviews": 538,

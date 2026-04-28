@@ -120,10 +120,10 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products (Beverage + Air Plants)
     print("Creating agents...")
-    buyer1_max_price = 46.0  # Maximum acceptable total price for buyer1 (confidential, Beverage ~$35 + Air Plants ~$20)
-    buyer2_max_price = 48.0  # Maximum acceptable total price for buyer2 (confidential, willing to pay premium)
-    seller1_min_price = 42.0  # Minimum acceptable total selling price for seller1 (confidential, Beverage ~$24 + Air Plants ~$15)
-    seller2_min_price = 40.0  # Minimum acceptable total selling price for seller2 (confidential, competitive pricing)
+    buyer1_max_price = 39.07  # Maximum acceptable total price for buyer1 (confidential)
+    buyer2_max_price = 42.34  # Maximum acceptable total price for buyer2 (confidential)
+    seller1_min_price = 36.26  # Minimum acceptable total selling price for seller1 (confidential)
+    seller2_min_price = 32.47  # Minimum acceptable total selling price for seller2 (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -148,15 +148,12 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "note": "Multiple third-party offers for the same two-SKU cart; prices are bundle totals.",
-            "availability_status": "In Stock",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers want Belvoir + tillandsia pack; same listing SKUs, no per-seller identity; compare cart totals."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products (Product 1 from Task12_s9_beverage example, Product 2 from sampled_products2.jsonl sample 9)
@@ -172,7 +169,6 @@ def main(model_name=None):
                 "brand": "Belvoir",
                 "size": "8.4 Fl Oz, 24 per case",
                 "original_price": 32.0,
-                "availability_status": "In Stock",
                 "product_category": "Grocery › Beverages",
                 "average_rating": 4.9,
                 "total_reviews": 13,
@@ -186,7 +182,6 @@ def main(model_name=None):
                 "list_price": 19.95,
                 "condition": "New",
                 "brand": "CTS Air Plants",
-                "availability_status": "In Stock.",
                 "product_category": "Patio, Lawn & Garden › Gardening & Lawn Care › Plants, Seeds & Bulbs › Cacti & Succulents",
                 "average_rating": 4.7,
                 "total_reviews": 25,

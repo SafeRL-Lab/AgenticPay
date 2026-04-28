@@ -4,7 +4,7 @@ Long-term monthly rent: two tenants negotiate combined monthly rent for the same
 Listings from ``airbnb_embeddings_sample10.jsonl`` entries 2 and 6:
 ``5*Super host Apartment+terrace  8 min from Ramblas`` (``_id`` 1332929) +
 ``Double room in Barcelona Center with balcony!!!!`` (``_id`` 23160633).
-Satisfies ``seller*_min_price < buyer*_max_price``.
+Confidential floors/ceilings sit below the listing component-sum anchor; ``seller*_min_price < buyer*_max_price < quoted_price``.
 Category: Real Estate — Residential Rentals
 """
 
@@ -119,10 +119,10 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # Combined monthly rent for both Barcelona listings (confidential)
     print("Creating agents...")
-    buyer1_max_price = 3720.0  # Maximum acceptable combined monthly rent for buyer1 (confidential)
-    buyer2_max_price = 3680.0  # Maximum acceptable combined monthly rent for buyer2 (confidential)
-    seller1_min_price = 3290.0  # Minimum acceptable combined monthly rent for seller1 bundle (confidential)
-    seller2_min_price = 3260.0  # Minimum acceptable combined monthly rent for seller2 bundle (confidential)
+    buyer1_max_price = 2680.0  # Maximum acceptable combined monthly rent for buyer1 (confidential; below listing-sum anchor)
+    buyer2_max_price = 2828.0  # Maximum acceptable combined monthly rent for buyer2 (confidential; below listing-sum anchor)
+    seller1_min_price = 2370.0  # Minimum acceptable combined monthly rent for seller1 bundle (confidential)
+    seller2_min_price = 2140.0  # Minimum acceptable combined monthly rent for seller2 bundle (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -154,9 +154,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two visitors compare third-party offers for the same two Barcelona listing SKUs (listing text has no per-landlord identity)."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = "I want the Ramblas terrace apartment and the Universitat double room as one monthly bundle; negotiate the total rent."

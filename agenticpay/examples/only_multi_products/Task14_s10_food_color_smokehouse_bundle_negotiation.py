@@ -87,8 +87,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 65.0  # Maximum acceptable total purchase price for buyer (confidential) - Food Color ~$6.25 + Smokehouse Treat ~$62
-    seller_min_price = 55.0  # Minimum acceptable total selling price for seller (confidential)
+    buyer_max_price = 51.87  # Maximum acceptable total purchase price for buyer (confidential; below list/original reference total)
+    seller_min_price = 43.00  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -105,13 +105,12 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock.",
         },
         price_tolerance=price_tolerance,
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Home baker and cake decorator who values professional-grade food coloring. Also enjoys hosting gatherings and prefers quality cheese and sausage gift packs for entertaining guests or as gifts."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products (Product 1: Task13_s10_food_color; Product 2: sampled_products2.jsonl sample 10)
@@ -125,7 +124,6 @@ def main(model_name=None):
                 "color": "Lemon Yellow",
                 "size": "0.65 oz",
                 "original_price": 6.25,
-                "availability_status": "In Stock.",
                 "product_category": "Grocery & Gourmet Food › Pantry Staples › Cooking & Baking › Food Coloring",
                 "average_rating": 5.0,
                 "total_reviews": 1,
@@ -140,7 +138,6 @@ def main(model_name=None):
                 "condition": "New",
                 "brand": "Visit the Burgers' Smokehouse Store",
                 "original_price": 62.0,
-                "availability_status": "In stock.            Usually ships within 4 to 5 days.",
                 "product_category": "Grocery & Gourmet Food › Food & Beverage Gifts › Meat & Seafood Gifts",
                 "average_rating": 5,
                 "total_reviews": 1,

@@ -110,10 +110,10 @@ def main(model_name=None):
 
     # Same two-SKU bundle from two offers: each seller has a different confidential floor (total USD)
     print("Creating agents...")
-    buyer1_max_price = 32.0  # Buyer 1 max WTP for the bundle (confidential)
-    buyer2_max_price = 30.5  # Buyer 2 max WTP (confidential; lower than buyer 1)
-    seller1_min_price = 24.0  # Seller 1 floor (confidential; lower cost)
-    seller2_min_price = 26.5  # Seller 2 floor (confidential; higher than seller 1)
+    buyer1_max_price = 22.51  # Buyer 1 max WTP for the bundle (confidential; lower than buyer 2)
+    buyer2_max_price = 24.39  # Buyer 2 max WTP (confidential)
+    seller1_min_price = 20.89  # Seller 1 floor (confidential; higher than seller 2)
+    seller2_min_price = 18.71  # Seller 2 floor (confidential)
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -142,10 +142,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Two buyers want fair value on a two-item beauty cart; both compare third-party offers "
-        "for the same SKUs (listing has no per-seller identity)."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     # Concise English user query: exactly two products (simulated search / assistant request)
@@ -166,8 +163,6 @@ def main(model_name=None):
                 "price": 7.50,
                 "list_price": 7.50,
                 "original_price": 7.98,
-                "availability_quantity": 5,
-                "availability_status": "Only 5 left in stock - order soon.",
                 "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
                 "average_rating": 4.2,
                 "total_reviews": 54,
@@ -182,7 +177,6 @@ def main(model_name=None):
                 "price": 21.95,
                 "list_price": 21.95,
                 "original_price": 21.95,
-                "availability_status": "In Stock",
                 "product_category": "Beauty & Personal Care › Fragrance",
                 "average_rating": 4.0,
                 "total_reviews": 6,

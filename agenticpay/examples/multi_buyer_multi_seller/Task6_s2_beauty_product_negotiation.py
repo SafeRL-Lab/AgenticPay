@@ -116,12 +116,12 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Two different listings: each seller has a different confidential floor
+    # Same toothpaste SKU from two seller listings; each seller has a different confidential floor
     print("Creating agents...")
-    buyer1_max_price = 16.0  # Buyer 1 (oral care) max willingness to pay (confidential)
-    buyer2_max_price = 6.80  # Buyer 2 (hair care) max willingness to pay (confidential)
-    seller1_min_price = 12.0  # Seller 1 floor — toothpaste (confidential)
-    seller2_min_price = 4.0  # Seller 2 floor — hair brush (confidential)
+    buyer1_max_price = 12.06  # Maximum acceptable for Buyer 1 — listing 1 (confidential; below list anchor)
+    buyer2_max_price = 13.06  # Maximum acceptable for Buyer 2 — listing 2 (confidential; below list anchor)
+    seller1_min_price = 11.18  # Minimum acceptable for Seller 1 (confidential; below list anchor)
+    seller2_min_price = 10.00  # Minimum acceptable for Seller 2 (confidential; below list anchor)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -136,25 +136,27 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=16.0,  # Initial price offered by seller1 (Toothpaste)
-        initial_seller2_price=6.48,  # Initial price offered by seller2 (BFWood hair brush)
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        initial_seller1_price=16.0,  # Opening ask — same toothpaste pack, listing 1
+        initial_seller2_price=16.99,  # Opening ask — same toothpaste pack, listing 2
+        buyer1_max_price=buyer1_max_price,  # Buyer1 max willingness (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 max willingness (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "note": "Side-by-side offers for two SKUs; listing text has no per-offer seller identity.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
     )
     
-    user_profile = "Two shoppers comparing health-and-beauty deals; one cares most about oral care, the other about hair tools."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want either a 6-pack of Arm & Hammer Peroxicare mint toothpaste (6 oz) or a BFWood black walnut paddle hair brush—new."
+    user_requirement = (
+        "I want the listed product only: ARM & HAMMER Peroxicare fluoride toothpaste, Clean Mint, "
+        "6 ounce tubes, pack of 6, new—matching the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -112,11 +112,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
-    # Bundle list ~$22.48; buyers' caps and seller floor are for the pair total (same SKU set for all parties).
+    # Public reference: original sticker total ~$22.48 (same as list total). Negotiation bounds below that reference (confidential).
     print("Creating agents...")
-    buyer1_max_price = 20.0
-    buyer2_max_price = 21.0
-    seller_min_price = 18.0
+    buyer1_max_price = 16.86  # Maximum acceptable total for buyer1 (confidential)
+    buyer2_max_price = 18.26  # Maximum acceptable total for buyer2 (confidential)
+    seller_min_price = 14.67  # Minimum acceptable total for seller (confidential)
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -136,7 +136,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "1 week",
-            "availability_status": "In Stock.",
             "bundle_context": (
                 "Several sellers list this exact two-item bundle; offers are for the bundle total. "
                 "Each seller has a different internal floor for the pair; buyers only see product facts, not seller identities."
@@ -146,9 +145,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Beauty buyer who compares bundle totals for oral and hair care. Negotiates both items as one deal."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     product1_image_url = "https://m.media-amazon.com/images/I/41-M-nTTsGL.jpg"

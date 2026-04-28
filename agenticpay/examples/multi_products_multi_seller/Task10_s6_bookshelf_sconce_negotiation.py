@@ -82,9 +82,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer_max_price = 142.0
-    seller1_min_price = 119.0
-    seller2_min_price = 126.0
+    buyer_max_price = 118.0
+    seller1_min_price = 105.0
+    seller2_min_price = 94.0
 
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -111,7 +111,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = "Home office shopper; wants sturdy storage and bronze wall lighting with clear glass—cares about value, not seller name."
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = "I want the 4-tier black ladder bookshelf and the 2-pack oil-rubbed bronze wall sconces—what's your best total for both?"
@@ -128,7 +128,6 @@ def main(model_name=None):
                 "brand": "Kcelarec",
                 "price": 36.94,
                 "original_price": 36.94,
-                "availability_status": "In Stock.",
                 "product_category": "Home & Kitchen › Furniture › Home Office Furniture › Bookcases",
                 "average_rating": 5.0,
                 "total_reviews": 1,
@@ -142,7 +141,6 @@ def main(model_name=None):
                 "brand": "Fanyate",
                 "price": 113.99,
                 "original_price": 113.99,
-                "availability_status": "In Stock.",
                 "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Wall Lights › Wall Lamps & Sconces",
                 "average_rating": 4.7,
                 "total_reviews": 55,

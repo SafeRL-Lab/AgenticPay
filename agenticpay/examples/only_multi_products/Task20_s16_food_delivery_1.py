@@ -87,8 +87,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 29.50  # Maximum acceptable all-in delivered total for buyer (confidential)
-    seller_min_price = 25.80  # Minimum acceptable all-in delivered total for seller (confidential)
+    buyer_max_price = 22.80  # Maximum acceptable all-in delivered total for buyer (confidential; below quoted checkout total)
+    seller_min_price = 18.81  # Minimum acceptable all-in delivered total for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -118,7 +118,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Young professional ordering dinner after work. Likes crispy chicken comfort food and cares about the delivered checkout total with fees included."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products from restaurantmenuchanges.csv (Sticky's Chicken)

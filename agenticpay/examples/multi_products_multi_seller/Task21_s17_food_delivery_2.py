@@ -89,9 +89,9 @@ def main(model_name=None):
     
     # Agents: prices are TOTAL for the two-item bundle (all-in delivered; confidential to each party)
     print("Creating agents...")
-    buyer_max_price = 30.0
-    seller1_min_price = 25.5
-    seller2_min_price = 24.0
+    buyer_max_price = 16.92
+    seller1_min_price = 15.04
+    seller2_min_price = 13.40
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -119,7 +119,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = "Young professional choosing a satisfying dinner combo and comparing all-in checkout totals across nearby delivery options."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     user_requirement = "Karaage sliders with fries and slutty loaded fries—what's your best delivered total?"
     print(f"Using default requirement: {user_requirement}")

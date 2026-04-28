@@ -98,10 +98,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
+    # Public menu-original subtotal ~$19.50; delivered line references sum to ~$26.62. Negotiation bounds below original subtotal (confidential).
     print("Creating agents...")
-    buyer1_max_price = 25.2
-    buyer2_max_price = 26.0
-    seller_min_price = 22.8
+    buyer1_max_price = 14.63  # Maximum acceptable delivered bundle total for buyer1 (confidential)
+    buyer2_max_price = 15.98  # Maximum acceptable delivered bundle total for buyer2 (confidential)
+    seller_min_price = 13.06  # Minimum acceptable bundle total for seller (confidential)
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -134,9 +135,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Late-night diner deciding between two loaded snack options and focusing on transparent final delivered pricing."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     product_info = {

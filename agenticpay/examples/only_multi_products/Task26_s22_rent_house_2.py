@@ -87,8 +87,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price = combined acceptable monthly rent for both listings (confidential)
     print("Creating agents...")
-    buyer_max_price = 2450.0  # Tenant max total monthly rent for both units (confidential)
-    seller_min_price = 2385.0  # Landlord min total monthly rent (confidential); must be < buyer_max_price
+    buyer_max_price = 1945.0  # Maximum acceptable combined monthly rent for both units (confidential); below listing total reference
+    seller_min_price = 1690.0  # Minimum acceptable combined monthly rent for both units (confidential); must be < buyer_max_price
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -112,7 +112,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Digital nomad planning a split stay: bright Barcelona apartment near Ramblas and a self-contained studio at Circular Quay, Sydney. Wants a single negotiated total monthly rent for both."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Listings from airbnb_embeddings_sample10.jsonl (lines 2 and 3); image_url matches images.picture_url there

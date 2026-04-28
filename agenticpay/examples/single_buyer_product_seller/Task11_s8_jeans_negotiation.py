@@ -107,9 +107,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 8: Women's Jeans - buyer_max_price: $22 (wants discount), seller_min_price: $16 (cost basis)
-    buyer_max_price = 20.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 16.0  # Minimum acceptable selling price for seller (confidential)
+    # Scenario 8: Women's Jeans — public list reference (original_price $22.99); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 17.50  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 14.50  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -127,7 +127,6 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock"
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -150,7 +149,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Fashion-conscious woman looking for comfortable daily wear. Cares about fit, comfort, and value. Prefers stretchy denim that holds shape after repeated washing."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm looking for myhehthw Women's High Waisted Distressed Ripped Jeans, slim fit, stretch skinny style. Preferably in black or dark wash, size Medium or Large."
@@ -173,7 +172,6 @@ def main(model_name=None):
             "material": "75% Cotton, 20% Polyester, 5% Spandex",
             "sizes": ["Small", "Medium", "Large", "X-Large", "XX-Large"],
             "original_price": 22.99,
-            "availability_status": "In Stock",
             "product_category": "Clothing, Shoes & Jewelry › Women › Clothing › Jeans",
             "asin": "B09PBNZLNT",
             "full_description": "Made of soft and stretchy denim cotton fabric, breathable to wear. Comfortable and versatile for casual, school, office, shopping. Button closure. Machine washable.",

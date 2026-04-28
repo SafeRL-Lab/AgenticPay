@@ -1,6 +1,6 @@
-"""Task14 Scenario 10: Grocery Two-Listing - Sequential Two-Buyer Two-Seller Negotiation (image + text)
+"""Task14 Scenario 10: AmeriMist Food Color (two listings) - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two marketplace listings in one session (food color vs. smokehouse gift pack). Visible product info has no
+Same AmeriMist lemon-yellow airbrush food color from two marketplace listings. Visible product info has no
 per-seller identity; two sellers each have a different confidential floor. Two buyers each pick one seller per
 round (structured routing).
 Category: Grocery & Gourmet Food
@@ -116,12 +116,12 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Create Agents (confidential buyer/seller reservation prices; unknown to counterparties)
     print("Creating agents...")
-    buyer1_max_price = 6.0  # Maximum acceptable price for buyer1 (confidential) - interested in Food Color
-    buyer2_max_price = 5.8  # Maximum acceptable price for buyer2 (confidential) - interested in Smokehouse Treat
-    seller1_min_price = 4.5  # Minimum acceptable price for seller1 (confidential) - Food Color
-    seller2_min_price = 50.0  # Minimum acceptable price for seller2 (confidential) - Smokehouse Treat
+    buyer1_max_price = 4.71  # Maximum acceptable for Buyer 1 — listing 1 (confidential; below list anchor)
+    buyer2_max_price = 5.10  # Maximum acceptable for Buyer 2 — listing 2 (confidential; below list anchor)
+    seller1_min_price = 4.37  # Minimum acceptable for Seller 1 (confidential; below list anchor)
+    seller2_min_price = 3.91  # Minimum acceptable for Seller 2 (confidential; below list anchor)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -136,30 +136,32 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=6.25,  # Initial price offered by seller1 - Food Color list price
-        initial_seller2_price=62.0,  # Initial price offered by seller2 - Smokehouse Treat list price
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        initial_seller1_price=6.25,  # Opening ask — same food color, listing 1 (list price)
+        initial_seller2_price=6.89,  # Opening ask — same food color, listing 2
+        buyer1_max_price=buyer1_max_price,  # Buyer1 max willingness (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 max willingness (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "note": "Multiple third-party offers exist for the listings shown in this session.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = "Two buyers on grocery: one needs airbrush food color; one wants a smoked meat and cheese gift pack."
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want AmeriMist lemon-yellow airbrush food color (0.65 oz) or The Smokehouse Treat gift pack, new."
+    user_requirement = (
+        "I want the listed product only: AmeriColor AmeriMist lemon yellow airbrush food color, 0.65 oz, "
+        "new—matching the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
     print("\n" + "="*60)
-    print("Starting new sequential negotiation with two buyers and two sellers (Food Color & Smokehouse Treat)...")
+    print("Starting new sequential negotiation with two buyers and two sellers (food color, two listings)...")
     print("="*60)
     
     product_image_url = "https://m.media-amazon.com/images/I/41p+jdUZTJL.jpg"
@@ -173,7 +175,6 @@ def main(model_name=None):
             "color": "Lemon Yellow",
             "size": "0.65 oz",
             "original_price": 6.25,
-            "availability_status": "In Stock.",
             "product_category": "Grocery & Gourmet Food › Pantry Staples › Cooking & Baking › Food Coloring",
             "average_rating": 5.0,
             "total_reviews": 1,
@@ -539,7 +540,7 @@ def main(model_name=None):
         output_file = run_dir / "Task14_s10_smokehouse_treat_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task14 Scenario 10: Food Color & Smokehouse Treat - Sequential Two-Buyer Two-Seller Negotiation Results\n")
+            f.write("Task14 Scenario 10: AmeriMist Food Color (two listings) - Sequential Two-Buyer Two-Seller Negotiation Results\n")
             f.write("Category: Grocery & Gourmet Food\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -604,7 +605,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task14 Scenario 10: Food Color & Smokehouse Treat - Sequential Two-Buyer Two-Seller Negotiation")
+    parser = argparse.ArgumentParser(description="Task14 Scenario 10: AmeriMist Food Color (two listings) - Sequential Two-Buyer Two-Seller Negotiation")
     parser.add_argument(
         "--model",
         type=str,

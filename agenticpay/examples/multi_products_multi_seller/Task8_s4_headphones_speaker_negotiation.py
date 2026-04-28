@@ -87,9 +87,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    buyer_max_price = 115.0
-    seller1_min_price = 108.0
-    seller2_min_price = 105.0
+    buyer_max_price = 97.0
+    seller1_min_price = 86.0
+    seller2_min_price = 77.0
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -116,7 +116,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = "Parent and music enthusiast; wants kids headphones plus a portable speaker and compares bundle offers."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I need the kids Bluetooth headphones and the Sony SRS-XB33 speaker together—lowest total?"
@@ -133,7 +133,6 @@ def main(model_name=None):
                 "brand": "NVRADCHUA",
                 "price": 14.99,
                 "original_price": 14.99,
-                "availability_status": "In Stock.",
                 "product_category": "Electronics › Headphones › Over-Ear Headphones",
                 "average_rating": 4.0,
                 "total_reviews": 2,
@@ -147,7 +146,6 @@ def main(model_name=None):
                 "brand": "Sony",
                 "price": 108.49,
                 "original_price": 108.49,
-                "availability_status": "Only 1 left in stock - order soon.",
                 "product_category": "Electronics › Portable Audio & Video › Portable Speakers & Docks › Portable Bluetooth Speakers",
                 "average_rating": 4.5,
                 "total_reviews": 962,

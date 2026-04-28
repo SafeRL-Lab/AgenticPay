@@ -119,10 +119,10 @@ def main(model_name=None):
     
     # Same two-SKU bundle from two offers: each seller has a different confidential floor (total USD)
     print("Creating agents...")
-    buyer1_max_price = 530.0  # Buyer 1 max WTP (confidential)
-    buyer2_max_price = 515.0  # Buyer 2 max WTP (confidential; lower)
-    seller1_min_price = 488.0  # Seller 1 floor (confidential; higher cost)
-    seller2_min_price = 468.0  # Seller 2 floor (confidential; lower)
+    buyer1_max_price = 405  # Buyer 1 max WTP (confidential; lower than buyer 2)
+    buyer2_max_price = 439  # Buyer 2 max WTP (confidential)
+    seller1_min_price = 376  # Seller 1 floor (confidential; higher than seller 2)
+    seller2_min_price = 337  # Seller 2 floor (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -152,10 +152,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers compare third-party offers for the same two-SKU cart (optics + receipt printer); "
-        "listings have no per-seller identity."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I want these two, new: Crimson Trace Brushline Pro 2.5-10x42 and Epson TM-T20 thermal printer."
@@ -171,7 +168,6 @@ def main(model_name=None):
                 "condition": "New",
                 "model": "Brushline Pro Riflescope 2.5-10x42mm CT Plex Reticle",
                 "style": "2.5-10x42mm Plex",
-                "availability_status": "Only 14 left in stock (more on the way).",
                 "product_category": "Sports & Outdoors › Hunting & Fishing › Shooting › Optics › Gun Scopes › Rifle Scopes",
                 "average_rating": 4.3,
                 "total_reviews": 28,
@@ -186,7 +182,6 @@ def main(model_name=None):
                 "list_price": 320.0,
                 "condition": "New",
                 "model": "C31CB10023",
-                "availability_status": "In stock. Usually ships within 3 to 4 days.",
                 "product_category": "Office Products › Office Electronics",
                 "average_rating": 4.1,
                 "total_reviews": 4,

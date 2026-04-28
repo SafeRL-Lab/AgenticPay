@@ -119,10 +119,10 @@ def main(model_name=None):
     
     # Same two-SKU bundle from two offers: each seller has a different confidential floor (total USD)
     print("Creating agents...")
-    buyer1_max_price = 21.0  # Buyer 1 max WTP for the bundle (confidential)
-    buyer2_max_price = 19.5  # Buyer 2 max WTP (confidential; lower than buyer 1)
-    seller1_min_price = 17.0  # Seller 1 floor (confidential; lower cost)
-    seller2_min_price = 18.5  # Seller 2 floor (confidential; higher than seller 1)
+    buyer1_max_price = 16.9  # Buyer 1 max WTP for the bundle (confidential; lower than buyer 2)
+    buyer2_max_price = 18.32  # Buyer 2 max WTP (confidential)
+    seller1_min_price = 15.69  # Seller 1 floor (confidential; higher than seller 2)
+    seller2_min_price = 14.05  # Seller 2 floor (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -152,10 +152,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers want fair value on a two-item oral/hair care cart; both compare third-party offers "
-        "for the same SKUs (listing has no per-seller identity)."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I want these two, new: Arm & Hammer Peroxicare 6-pack and BFWood black walnut paddle brush."

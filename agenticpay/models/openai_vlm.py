@@ -12,6 +12,7 @@ if __name__ == "__main__":
 from typing import Optional, Union, List, Any
 import logging
 import os
+import time
 import base64
 import io
 import requests
@@ -271,21 +272,28 @@ class OpenAIVLM(BaseVLM):
             }
         )
 
-        try:
-            messages = [{"role": "user", "content": content}]
-
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                **kwargs,
-            )
-
-            return response.choices[0].message.content.strip()
-
-        except Exception as e:
-            raise RuntimeError(f"OpenAI VLM API error: {e}")
+        messages = [{"role": "user", "content": content}]
+        max_retries = 3
+        for attempt in range(max_retries + 1):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    **kwargs,
+                )
+                return response.choices[0].message.content.strip()
+            except Exception as e:
+                if attempt >= max_retries:
+                    raise RuntimeError(f"OpenAI VLM API error: {e}") from e
+                logger.warning(
+                    "OpenAI VLM API call failed (attempt %d/%d): %s; retrying in 1s",
+                    attempt + 1,
+                    max_retries + 1,
+                    e,
+                )
+                time.sleep(1)
     
     def __repr__(self) -> str:
         """Return string representation of VLM"""

@@ -119,12 +119,11 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total expected cost for food color + smokehouse treat package
+    # Create Agents (bottom prices confidential). Public bundle list total ~$68.25; negotiation bounds below that reference.
     print("Creating agents...")
-    buyer1_max_price = 62.0  # Maximum acceptable total price for buyer1 (confidential)
-    buyer2_max_price = 64.0  # Maximum acceptable total price for buyer2 (confidential)
-    seller_min_price = 55.0  # Minimum acceptable total price for seller (confidential)
+    buyer1_max_price = 51.19  # Maximum acceptable total price for buyer1 (confidential)
+    buyer2_max_price = 55.47  # Maximum acceptable total price for buyer2 (confidential)
+    seller_min_price = 44.55  # Minimum acceptable total price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -145,7 +144,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "3 days",
-            "availability_status": "In Stock.",
             "bundle_context": (
                 "Several sellers list this exact two-item bundle; offers are for the bundle total. "
                 "Each seller has a different internal floor for the pair; buyers only see product facts, not seller identities."
@@ -155,9 +153,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Home cook bundling airbrush food color and a smoked sausage & cheese gift pack; wants one checkout total."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices (from example Task13 + jsonl sampled_products2 line 10)
@@ -173,7 +169,6 @@ def main(model_name=None):
                 "size": "0.65 oz",
                 "price": 6.25,
                 "original_price": 6.25,
-                "availability_status": "In Stock.",
                 "product_category": "Grocery & Gourmet Food › Pantry Staples › Cooking & Baking › Food Coloring",
                 "average_rating": 5.0,
                 "total_reviews": 1,
@@ -186,7 +181,6 @@ def main(model_name=None):
                 "brand": "Burgers' Smokehouse",
                 "price": 62.0,
                 "pricing": "$62.00",
-                "availability_status": "In stock. Usually ships within 4 to 5 days.",
                 "product_category": "Grocery & Gourmet Food › Food & Beverage Gifts › Meat & Seafood Gifts",
                 "average_rating": 5,
                 "total_reviews": 1,

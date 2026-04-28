@@ -82,9 +82,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer_max_price = 34.5
-    seller1_min_price = 27.0
-    seller2_min_price = 28.5
+    buyer_max_price = 26.67
+    seller1_min_price = 23.72
+    seller2_min_price = 21.14
 
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -111,7 +111,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = "Fashion shopper; wants stretchy high-waist jeans and a casual tie-dye tee—cares about fit and total price, not seller name."
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = "I want the myhehthw high-waisted ripped jeans and the JSPOYOU men's tie-dye crewneck—best total for both?"
@@ -130,7 +130,6 @@ def main(model_name=None):
                 "sizes": ["Small", "Medium", "Large", "X-Large", "XX-Large"],
                 "price": 22.99,
                 "original_price": 22.99,
-                "availability_status": "In Stock",
                 "product_category": "Clothing, Shoes & Jewelry › Women › Clothing › Jeans",
                 "asin": "B09PBNZLNT",
                 "full_description": "Made of soft and stretchy denim cotton fabric, breathable to wear. Comfortable and versatile for casual, school, office, shopping. Button closure. Machine washable.",
@@ -144,7 +143,6 @@ def main(model_name=None):
                 "sizes": ["Medium", "Large", "X-Large", "XX-Large", "3X-Large"],
                 "price": 10.99,
                 "original_price": 10.99,
-                "availability_status": "In Stock",
                 "product_category": "Clothing, Shoes & Jewelry › Men › Clothing › Shirts › Henleys",
                 "asin": "B09NNMV9LN",
                 "full_description": "Gender: Men Material: Polyester, Fleece, Faux Leather Pattern Type: Printed Style: Casual Fashion, Athletics Fit Type: Standard Closure Type: Elastic What you get: 1 PC Man T-shirt tops. Stretch 60% cotton 40%. Short/long sleeve button down tshirts, big and tall tees, graphic print tops. Great for beach, work, Halloween, Christmas, loungewear, casual look, daily, dating, school, party, holiday, gym workout, running, training, jogging.",

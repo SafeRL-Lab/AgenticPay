@@ -3,7 +3,7 @@
 Long-term monthly rent: two tenants negotiate combined monthly rent for two Sydney listings with two landlords.
 Data from ``airbnb_embeddings_sample10.jsonl`` entries 3 and 4:
 Mezzos Studio in Sydney CBD (``_id`` 14096512) + Whole sunny apartment near Bondi Beach (``_id`` 16289600).
-``seller*_min_price < buyer*_max_price``.
+Confidential floors/ceilings sit below the listing component-sum anchor; ``seller*_min_price < buyer*_max_price < quoted_price``.
 Category: Real Estate — Residential Rentals
 """
 
@@ -118,10 +118,10 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # Combined monthly rent for Sydney CBD studio + Bondi-area apartment (confidential)
     print("Creating agents...")
-    buyer1_max_price = 7020.0  # Maximum acceptable combined monthly rent for buyer1 (confidential)
-    buyer2_max_price = 6950.0  # Maximum acceptable combined monthly rent for buyer2 (confidential)
-    seller1_min_price = 6480.0  # Minimum acceptable combined monthly rent for seller1 bundle (confidential)
-    seller2_min_price = 6420.0  # Minimum acceptable combined monthly rent for seller2 bundle (confidential)
+    buyer1_max_price = 5150.0  # Maximum acceptable combined monthly rent for buyer1 (confidential; below listing-sum anchor)
+    buyer2_max_price = 5516.0  # Maximum acceptable combined monthly rent for buyer2 (confidential; below listing-sum anchor)
+    seller1_min_price = 4580.0  # Minimum acceptable combined monthly rent for seller1 bundle (confidential)
+    seller2_min_price = 4186.0  # Minimum acceptable combined monthly rent for seller2 bundle (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -153,9 +153,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two people compare third-party offers for the same two Sydney listing SKUs (listing text has no per-landlord identity)."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = "I want the Sydney CBD studio and the Bondi sunny apartment as one monthly bundle; negotiate the total rent."

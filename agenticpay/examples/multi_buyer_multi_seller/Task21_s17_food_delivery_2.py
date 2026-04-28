@@ -1,6 +1,6 @@
 """Task21 Scenario 17: Food Delivery — Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two marketplace offers on the same platform: item-focused listing text; two offers with different
+Same Sticky's karaage sliders & fries combo: two DoorDash all-in quotes. Item-focused listing text; two offers with different
 confidential floors. Two buyers each pick one offer per round (structured routing).
 Category: Food Delivery
 """
@@ -117,10 +117,10 @@ def main(model_name=None):
     
     # Two offers: each has a different confidential floor (all-in order totals)
     print("Creating agents...")
-    buyer1_max_price = 14.80  # all-in cap (buyer 1)
-    buyer2_max_price = 13.10  # all-in cap (buyer 2)
-    seller1_min_price = 13.20
-    seller2_min_price = 11.70
+    buyer1_max_price = 11.42  # Maximum acceptable all-in total for Buyer 1 — offer 1 (confidential; below quoted total anchor)
+    buyer2_max_price = 12.36  # Maximum acceptable all-in total for Buyer 2 — offer 2 (confidential; below quoted total anchor)
+    seller1_min_price = 10.59  # Minimum acceptable all-in total for Seller 1 (confidential; below quoted total anchor)
+    seller2_min_price = 9.47  # Minimum acceptable all-in total for Seller 2 (confidential; below quoted total anchor)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -137,14 +137,13 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=15.15,
         initial_seller2_price=13.48,
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer1_max_price=buyer1_max_price,  # Buyer1 max willingness (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 max willingness (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable (confidential)
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
-            "note": "Multiple item listings exist; offer copy is item-focused—each offer has a different confidential floor.",
             "availability_status": "Available for delivery.",
             "estimated_delivery_time": "20-40 minutes",
             "restaurant_price_range": "$$",
@@ -154,10 +153,13 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
     
-    user_profile = "Two buyers want a fair all-in food-delivery total; both are open to comparing two item offers on the same platform."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want a chicken sliders meal or loaded fries—compare both and the best all-in price with fees."
+    user_requirement = (
+        "I want the listed order only: Sticky's Chicken Karaage Sliders & Fries (Japanese-style fried chicken sliders with fries)—"
+        "negotiate the all-in total with fees; matching the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -201,7 +203,7 @@ def main(model_name=None):
     results = {
         "task": "Task21_s17_food_delivery_2",
         "category": "Food Delivery",
-        "scenario": "Karaage sliders combo offer vs loaded fries offer",
+        "scenario": "Same Sticky's sliders & fries combo; two DoorDash all-in quotes",
         "timestamp": datetime.now().isoformat(),
         "user_requirement": user_requirement,
         "user_profile": user_profile,
@@ -546,7 +548,7 @@ def main(model_name=None):
         output_file = run_dir / "Task21_s17_food_delivery_2_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task21 Scenario 17: Food Delivery (Karaage Sliders & Slutty Fries) — Sequential Two-Buyer Two-Seller Negotiation Results\n")
+            f.write("Task21 Scenario 17: Food Delivery (Sticky's Karaage Sliders & Fries — two all-in quotes) — Sequential Two-Buyer Two-Seller Negotiation Results\n")
             f.write("Category: Food Delivery\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")

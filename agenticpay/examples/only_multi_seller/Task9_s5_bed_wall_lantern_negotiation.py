@@ -149,9 +149,9 @@ def main(model_name=None):
     
     # Same product (SKU) from two listings: each seller has a different confidential floor (minimum) price
     print("Creating agents...")
-    buyer_max_price = 55.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller1_min_price = 45.0  # Seller 1 floor (confidential; lower cost / willing to go lower)
-    seller2_min_price = 48.50  # Seller 2 floor (confidential; higher than seller 1)
+    buyer_max_price = 47.41  # Maximum acceptable purchase price for buyer (confidential; below listed reference)
+    seller1_min_price = 42.70  # Seller 1 floor (confidential; higher reservation than seller 2)
+    seller2_min_price = 38.05  # Seller 2 floor (confidential; lower cost / willing to go lower)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -166,9 +166,9 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=61.17,  # Opening ask — same item, different offer
         initial_seller2_price=63.50,  # Opening ask — same item, different offer
-        buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer_max_price=buyer_max_price,  # Buyer max willing to pay (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable price (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable price (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
@@ -179,7 +179,7 @@ def main(model_name=None):
     )
     
     # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
-    user_profile = "Wants a fair price on a wet-location outdoor wall lantern; open to comparing offers for the same product."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # One-product user query: concise, natural English (simulated search / assistant request)
@@ -200,8 +200,6 @@ def main(model_name=None):
             "brand": "Sea Gull Lighting",
             "model": "85200-12",
             "original_price": 61.17,
-            "availability_quantity": 7,
-            "availability_status": "Only 7 left in stock - order soon.",
             "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Outdoor Lighting › Porch & Patio Lights › Wall Lights",
             "average_rating": 4.4,
             "total_reviews": 11,
@@ -440,8 +438,6 @@ def main(model_name=None):
                     "brand": "Sea Gull Lighting",
                     "model": "85200-12",
                     "original_price": 61.17,
-                    "availability_quantity": 7,
-                    "availability_status": "Only 7 left in stock - order soon.",
                     "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Outdoor Lighting › Porch & Patio Lights › Wall Lights",
                     "average_rating": 4.4,
                     "total_reviews": 11,

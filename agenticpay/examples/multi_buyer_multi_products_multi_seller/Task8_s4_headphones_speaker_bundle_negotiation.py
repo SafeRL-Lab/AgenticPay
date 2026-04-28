@@ -119,10 +119,10 @@ def main(model_name=None):
     
     # Same two-SKU bundle from two offers: each seller has a different confidential floor (total USD)
     print("Creating agents...")
-    buyer1_max_price = 118.0  # Buyer 1 max WTP (confidential)
-    buyer2_max_price = 112.0  # Buyer 2 max WTP (confidential; lower)
-    seller1_min_price = 100.0  # Seller 1 floor (confidential; higher cost)
-    seller2_min_price = 94.0  # Seller 2 floor (confidential; lower)
+    buyer1_max_price = 93  # Buyer 1 max WTP (confidential; lower than buyer 2)
+    buyer2_max_price = 101  # Buyer 2 max WTP (confidential)
+    seller1_min_price = 86  # Seller 1 floor (confidential; higher than seller 2)
+    seller2_min_price = 77  # Seller 2 floor (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -152,10 +152,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers compare third-party offers for the same two-SKU cart (kids headphones + portable speaker); "
-        "listings have no per-seller identity."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I want these two, new: NVRADCHUA kids over-ear BT headphones and Sony SRS-XB33 Extra Bass speaker (renewed)."
@@ -169,7 +166,6 @@ def main(model_name=None):
                 "price": 14.99,
                 "list_price": 14.99,
                 "condition": "New",
-                "availability_status": "In Stock.",
                 "product_category": "Electronics › Headphones › Over-Ear Headphones",
                 "average_rating": 4.0,
                 "total_reviews": 2,
@@ -183,7 +179,6 @@ def main(model_name=None):
                 "price": 108.49,
                 "list_price": 108.49,
                 "condition": "Renewed",
-                "availability_status": "Only 1 left in stock - order soon.",
                 "product_category": "Electronics › Portable Audio & Video › Portable Speakers & Docks › Portable Bluetooth Speakers",
                 "average_rating": 4.5,
                 "total_reviews": 962,

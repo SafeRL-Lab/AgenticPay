@@ -121,10 +121,11 @@ def main(model_name=None):
     
     # Two comparable listings: each seller has a different confidential floor
     print("Creating agents...")
-    buyer1_max_price = 1880.0  # Max monthly rent buyer1 will accept (confidential)
-    buyer2_max_price = 1850.0  # Max monthly rent buyer2 will accept (confidential)
-    seller1_min_price = 1260.0  # Landlord1 floor on monthly rent (confidential); < both buyer maxes
-    seller2_min_price = 1550.0  # Landlord2 floor on monthly rent (confidential); < both buyer maxes
+    # Reservation band vs listing anchor (product_info original_price); not disclosed to agents.
+    buyer1_max_price = 1089.0  # Maximum acceptable monthly rent for buyer1 (confidential); lower ceiling than buyer2
+    buyer2_max_price = 1143.0  # Maximum acceptable monthly rent for buyer2 (confidential)
+    seller1_min_price = 977.0  # Minimum acceptable monthly rent for landlord1 (confidential); higher floor than seller2
+    seller2_min_price = 865.0  # Minimum acceptable monthly rent for landlord2 (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -155,7 +156,7 @@ def main(model_name=None):
     )
     
     # Preferences only; no landlord identity in the shared listing copy
-    user_profile = "Two professionals want a walkable East Village monthly lease: one prefers a compact studio, the other a one-bedroom with subway access. Both want predictable rent."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Concise English user query (simulated search / assistant request)

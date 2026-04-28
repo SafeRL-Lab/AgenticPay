@@ -48,24 +48,52 @@ save_run_history() {
 # Configure the model list to use here
 # If the list is empty, each script will use its default model
 # Example:
-# MODELS=("gpt-5.2" "gemini-3-pro-all" "claude-sonnet-4-5-20250929")
-MODELS=("gpt-5.2")
+# MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "claude-opus-4-7" "Qwen/Qwen2.5-VL-72B-Instruct" "Qwen/Qwen3-VL-32B-Instruct" "internvl3-38b")
+MODELS=("gemini-3.1-pro-preview" "Qwen/Qwen2.5-VL-72B-Instruct" "Qwen/Qwen3-VL-32B-Instruct" "internvl3-38b")
 
 
 # ============================================
 # Configuration: Task List
 # ============================================
-# Configure which tasks to run
-# If the list is empty, all available tasks will be run
-# Format: Just specify task numbers (e.g., "Task1", "Task4", "Task5")
-# Example:
-# TASKS=("Task1" "Task4" "Task5")
-TASKS=()
+# Configure which tasks to run. Use short names from TASK_SCRIPTS (e.g. "Task9") or
+# full script stems (e.g. "Task24_s21_rent_house_1") if the .py file exists.
+# If the list is empty, all available Task*.py scripts in this directory are run
+# (excluding *example* files such as Task1_*_example.py).
+#
+# 下面为「最后 20 个」任务（Task9–Task28），可按需增删或改序：
+# TASKS=(
+#     "Task9"
+# )
+
+TASKS=(
+    "Task4"
+    "Task5"
+    "Task6"
+    "Task7"
+    "Task8"
+    "Task14"
+    "Task15"
+    "Task16"
+    "Task17"
+    "Task18"
+    "Task19"
+    "Task20"
+    "Task21"
+    "Task22"
+    "Task23"
+    "Task24"
+    "Task25"
+    "Task26"
+    "Task27"
+    "Task28"
+)
+# TASKS=()   # 取消上面数组并置空，则运行本目录下全部任务
 
 # ============================================
 # Execute Tasks
 # ============================================
-# Define all available tasks mapping
+# Define optional mapping from short names (TaskN) to script stem (no .py)
+# Used when TASKS is non-empty; when TASKS is empty, all Task*.py are auto-discovered
 declare -A TASK_SCRIPTS
 TASK_SCRIPTS["Task1"]="Task1_basic_price_negotiation"
 TASK_SCRIPTS["Task2"]="Task2_close_price_negotiation"
@@ -79,21 +107,77 @@ TASK_SCRIPTS["Task9"]="Task9_s6_bookshelf_negotiation"
 TASK_SCRIPTS["Task10"]="Task10_s7_sandals_negotiation"
 TASK_SCRIPTS["Task11"]="Task11_s8_jeans_negotiation"
 TASK_SCRIPTS["Task12"]="Task12_s9_beverage_negotiation"
-TASK_SCRIPTS["Task13"]="Task13_s10_business_acquisition_negotiation"
+TASK_SCRIPTS["Task13"]="Task13_s10_food_color_negotiation"
+TASK_SCRIPTS["Task14"]="Task14_s11_taxi_1"
+TASK_SCRIPTS["Task15"]="Task15_s12_taxi_2"
+TASK_SCRIPTS["Task16"]="Task16_s13_taxi_3"
+TASK_SCRIPTS["Task17"]="Task17_s14_taxi_4"
+TASK_SCRIPTS["Task18"]="Task18_s15_taxi_5"
+TASK_SCRIPTS["Task19"]="Task19_s16_food_delivery_1"
+TASK_SCRIPTS["Task20"]="Task20_s17_food_delivery_2"
+TASK_SCRIPTS["Task21"]="Task21_s18_food_delivery_3"
+TASK_SCRIPTS["Task22"]="Task22_s19_food_delivery_4"
+TASK_SCRIPTS["Task23"]="Task23_s20_food_delivery_5"
+TASK_SCRIPTS["Task24"]="Task24_s21_rent_house_1"
+TASK_SCRIPTS["Task25"]="Task25_s22_rent_house_2"
+TASK_SCRIPTS["Task26"]="Task26_s23_rent_house_3"
+TASK_SCRIPTS["Task27"]="Task27_s24_rent_house_4"
+TASK_SCRIPTS["Task28"]="Task28_s25_rent_house_5"
 
-# Determine which tasks to run
+# Discover all runnable Task*.py scripts in this directory (excludes *example* variants)
+discover_all_task_scripts() {
+    local -a found=()
+    local f base
+    local -a task_files=()
+    shopt -s nullglob
+    task_files=("$SCRIPT_DIR"/Task*.py)
+    shopt -u nullglob
+    for f in "${task_files[@]}"; do
+        [ -f "$f" ] || continue
+        base=$(basename "$f" .py)
+        # Skip Task1 api/sglang/vllm example entrypoints and any other *example* scripts
+        [[ "$base" == *example* ]] && continue
+        found+=("$base")
+    done
+    if [ ${#found[@]} -eq 0 ]; then
+        return
+    fi
+    # Sort by Task number (Task2 before Task10, etc.)
+    mapfile -t _DISCOVERED_TASKS < <(printf '%s\n' "${found[@]}" | sort -V)
+}
+
+# Build TASKS_TO_RUN: list of script stems (no .py)
 if [ ${#TASKS[@]} -eq 0 ]; then
-    # If TASKS is empty, run all available tasks
-    echo "TASKS list is empty. Running all available tasks..."
-    TASKS_TO_RUN=("Task1" "Task2" "Task3" "Task4" "Task5" "Task6" "Task7" "Task8" "Task9" "Task10" "Task11" "Task12" "Task13")
+    echo "TASKS list is empty. Auto-discovering all Task scripts in this directory..."
+    discover_all_task_scripts
+    TASKS_TO_RUN=("${_DISCOVERED_TASKS[@]}")
+    unset _DISCOVERED_TASKS
+    if [ ${#TASKS_TO_RUN[@]} -eq 0 ]; then
+        echo "Error: no Task*.py scripts found in $SCRIPT_DIR" >&2
+        exit 1
+    fi
 else
-    # Use the specified task list
-    TASKS_TO_RUN=("${TASKS[@]}")
+    TASKS_TO_RUN=()
+    for task_key in "${TASKS[@]}"; do
+        script_name="${TASK_SCRIPTS[$task_key]}"
+        if [ -n "$script_name" ]; then
+            TASKS_TO_RUN+=("$script_name")
+        elif [ -f "$SCRIPT_DIR/${task_key}.py" ]; then
+            # Allow passing full script stem, e.g. Task14_s11_taxi_1
+            TASKS_TO_RUN+=("$task_key")
+        else
+            echo "Warning: Unknown task '$task_key' (not in TASK_SCRIPTS and no ${task_key}.py), skipping..." >&2
+        fi
+    done
+    if [ ${#TASKS_TO_RUN[@]} -eq 0 ]; then
+        echo "Error: no valid tasks to run after resolving TASKS." >&2
+        exit 1
+    fi
 fi
 
 echo "Tasks to run: ${#TASKS_TO_RUN[@]}"
-for task_name in "${TASKS_TO_RUN[@]}"; do
-    echo "  - $task_name"
+for script_name in "${TASKS_TO_RUN[@]}"; do
+    echo "  - $script_name"
 done
 echo ""
 
@@ -105,17 +189,10 @@ if [ ${#MODELS[@]} -eq 0 ]; then
     TEMP_LOG=$(mktemp)
     
     # Run each task with tee to capture output
-    for task_name in "${TASKS_TO_RUN[@]}"; do
-        script_name="${TASK_SCRIPTS[$task_name]}"
-        
-        if [ -z "$script_name" ]; then
-            echo "Warning: Unknown task '$task_name', skipping..."
-            continue
-        fi
-        
+    for script_name in "${TASKS_TO_RUN[@]}"; do
         if [ -f "${script_name}.py" ]; then
             echo ""
-            echo "Running ${task_name}..."
+            echo "Running ${script_name}..."
             python "${script_name}.py" 2>&1 | tee "$TEMP_LOG"
         else
             echo "Warning: ${script_name}.py not found, skipping..."
@@ -137,21 +214,14 @@ else
         # Create temporary log file for this model's tasks
         TEMP_LOG=$(mktemp)
         
-        for task_name in "${TASKS_TO_RUN[@]}"; do
-            script_name="${TASK_SCRIPTS[$task_name]}"
-            
-            if [ -z "$script_name" ]; then
-                echo "Warning: Unknown task '$task_name', skipping..."
-                continue
-            fi
-            
+        for script_name in "${TASKS_TO_RUN[@]}"; do
             if [ -f "${script_name}.py" ]; then
                 echo ""
-                echo "Running ${task_name} (model: $model)..."
+                echo "Running ${script_name} (model: $model)..."
                 python "${script_name}.py" --model "$model" 2>&1 | tee "$TEMP_LOG"
-                save_run_history "$TEMP_LOG" "$model" "$task_name"
+                save_run_history "$TEMP_LOG" "$model" "$script_name"
             else
-                echo "Warning: ${script_name}.py not found, skipping ${task_name}..."
+                echo "Warning: ${script_name}.py not found, skipping..."
             fi
         done
         

@@ -75,9 +75,9 @@ def main(model_name=None):
 
     print("Creating agents...")
     # Prices are TOTAL for both line items (confidential to each party)
-    buyer_max_price = 31.90
-    seller1_min_price = 28.70
-    seller2_min_price = 30.20
+    buyer_max_price = 25.04
+    seller1_min_price = 22.27
+    seller2_min_price = 19.84
 
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -104,7 +104,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = "Price-sensitive rider comparing two driver options for the same NYC route. Prioritizes a transparent all-in final fare with no hidden fees."
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = "West Village to Sutton Place—best all-in total for the ride and mandatory fees?"

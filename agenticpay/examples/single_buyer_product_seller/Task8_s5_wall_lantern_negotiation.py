@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 5: Sea Gull Wall Lantern - buyer_max_price: $58 (wants discount), seller_min_price: $45 (cost basis)
-    buyer_max_price = 58.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 45.0  # Minimum acceptable selling price for seller (confidential)
+    # Scenario 5: Sea Gull Wall Lantern — public list reference (original_price $61.17); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 47.50  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 38.50  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -115,7 +115,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "4 days",
-            "availability_status": "Only 7 left in stock - order soon."
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -138,7 +137,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Homeowner looking to enhance outdoor lighting. Values quality fixtures, UL listing for wet locations, and dimmable options. Prefers traditional style that complements classical home designs."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm looking for a Sea Gull Lighting Wynfield outdoor wall lantern. Prefer clear beveled glass, black finish, one-light for porch or patio. Need UL listed for wet locations and dimmable."
@@ -160,8 +159,6 @@ def main(model_name=None):
             "brand": "Visit the Sea Gull Lighting Store",
             "model": "85200-12",
             "original_price": 61.17,
-            "availability_quantity": 7,
-            "availability_status": "Only 7 left in stock - order soon.",
             "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Outdoor Lighting › Porch & Patio Lights › Wall Lights",
             "average_rating": 4.4,
             "total_reviews": 11,

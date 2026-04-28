@@ -102,10 +102,10 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    # Same ride (route): buyer_max_price from historical total; each seller has a different confidential floor
-    buyer_max_price = 20.58   # Maximum acceptable total fare for buyer (confidential)
-    seller1_min_price = 17.38  # Seller 1 floor (confidential; lower cost / willing to go lower)
-    seller2_min_price = 18.88  # Seller 2 floor (confidential; higher than seller 1)
+    # Same ride (route): reservation prices are below opening asks; calibrated vs initial_seller1 opening anchor
+    buyer_max_price = 20.15   # Maximum acceptable total fare for buyer (confidential; below opening-anchor reference)
+    seller1_min_price = 18.15  # Seller 1 floor (confidential; higher reservation than seller 2)
+    seller2_min_price = 16.17  # Seller 2 floor (confidential; lower cost / willing to go lower)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -120,9 +120,9 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=26.00,  # Opening ask — same ride, different offer
         initial_seller2_price=28.00,  # Opening ask — same ride, different offer
-        buyer_max_price=buyer_max_price,    # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer_max_price=buyer_max_price,    # Buyer max willing to pay (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable price (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable price (confidential)
         environment_info={
             "platform": "NYC Street Hail / Ride Apps",
             "market_type": "B2C",
@@ -133,7 +133,7 @@ def main(model_name=None):
     )
     
     # User profile (preferences only; no seller identity — sellers differ only in negotiation/pricing)
-    user_profile = "Wants a fair all-in fare on this route; open to comparing offers for the same ride."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement

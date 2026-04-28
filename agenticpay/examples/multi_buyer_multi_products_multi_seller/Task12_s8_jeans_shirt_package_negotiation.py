@@ -120,10 +120,10 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total price for both products (Jeans + Shirt)
     print("Creating agents...")
-    buyer1_max_price = 30.0  # Maximum acceptable total price for buyer1 (confidential, Jeans + Shirt package)
-    buyer2_max_price = 32.0  # Maximum acceptable total price for buyer2 (confidential)
-    seller1_min_price = 26.0  # Minimum acceptable total selling price for seller1 (confidential)
-    seller2_min_price = 24.0  # Minimum acceptable total selling price for seller2 (confidential)
+    buyer1_max_price = 25.55  # Maximum acceptable total price for buyer1 (confidential, Jeans + Shirt package)
+    buyer2_max_price = 27.69  # Maximum acceptable total price for buyer2 (confidential)
+    seller1_min_price = 23.72  # Minimum acceptable total selling price for seller1 (confidential)
+    seller2_min_price = 21.24  # Minimum acceptable total selling price for seller2 (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -148,15 +148,12 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "note": "Multiple third-party offers for the same two-SKU cart; prices are bundle totals.",
-            "availability_status": "In Stock",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers want the same jeans + graphic tee set; listing has no per-seller identity; they compare cart totals."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products (Product 1 from Task11 example, Product 2 from sampled_products2.jsonl sample 8)
@@ -172,7 +169,6 @@ def main(model_name=None):
                 "condition": "New",
                 "material": "75% Cotton, 20% Polyester, 5% Spandex",
                 "sizes": ["Small", "Medium", "Large", "X-Large", "XX-Large"],
-                "availability_status": "In Stock",
                 "product_category": "Clothing, Shoes & Jewelry › Women › Clothing › Jeans",
                 "asin": "B09PBNZLNT",
                 "full_description": "Made of soft and stretchy denim cotton fabric, breathable to wear. Comfortable and versatile for casual, school, office, shopping. Button closure. Machine washable.",
@@ -186,7 +182,6 @@ def main(model_name=None):
                 "condition": "New",
                 "material": "Stretch 60% cotton 40%, made of superior quality modal fiber, ultra light-weight, soft & smooth",
                 "sizes": ["Medium", "Large", "X-Large", "XX-Large", "3X-Large"],
-                "availability_status": "In Stock",
                 "product_category": "Clothing, Shoes & Jewelry › Men › Clothing › Shirts › Henleys",
                 "asin": "B09NNMV9LN",
                 "full_description": "Gender: Men Material: Polyester, Fleece, Faux Leather Pattern Type: Printed Style: Casual Fashion, Athletics Fit Type: Standard Closure Type: Elastic What you get: 1 PC Man T-shirt tops. Stretch 60% cotton 40%. Short/long sleeve button down tshirts, big and tall tees, graphic print tops. Great for beach, work, Halloween, Christmas, loungewear, casual look, daily, dating, school, party, holiday, gym workout, running, training, jogging.",

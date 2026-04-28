@@ -82,9 +82,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer_max_price = 67.0
-    seller1_min_price = 55.0
-    seller2_min_price = 58.0
+    buyer_max_price = 53.58
+    seller1_min_price = 47.64
+    seller2_min_price = 42.45
 
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -111,7 +111,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = "Home baker and host—wants AmeriMist lemon yellow for decorating and a smoked sausage & cheese gift pack—cares about total price, not seller name."
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = "I want the AmeriMist lemon yellow airbrush food color and The Smokehouse sausage & cheese gift pack—best total for both?"
@@ -130,7 +130,6 @@ def main(model_name=None):
                 "size": "0.65 oz",
                 "price": 6.25,
                 "original_price": 6.25,
-                "availability_status": "In Stock.",
                 "product_category": "Grocery & Gourmet Food › Pantry Staples › Cooking & Baking › Food Coloring",
                 "average_rating": 5.0,
                 "total_reviews": 1,
@@ -144,7 +143,6 @@ def main(model_name=None):
                 "brand": "Burgers' Smokehouse",
                 "price": 62.00,
                 "original_price": 62.00,
-                "availability_status": "In stock. Usually ships within 4 to 5 days.",
                 "product_category": "Grocery & Gourmet Food › Food & Beverage Gifts › Meat & Seafood Gifts",
                 "average_rating": 5,
                 "total_reviews": 1,

@@ -129,9 +129,9 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # Scenario: Maybelline Eyeshadow - one seller, two buyers on Amazon
     print("Creating agents...")
-    buyer1_max_price = 6.50  # Maximum acceptable purchase price for buyer1 (confidential)
-    buyer2_max_price = 6.30  # Maximum acceptable purchase price for buyer2 (confidential, slightly lower)
-    seller_min_price = 5.00  # Minimum acceptable selling price for seller (confidential)
+    buyer1_max_price = 5.99  # Maximum acceptable purchase price for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 6.37  # Maximum acceptable purchase price for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 5.11  # Minimum acceptable selling price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -152,14 +152,13 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "3 days",
-            "availability_status": "Only 5 left in stock - order soon.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Beauty-conscious user who researches product reviews before buying. Cares about brand quality and value for money. Prefers to buy from sellers with good ratings and reasonable prices."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -184,8 +183,6 @@ def main(model_name=None):
             "shade": "130s Turquoise Glass Perfect Pastels",
             "size": "0.09 Ounce",
             "original_price": 7.98,
-            "availability_quantity": 5,
-            "availability_status": "Only 5 left in stock - order soon.",
             "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
             "average_rating": 4.2,
             "total_reviews": 54,

@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 13: LaGuardia Airport -> East Chelsea sample trip.
-    buyer_max_price = 67.81  # Maximum acceptable total fare for buyer (confidential)
-    seller_min_price = 64.61  # Minimum acceptable total fare for seller (confidential)
+    # Scenario 13: LaGuardia -> East Chelsea — public opening quote (initial_seller_price $75.00); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 60.00  # Maximum acceptable total fare for buyer (confidential)
+    seller_min_price = 50.00  # Minimum acceptable total fare for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -138,7 +138,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Price-sensitive rider who believes short trips should be cheap. Focuses on total out-of-pocket cost and dislikes hidden fees."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement

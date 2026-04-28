@@ -82,9 +82,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer_max_price = 51.0
-    seller1_min_price = 43.0
-    seller2_min_price = 45.0
+    buyer_max_price = 40.78
+    seller1_min_price = 36.26
+    seller2_min_price = 32.31
 
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -111,7 +111,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = "Hosts small gatherings and likes indoor plants—wants organic sparkling elderflower rose and a 6-pack of tillandsia—cares about total price, not seller name."
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = "I want the Belvoir sparkling elderflower rose (24-pack case) and the CTS assorted tillandsia air plants 6-pack—lowest total for both?"
@@ -129,7 +129,6 @@ def main(model_name=None):
                 "size": "8.4 Fl Oz, 24 per case",
                 "price": 32.0,
                 "original_price": 32.0,
-                "availability_status": "In Stock",
                 "product_category": "Grocery › Beverages",
                 "average_rating": 4.9,
                 "total_reviews": 13,
@@ -143,7 +142,6 @@ def main(model_name=None):
                 "brand": "CTS Air Plants",
                 "price": 19.95,
                 "original_price": 19.95,
-                "availability_status": "In Stock.",
                 "product_category": "Patio, Lawn & Garden › Gardening & Lawn Care › Plants, Seeds & Bulbs › Cacti & Succulents",
                 "average_rating": 4.7,
                 "total_reviews": 25,

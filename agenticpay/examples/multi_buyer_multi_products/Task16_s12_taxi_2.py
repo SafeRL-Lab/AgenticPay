@@ -113,11 +113,11 @@ def main(model_name=None):
     model = OpenAIVLM(model=model_name, api_key=api_key)
     print(f"✓ Successfully initialized: {model}")
 
-    # Reference bundle ~$20.58; buyers' caps and this seller's floor are for the pair total (same trip for all).
+    # Public reference fare total ~$20.58 (sum of advertised line-item components). Negotiation bounds below that reference (confidential).
     print("Creating agents...")
-    buyer1_max_price = 20.58
-    buyer2_max_price = 21.78
-    seller_min_price = 17.38
+    buyer1_max_price = 15.44  # Maximum acceptable all-in fare total for buyer1 (confidential)
+    buyer2_max_price = 16.87  # Maximum acceptable all-in fare total for buyer2 (confidential)
+    seller_min_price = 13.71  # Minimum acceptable all-in total for seller (confidential)
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -147,9 +147,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Rider who wants one transparent all-in number; compares quotes; cares about no hidden surcharges."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     product_info = {

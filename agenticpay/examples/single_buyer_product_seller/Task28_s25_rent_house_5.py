@@ -6,8 +6,7 @@ Tests agent's ability to negotiate monthly rent and lease terms for a premium wh
 
 Listing copy, host, review counts, and image URL are aligned with the fifth record in
 ``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 22123688).
-Monthly rent negotiation parameters are set for a plausible long-term lease framing (premium tier vs. standard apartments), with
-``seller_min_price < buyer_max_price`` so the parties have an overlapping acceptable range.
+Confidential reservation prices are strictly below the listing ``original_price`` anchor: ``seller_min_price < buyer_max_price < original_price`` (premium long-term framing in copy; true deal band remains lower than the public monthly anchor).
 """
 
 import os
@@ -100,8 +99,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     # Scenario 25: Rent House — monthly rent negotiation (Newport NSW beach house villa; Airbnb sample 22123688).
-    buyer_max_price = 10200.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
-    seller_min_price = 8800.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
+    buyer_max_price = 7640.0  # Maximum acceptable monthly rent for tenant/buyer (confidential); below listing original_price
+    seller_min_price = 6400.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -119,7 +118,7 @@ def main(model_name=None):
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",
-            "availability_status": "Available in two weeks.",
+            # "availability_status": "Available in two weeks.",
             "listing_age": "Listing ID 22123688 (sample scrape 2019-03-07)"
         },
         price_tolerance=price_tolerance,
@@ -143,7 +142,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Extended family planning a longer Sydney coastal stay who wants space, parking, and a contemporary beach house layout. Budget is high but wants the monthly number aligned with comps and listing condition."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "We're considering the Bungan Beach House on Airbnb (Newport area). Please negotiate the monthly rent for an extended stay and clarify beach access, parking, and house rules."
@@ -166,7 +165,7 @@ def main(model_name=None):
             "color": "N/A",
             "size": "Entire home · 4 bedrooms · 4 baths · Villa",
             "original_price": 9550.0,
-            "availability_status": "Available in two weeks.",
+            # "availability_status": "Available in two weeks.",
             "product_category": "Real Estate › Rentals › Houses › Villa (Airbnb listing 22123688)",
             "average_rating": 0.0,
             "total_reviews": 0,

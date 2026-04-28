@@ -102,9 +102,10 @@ def main(model_name=None):
     
     # Same property from two offers: each seller has a different confidential floor monthly rent
     print("Creating agents...")
-    buyer_max_price = 1350.0  # Max acceptable monthly rent (confidential)
-    seller1_min_price = 1260.0  # Seller 1 floor (confidential; lower)
-    seller2_min_price = 1280.0  # Seller 2 floor (confidential; higher than seller 1)
+    # Confidential band vs listing reference (1395): across scenarios s21→s25, seller floors (as % of quoted) decrease and buyer ceiling increases
+    buyer_max_price = 1070.0  # Max acceptable monthly rent (confidential — lowest buyer cap among s21–s25 suite)
+    seller1_min_price = 894.0  # Seller 1 floor (confidential — highest Seller1 floor among s21–s25)
+    seller2_min_price = 958.0  # Seller 2 floor (confidential — highest Seller2 floor among s21–s25)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -162,7 +163,6 @@ def main(model_name=None):
             "condition": "Move-in ready",
             "size": "Studio · 1 bath · entire home/apt",
             "original_price": 1395.0,
-            "availability_quantity": 1,
             "availability_status": "Available now.",
             "product_category": "Real Estate › Rentals › Apartments › Studio",
             "average_rating": 4.95,
@@ -428,7 +428,6 @@ def main(model_name=None):
                     "condition": "Move-in ready",
                     "size": "Studio · 1 bath · entire home/apt",
                     "original_price": 1395.0,
-                    "availability_quantity": 1,
                     "availability_status": "Available now.",
                     "product_category": "Real Estate › Rentals › Apartments › Studio",
                     "average_rating": 4.95,

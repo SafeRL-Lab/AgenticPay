@@ -124,10 +124,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # BFWood hair brush: pricing $6.48
-    buyer1_max_price = 6.2  # Maximum acceptable purchase price for buyer1 (confidential)
-    buyer2_max_price = 5.8  # Maximum acceptable purchase price for buyer2 (confidential, slightly lower than buyer1)
-    seller_min_price = 4.0  # Minimum acceptable selling price for seller (confidential)
+    buyer1_max_price = 4.86  # Maximum acceptable purchase price for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 5.24  # Maximum acceptable purchase price for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 4.21  # Minimum acceptable selling price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -147,14 +146,13 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Hair care conscious buyer interested in natural wooden brushes. Values quality materials like beech bristles and black walnut. Prefers products with good reviews for scalp massage and hair health."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -176,7 +174,6 @@ def main(model_name=None):
             "condition": "New",
             "brand": "Visit the BFWood Store",
             "original_price": 6.48,
-            "availability_status": "In Stock.",
             "product_category": "Beauty & Personal Care › Hair Care › Styling Tools & Appliances › Hair Brushes",
             "average_rating": 4.5,
             "total_reviews": 1652,

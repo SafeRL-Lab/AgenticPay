@@ -87,8 +87,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 50.0  # Maximum acceptable total purchase price for buyer (confidential) - Beverage ~$35 + Air Plants ~$20
-    seller_min_price = 42.0  # Minimum acceptable total selling price for seller (confidential) - Beverage ~$24 + Air Plants ~$15
+    buyer_max_price = 40.56  # Maximum acceptable total purchase price for buyer (confidential; below opening bundle reference)
+    seller_min_price = 33.80  # Minimum acceptable total selling price for seller (confidential)
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -105,13 +105,12 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
         },
         price_tolerance=price_tolerance,
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Health-conscious consumer who prefers organic beverages. Likes elderflower and floral flavors. Plant enthusiast looking for air plants for home decor. Often buys in bulk for gatherings. Prefers medium-sized tillandsia for orbs and terrariums. Values variety, healthy plants, and good reviews."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products with their individual prices (from Task12 beverage example + sampled_products2.jsonl line 9)
@@ -126,7 +125,6 @@ def main(model_name=None):
                 "brand": "Belvoir",
                 "size": "8.4 Fl Oz, 24 per case",
                 "original_price": 32.0,
-                "availability_status": "In Stock",
                 "product_category": "Grocery › Beverages",
                 "average_rating": 4.9,
                 "total_reviews": 13,
@@ -139,7 +137,6 @@ def main(model_name=None):
                 "price": 19.95,
                 "condition": "New",
                 "brand": "Visit the CTS Air Plants Store",
-                "availability_status": "In Stock.",
                 "product_category": "Patio, Lawn & Garden › Gardening & Lawn Care › Plants, Seeds & Bulbs › Cacti & Succulents",
                 "average_rating": 4.7,
                 "total_reviews": 25,

@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 7: Men's Flip Flops - buyer_max_price: $17 (wants discount), seller_min_price: $12 (cost basis)
-    buyer_max_price = 15.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 10.0  # Minimum acceptable selling price for seller (confidential)
+    # Scenario 7: Men's Flip Flops — public list reference (original_price $17.99); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 14.00  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 11.20  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -115,7 +115,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "2 days",
-            "availability_status": "In stock. Usually ships within 3 to 4 days."
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -138,7 +137,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Man looking for comfortable summer footwear. Values arch support, antiskid comfort, and durability. Prefers cloth upper to avoid blisters. Uses for beach, pool, and casual wear."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm looking for men's flip flops, size 44, black color. Prefer cloth upper for comfort, arch support, and antiskid sole. For beach and pool use."
@@ -161,7 +160,6 @@ def main(model_name=None):
             "size": "44",
             "color": "R011 Black",
             "original_price": 17.99,
-            "availability_status": "In stock. Usually ships within 3 to 4 days.",
             "product_category": "Clothing, Shoes & Jewelry › Men › Shoes › Sandals",
             "average_rating": 4.0,
             "total_reviews": 0,

@@ -106,10 +106,10 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer1_max_price = 20.58
-    buyer2_max_price = 20.38
-    seller1_min_price = 17.38
-    seller2_min_price = 18.88
+    buyer1_max_price = 15.52  # Maximum acceptable all-in total for Buyer 1 (confidential; below reference-total anchor)
+    buyer2_max_price = 16.79  # Maximum acceptable all-in total for Buyer 2 (confidential; below reference-total anchor)
+    seller1_min_price = 14.39  # Minimum acceptable all-in total for Seller 1 (confidential; below reference-total anchor)
+    seller2_min_price = 12.86  # Minimum acceptable all-in total for Seller 2 (confidential; below reference-total anchor)
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -132,15 +132,12 @@ def main(model_name=None):
         environment_info={
             "platform": "NYC Street Hail / Ride Apps",
             "market_type": "B2C",
-            "note": "Multiple third-party offers exist for the same route and service.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Two riders want a fair all-in fare on this route; both open to comparing offers for the same ride."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
 
     user_requirement = 'One yellow cab from Union Square to Lenox Hill West, all-in flat fare.'

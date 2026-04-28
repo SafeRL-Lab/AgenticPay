@@ -2,7 +2,7 @@
 
 One landlord negotiating with two prospective tenants for the same listing. Product info matches
 ``single_buyer_product_seller/Task25_s22_rent_house_2`` (Airbnb sample ``_id`` 23160633 in
-``airbnb_embeddings_sample10.jsonl``). Monthly rent; overlapping acceptable range for both tenants.
+``airbnb_embeddings_sample10.jsonl``). Monthly rent; confidential band below listing reference with overlapping range for both tenants.
 Category: Real Estate
 """
 
@@ -124,9 +124,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 1650.0  # Max acceptable monthly rent for tenant 1 (confidential; aligned with single-buyer Task25)
-    buyer2_max_price = 1620.0  # Max acceptable monthly rent for tenant 2 (confidential)
-    seller_min_price = 1500.0  # Min acceptable monthly rent for landlord (confidential); < both buyer_max
+    buyer1_max_price = 1189.0  # Buyer 1 — lower confidential ceiling than Buyer 2 (stricter budget)
+    buyer2_max_price = 1280.0  # Buyer 2 — higher confidential ceiling than Buyer 1
+    seller_min_price = 1062.0  # Landlord reservation (sm/q below s21, above s23–s25); < both buyer_max < listing reference
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -154,10 +154,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = (
-        "Two remote-friendly tenants competing for the same Barcelona listing; both want central walkability "
-        "(Universitat / Sant Antoni), a room with a balcony, clear monthly rent, shared-space expectations, and move-in timing."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement

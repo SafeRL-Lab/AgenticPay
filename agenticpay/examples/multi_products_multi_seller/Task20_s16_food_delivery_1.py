@@ -89,9 +89,9 @@ def main(model_name=None):
     
     # Agents: prices are TOTAL for the two-item bundle (all-in delivered; confidential to each party)
     print("Creating agents...")
-    buyer_max_price = 30.0
-    seller1_min_price = 25.0
-    seller2_min_price = 24.0
+    buyer_max_price = 21.93
+    seller1_min_price = 19.50
+    seller2_min_price = 17.37
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -120,7 +120,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Office worker ordering dinner after a long day. Prefers flavorful fried chicken options and compares final checkout totals including delivery and service fees."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     # Get user requirement
     # Use default requirement for automatic running

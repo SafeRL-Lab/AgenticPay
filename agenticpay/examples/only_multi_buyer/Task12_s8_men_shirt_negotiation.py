@@ -123,9 +123,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 10.0  # Maximum acceptable price for buyer1 (confidential) - JSPOYOU Men's Shirt
-    buyer2_max_price = 9.5  # Maximum acceptable price for buyer2 (confidential, different from buyer1)
-    seller_min_price = 6.0  # Minimum acceptable price for seller (confidential) - JSPOYOU Men's Shirt
+    buyer1_max_price = 8.25  # Maximum acceptable price for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 8.78  # Maximum acceptable price for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 7.03  # Minimum acceptable price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -145,14 +145,13 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Man looking for comfortable casual men's shirt. Prefers stretch cotton blend, graphic print or tie-dye style. Uses for beach, gym, casual wear. Values good fit and value for money."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -175,7 +174,6 @@ def main(model_name=None):
             "condition": "New",
             "brand": "Brand: JSPOYOU",
             "original_price": 10.99,
-            "availability_status": "In Stock",
             "product_category": "Clothing, Shoes & Jewelry › Men › Clothing › Shirts › Henleys",
             "asin": "B09NNMV9LN",
             "full_description": "Gender: Men Material: Polyester, Fleece, Faux Leather Pattern Type: Printed Style: Casual Fashion, Athletics Fit Type: Standard Closure Type: Elastic. Stretch 60% cotton 40%, made of superior quality modal fiber, ultra light-weight, soft & smooth. Short/long sleeve button down tshirts, big and tall tees, graphic print tops. 2021 Stylish and modern unique design. Great for beach, work, Halloween, Christmas, loungewear, casual look, daily, dating, school, gym workout, running, training, jogging.",

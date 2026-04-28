@@ -123,9 +123,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 22.0  # Maximum acceptable price for buyer1 (confidential) - Marvel T-Shirt
-    buyer2_max_price = 21.0  # Maximum acceptable price for buyer2 (confidential, different from buyer1)
-    seller_min_price = 15.0  # Minimum acceptable selling price for seller (confidential) - Marvel T-Shirt
+    buyer1_max_price = 17.25  # Maximum acceptable price for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 18.84  # Maximum acceptable price for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 15.17  # Minimum acceptable selling price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -152,7 +152,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Marvel fan looking for officially licensed Avengers apparel. Prefers black color, men's fit. Budget-conscious, values quality and authenticity."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -174,7 +174,6 @@ def main(model_name=None):
             "condition": "New",
             "brand": "Brand: Marvel",
             "original_price": 22.99,
-            "availability_status": "In Stock.",
             "product_category": "Clothing, Shoes & Jewelry › Novelty & More › Clothing › Novelty › Women › Tops & Tees › T-Shirts",
             "average_rating": 5,
             "total_reviews": 2,

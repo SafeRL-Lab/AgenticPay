@@ -123,9 +123,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 13.10  # Maximum acceptable all-in order total for buyer1 (confidential)
-    buyer2_max_price = 12.80  # Maximum acceptable all-in order total for buyer2 (confidential)
-    seller_min_price = 11.70  # Minimum acceptable all-in order total for seller (confidential)
+    buyer1_max_price = 10.11  # Maximum acceptable all-in order total for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 11.04  # Maximum acceptable all-in order total for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 8.90  # Minimum acceptable all-in order total for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -162,7 +162,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Late-night diner who likes loaded fries and comfort food. Focuses on final checkout amount and prefers transparent all-in pricing that includes delivery-related fees."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement

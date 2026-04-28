@@ -2,7 +2,8 @@
 
 One landlord negotiating with two prospective tenants for a furnished studio rental. Listing data aligned with the first record in
 ``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 13183672, East Village Living, host Erica).
-Monthly rent negotiation; ``seller_min_price`` is below both buyers' ``buyer_max_price`` so a deal zone exists.
+Monthly rent negotiation; confidential reservation prices sit below the listing reference (``original_price``) while keeping
+``seller_min_price`` < both ``buyer_max_price`` < reference so a non-trivial deal zone exists.
 Category: Real Estate
 """
 
@@ -124,9 +125,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 1350.0  # Max acceptable monthly rent for tenant 1 (confidential)
-    buyer2_max_price = 1330.0  # Max acceptable monthly rent for tenant 2 (confidential)
-    seller_min_price = 1260.0  # Min acceptable monthly rent for landlord (confidential); < both buyer_max
+    buyer1_max_price = 1082.0  # Buyer 1 — lower confidential ceiling than Buyer 2 (stricter budget)
+    buyer2_max_price = 1130.0  # Buyer 2 — higher confidential ceiling than Buyer 1
+    seller_min_price = 970.0  # Landlord reservation (highest sm/q among s21–s25); < both buyer_max < listing reference
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -154,7 +155,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Remote worker moving to Manhattan who wants a walkable East Village base and predictable monthly rent. Cares about cleanliness, host communication, and lease clarity."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement

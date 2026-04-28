@@ -118,12 +118,12 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # Prices represent total for both products: Food Color ($6.25) + Smokehouse Treat ($62) = ~$68
+    # Reference totals come from product_info list prices; reservation prices are confidential (below reference).
     print("Creating agents...")
-    buyer1_max_price = 62.0  # Maximum acceptable total price for buyer1 (confidential)
-    buyer2_max_price = 64.0  # Maximum acceptable total price for buyer2 (confidential)
-    seller1_min_price = 58.0  # Minimum acceptable total selling price for seller1 (confidential)
-    seller2_min_price = 55.0  # Minimum acceptable total selling price for seller2 (confidential)
+    buyer1_max_price = 51.32  # Maximum acceptable total price for buyer1 (confidential)
+    buyer2_max_price = 55.62  # Maximum acceptable total price for buyer2 (confidential)
+    seller1_min_price = 47.64  # Minimum acceptable total selling price for seller1 (confidential)
+    seller2_min_price = 42.66  # Minimum acceptable total selling price for seller2 (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -146,7 +146,6 @@ def main(model_name=None):
         seller2_min_price=seller2_min_price,  # Seller2 total min price (confidential)
         environment_info={
             "platform": "Amazon",
-            "availability_status": "In Stock.",
             "market_type": "B2C",
             "note": "Multiple third-party offers for the same two-SKU cart; prices are bundle totals.",
             "category": "Grocery & Gourmet Food",
@@ -155,9 +154,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = (
-        "Two buyers want food color + smokehouse gift pack; same two SKUs, no per-seller identity; compare cart totals."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products: Product 1 from Task13_s10_food_color (example), Product 2 from sampled_products2.jsonl line 10
@@ -174,7 +171,6 @@ def main(model_name=None):
                 "color": "Lemon Yellow",
                 "size": "0.65 oz",
                 "original_price": 6.25,
-                "availability_status": "In Stock.",
                 "product_category": "Grocery & Gourmet Food › Pantry Staples › Cooking & Baking › Food Coloring",
                 "average_rating": 5.0,
                 "total_reviews": 1,
@@ -188,7 +184,6 @@ def main(model_name=None):
                 "price": 62.0,
                 "list_price": 62.0,
                 "original_price": 62.0,
-                "availability_status": "In stock. Usually ships within 4 to 5 days.",
                 "product_category": "Grocery & Gourmet Food › Food & Beverage Gifts › Meat & Seafood Gifts",
                 "average_rating": 5,
                 "total_reviews": 1,

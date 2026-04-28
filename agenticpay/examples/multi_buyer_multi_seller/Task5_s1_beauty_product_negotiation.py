@@ -118,10 +118,10 @@ def main(model_name=None):
     
     # Same product (SKU) from two listings: each seller has a different confidential floor
     print("Creating agents...")
-    buyer1_max_price = 6.50  # Buyer 1 max willingness to pay (confidential)
-    buyer2_max_price = 6.30  # Buyer 2 max willingness to pay (confidential; lower than buyer 1)
-    seller1_min_price = 4.90  # Seller 1 floor (confidential; lower cost)
-    seller2_min_price = 5.45  # Seller 2 floor (confidential; higher than seller 1)
+    buyer1_max_price = 6.02  # Maximum acceptable for Buyer 1 (confidential; below public list anchor)
+    buyer2_max_price = 6.51  # Maximum acceptable for Buyer 2 (confidential; below public list anchor)
+    seller1_min_price = 5.58  # Minimum acceptable for Seller 1 (confidential; below public list anchor)
+    seller2_min_price = 4.99  # Minimum acceptable for Seller 2 (confidential; below public list anchor)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -145,18 +145,20 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "note": "Multiple third-party offers exist for the same product listing.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
     )
     
     # Preferences only; no seller identity — sellers differ only in negotiation/pricing
-    user_profile = "Two buyers want fair value on brand makeup; both open to comparing offers for the same SKU."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Concise English user query (simulated search / assistant request)
-    user_requirement = "I want to buy the Maybelline Expert Wear single eyeshadow in Turquoise Glass, new."
+    user_requirement = (
+        "I want the listed product only: Maybelline New York Expert Wear eyeshadow singles, "
+        "130s Turquoise Glass Perfect Pastels, 0.09 oz, new—matching the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -176,8 +178,6 @@ def main(model_name=None):
             "shade": "130s Turquoise Glass Perfect Pastels",
             "size": "0.09 Ounce",
             "original_price": 7.98,
-            "availability_quantity": 5,
-            "availability_status": "Only 5 left in stock - order soon.",
             "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
             "average_rating": 4.2,
             "total_reviews": 54,

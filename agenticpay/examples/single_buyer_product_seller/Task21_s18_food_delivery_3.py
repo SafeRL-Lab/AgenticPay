@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 18: Slutty Fries all-in order total includes menu price plus delivery/service fees.
-    buyer_max_price = 13.10  # Maximum acceptable all-in order total for buyer (confidential)
-    seller_min_price = 11.70  # Minimum acceptable all-in order total for seller (confidential)
+    # Scenario 18: Slutty Fries — public all-in reference (quoted_total_price $13.48); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 10.50  # Maximum acceptable all-in order total for buyer (confidential)
+    seller_min_price = 9.10  # Minimum acceptable all-in order total for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -114,7 +114,7 @@ def main(model_name=None):
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "estimated_delivery_time": "20-35 minutes",
             "restaurant_price_range": "$$",
             "restaurant_address": "1731 Westheimer Rd, Houston, TX 77098, USA",
@@ -147,7 +147,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Late-night diner who likes loaded fries and comfort food. Focuses on final checkout amount and prefers transparent all-in pricing that includes delivery-related fees."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I want to order Slutty Fries from BunSlut. Please negotiate based on the full checkout total with delivery and service fees included, since that's what I actually pay."
@@ -176,7 +176,7 @@ def main(model_name=None):
             "delivery_fee": 2.29,
             "service_fee": 1.19,
             "quoted_total_price": 13.48,
-            "availability_status": "Available for delivery.",
+            # "availability_status": "Available for delivery.",
             "product_category": "Food Delivery › Fries › Loaded Fries",
             "average_rating": 4.35,
             "total_reviews": 482,

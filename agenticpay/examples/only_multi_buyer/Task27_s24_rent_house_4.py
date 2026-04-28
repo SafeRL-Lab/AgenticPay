@@ -1,7 +1,7 @@
 """Task27 Scenario 24: Rent House (Bondi Junction / Bondi Beach area) — Sequential Two-Buyer Negotiation
 
 One landlord negotiating with two prospective tenants for a sunny entire apartment. Data aligned with row 3 in
-``airbnb_embeddings_sample10.jsonl`` (``_id`` 16289600).
+``airbnb_embeddings_sample10.jsonl`` (``_id`` 16289600). Confidential rents sit below the listing reference while preserving a workable overlap.
 Category: Real Estate
 """
 
@@ -123,9 +123,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 1660.0  # Max acceptable monthly rent for tenant 1 (confidential)
-    buyer2_max_price = 1620.0  # Max acceptable monthly rent for tenant 2 (confidential)
-    seller_min_price = 1535.0  # Min acceptable monthly rent for landlord (confidential); < both buyer_max
+    buyer1_max_price = 1306.0  # Buyer 1 — lower confidential ceiling than Buyer 2 (stricter budget)
+    buyer2_max_price = 1385.0  # Buyer 2 — higher confidential ceiling than Buyer 1
+    seller_min_price = 1100.0  # Landlord reservation (sm/q below s21–s23); < both buyer_max < listing reference
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -153,7 +153,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Small family relocating to Sydney's east; wants a furnished 2-bed near Bondi Junction with beach access and a firm monthly rent ceiling."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement

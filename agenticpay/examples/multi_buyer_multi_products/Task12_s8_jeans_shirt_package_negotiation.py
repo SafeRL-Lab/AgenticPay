@@ -119,12 +119,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total price for jeans + shirt package
+    # Create Agents (bottom prices confidential). Public bundle list total ~$33.98; negotiation bounds below that reference.
     print("Creating agents...")
-    buyer1_max_price = 30.0  # Maximum acceptable total price for buyer1 (confidential)
-    buyer2_max_price = 32.0  # Maximum acceptable total price for buyer2 (confidential)
-    seller_min_price = 25.0  # Minimum acceptable total price for seller (confidential)
+    buyer1_max_price = 25.49  # Maximum acceptable total price for buyer1 (confidential)
+    buyer2_max_price = 27.62  # Maximum acceptable total price for buyer2 (confidential)
+    seller_min_price = 22.19  # Minimum acceptable total price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -144,7 +143,6 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "availability_status": "In Stock",
             "listing_age": "3 days",
             "bundle_context": (
                 "Several sellers list this exact two-item bundle; offers are for the bundle total. "
@@ -155,9 +153,7 @@ def main(model_name=None):
         reward_weights=reward_weights,
     )
 
-    user_profile = (
-        "Fashion buyer bundling distressed skinny jeans and a casual graphic tee; negotiates one shipped total."
-    )
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Define two products: Product 1 from Task11 (jeans), Product 2 from sampled_products2.jsonl line 8 (JSPOYOU shirt)
@@ -170,7 +166,6 @@ def main(model_name=None):
                 "condition": "New",
                 "material": "75% Cotton, 20% Polyester, 5% Spandex",
                 "sizes": ["Small", "Medium", "Large", "X-Large", "XX-Large"],
-                "availability_status": "In Stock",
                 "product_category": "Clothing, Shoes & Jewelry › Women › Clothing › Jeans",
                 "asin": "B09PBNZLNT",
                 "full_description": "Made of soft and stretchy denim cotton fabric, breathable to wear. Comfortable and versatile for casual, school, office, shopping. Button closure. Machine washable.",

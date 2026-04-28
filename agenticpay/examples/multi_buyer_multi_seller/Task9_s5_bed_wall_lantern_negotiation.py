@@ -1,8 +1,8 @@
-"""Task9 Scenario 5: Wall Lantern & Queen Bed - Sequential Two-Buyer Two-Seller Negotiation (image + text)
+"""Task9 Scenario 5: Outdoor Wall Lantern (two listings) - Sequential Two-Buyer Two-Seller Negotiation (image + text)
 
-Two different SKUs from parallel marketplace offers: product text has no per-offer seller identity; each
+Same Sea Gull Wynfield wall lantern from two marketplace listings; product text has no per-offer seller identity; each
 seller has a different confidential floor. Two buyers each pick one seller per round (structured routing).
-Category: Home & Kitchen
+Category: Home & Kitchen / Tools & Home Improvement
 """
 
 import os
@@ -115,12 +115,12 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Two different listings: each seller has a different confidential floor
+    # Same lantern SKU from two seller listings; each has a different confidential floor
     print("Creating agents...")
-    buyer1_max_price = 62.0
-    buyer2_max_price = 230.0
-    seller1_min_price = 45.0
-    seller2_min_price = 180.0
+    buyer1_max_price = 46.12  # Maximum acceptable for Buyer 1 — listing 1 (confidential; below list anchor)
+    buyer2_max_price = 49.91  # Maximum acceptable for Buyer 2 — listing 2 (confidential; below list anchor)
+    seller1_min_price = 42.76  # Minimum acceptable for Seller 1 (confidential; below list anchor)
+    seller2_min_price = 38.23  # Minimum acceptable for Seller 2 (confidential; below list anchor)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -135,25 +135,27 @@ def main(model_name=None):
         seller1_agent=seller1,
         seller2_agent=seller2,
         max_rounds=max_rounds,
-        initial_seller1_price=61.17,  # Initial price offered by seller1 - Wall Lantern
-        initial_seller2_price=226.20,  # Initial price offered by seller2 - Queen Bed
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        initial_seller1_price=61.17,  # Opening ask — same wall lantern, listing 1
+        initial_seller2_price=65.99,  # Opening ask — same wall lantern, listing 2
+        buyer1_max_price=buyer1_max_price,  # Buyer1 max willingness (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 max willingness (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
-            "note": "Side-by-side offers for two SKUs; listing text has no per-offer seller identity.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
     )
     
-    user_profile = "One buyer is lighting up a porch; the other is furnishing a bedroom—both want fair deals."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I need either a one-light black Wynfield outdoor wall lantern (clear beveled glass, UL wet) or a black-twinkle Hillsdale Cole queen bed frame (assembly required) — new."
+    user_requirement = (
+        "I want the listed product only: Sea Gull Lighting Wynfield one-light outdoor wall lantern, "
+        "clear beveled glass panels, black finish (model 85200-12), new—matching the product card."
+    )
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -167,8 +169,6 @@ def main(model_name=None):
         "brand": "Sea Gull Lighting",
         "model": "85200-12",
         "original_price": 61.17,
-        "availability_quantity": 7,
-        "availability_status": "Only 7 left in stock - order soon.",
         "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Outdoor Lighting › Porch & Patio Lights › Wall Lights",
         "average_rating": 4.4,
         "total_reviews": 11,
@@ -532,7 +532,7 @@ def main(model_name=None):
         output_file = run_dir / "Task9_s5_bed_wall_lantern_output.txt"
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write("="*80 + "\n")
-            f.write("Task9 Scenario 5: Wall Lantern & Queen Bed - Sequential Two-Buyer Two-Seller Negotiation Results (image + text)\n")
+            f.write("Task9 Scenario 5: Outdoor Wall Lantern (two listings) - Sequential Two-Buyer Two-Seller Negotiation Results (image + text)\n")
             f.write("Category: Home & Kitchen\n")
             f.write("="*80 + "\n\n")
             f.write(f"Timestamp: {results['timestamp']}\n")
@@ -597,7 +597,7 @@ def main(model_name=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Task9 Scenario 5: Wall Lantern & Queen Bed - Sequential Two-Buyer Two-Seller Negotiation")
+    parser = argparse.ArgumentParser(description="Task9 Scenario 5: Outdoor Wall Lantern (two listings) - Sequential Two-Buyer Two-Seller Negotiation")
     parser.add_argument(
         "--model",
         type=str,

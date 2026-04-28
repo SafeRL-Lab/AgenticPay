@@ -48,21 +48,25 @@ save_run_history() {
 # Configure the model list to use here
 # If the list is empty, each script will use its default model
 # Example:
-# MODELS=("gpt-5.2" "gemini-3-pro-all" "claude-sonnet-4-5-20250929")
-MODELS=("gpt-5.4")
+# MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "claude-opus-4-7" "Qwen/Qwen2.5-VL-72B-Instruct" "Qwen/Qwen3-VL-32B-Instruct" "internvl3-38b")
+MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "Qwen/Qwen2.5-VL-72B-Instruct" "Qwen/Qwen3-VL-32B-Instruct" "internvl3-38b")
 
 
 # ============================================
 # Configuration: Task List
 # ============================================
-# Configure which tasks to run. Use short names from TASK_SCRIPTS (e.g. "Task10") or
+# Configure which tasks to run. Use short names from TASK_SCRIPTS (e.g. "Task9") or
 # full script stems (e.g. "Task24_s21_rent_house_1") if the .py file exists.
 # If the list is empty, all available Task*.py scripts in this directory are run
 # (excluding *example* files such as Task1_*_example.py).
 # Note: This folder has two Task24* scripts. "Task24" maps to Task24_s20_food_delivery_5; the other
 # must be listed as Task24_s21_rent_house_1.
 #
-# 下面为「最后 20 个」任务（本目录共 29 个 Task*.py，按版本序为 Task10…Task23、两个 Task24*、Task25…Task28）：
+# 下面为「最后 20 个」任务（Task9–Task28），可按需增删或改序：
+# TASKS=(
+#     "Task9"
+# )
+
 TASKS=(
     "Task5"
     "Task6"
@@ -79,7 +83,6 @@ TASKS=(
     "Task22"
     "Task23"
     "Task24"
-    "Task24_s21_rent_house_1"
     "Task25"
     "Task26"
     "Task27"

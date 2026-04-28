@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 6: 4-Tier Bookshelf - buyer_max_price: $35 (wants discount), seller_min_price: $28 (cost basis)
-    buyer_max_price = 35.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 28.0  # Minimum acceptable selling price for seller (confidential)
+    # Scenario 6: 4-Tier Bookshelf — public list reference (original_price $36.94); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 28.00  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 23.20  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -115,7 +115,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "3 days",
-            "availability_status": "In Stock."
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -138,7 +137,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Home office organizer looking for practical storage solutions. Values sturdy construction, easy assembly, and good value. Prefers iron/metal furniture with strong bearing capacity."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm looking for a 4-tier ladder bookshelf or bookcase organizer. Prefer iron construction, black color, with good bearing capacity for books and decorations. Easy to install is a plus."
@@ -159,7 +158,6 @@ def main(model_name=None):
             "condition": "New",
             "brand": "Brand: Kcelarec",
             "original_price": 36.94,
-            "availability_status": "In Stock.",
             "product_category": "Home & Kitchen › Furniture › Home Office Furniture › Bookcases",
             "average_rating": 5.0,
             "total_reviews": 1,

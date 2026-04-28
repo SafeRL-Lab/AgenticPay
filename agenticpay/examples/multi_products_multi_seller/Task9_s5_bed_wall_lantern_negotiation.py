@@ -87,9 +87,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    buyer_max_price = 275.0
-    seller1_min_price = 265.0
-    seller2_min_price = 260.0
+    buyer_max_price = 229.0
+    seller1_min_price = 204.0
+    seller2_min_price = 182.0
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -115,7 +115,7 @@ def main(model_name=None):
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
-    user_profile = "Homeowner furnishing porch lighting and bedroom; wants both the Wynfield lantern and Cole queen bed."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I want the Sea Gull Wynfield wall lantern and the Hillsdale Cole queen bed—what's your best price for both?"
@@ -129,8 +129,6 @@ def main(model_name=None):
                 "condition": "New",
                 "brand": "Sea Gull Lighting",
                 "model": "85200-12",
-                "availability_quantity": 7,
-                "availability_status": "Only 7 left in stock - order soon.",
                 "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Outdoor Lighting › Porch & Patio Lights › Wall Lights",
                 "average_rating": 4.4,
                 "total_reviews": 11,
@@ -144,8 +142,6 @@ def main(model_name=None):
                 "condition": "New",
                 "brand": "Hillsdale Furniture",
                 "model": "1601BQR",
-                "availability_quantity": 2,
-                "availability_status": "Only 2 left in stock - order soon.",
                 "product_category": "Home & Kitchen › Furniture › Bedroom Furniture › Beds, Frames & Bases › Beds",
                 "average_rating": 4.5,
                 "total_reviews": 14,

@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 4: Kids Headphones - buyer_max_price: $14 (wants discount), seller_min_price: $10 (cost basis)
-    buyer_max_price = 14.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 10.0  # Minimum acceptable selling price for seller (confidential)
+    # Scenario 4: Kids Headphones — public list reference (original_price $14.99); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 11.60  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 9.60  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -115,7 +115,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "2 days",
-            "availability_status": "In Stock."
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -138,7 +137,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Parent looking for affordable kids headphones for school and travel. Values volume control for child safety, durability, and good value. Prefers Bluetooth and wired options for flexibility."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -160,7 +159,6 @@ def main(model_name=None):
             "condition": "New",
             "brand": "Brand: NVRADCHUA",
             "original_price": 14.99,
-            "availability_status": "In Stock.",
             "product_category": "Electronics › Headphones › Over-Ear Headphones",
             "average_rating": 4.0,
             "total_reviews": 2,

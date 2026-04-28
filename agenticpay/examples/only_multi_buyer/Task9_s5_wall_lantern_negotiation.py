@@ -124,9 +124,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 58.0  # Maximum acceptable price for buyer1 (confidential) - wants discount
-    buyer2_max_price = 55.0  # Maximum acceptable price for buyer2 (confidential, slightly lower budget)
-    seller_min_price = 45.0  # Minimum acceptable price for seller (confidential) - Wall Lantern cost basis
+    buyer1_max_price = 45.88  # Maximum acceptable price for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 49.54  # Maximum acceptable price for buyer2 (confidential; higher ceiling than buyer1)
+    seller_min_price = 39.76  # Minimum acceptable price for seller (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -147,14 +147,13 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "4 days",
-            "availability_status": "Only 7 left in stock - order soon.",
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Homeowner looking to enhance outdoor lighting. Values quality fixtures, UL listing for wet locations, and dimmable options. Prefers traditional style that complements classical home designs."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -176,8 +175,6 @@ def main(model_name=None):
             "brand": "Visit the Sea Gull Lighting Store",
             "model": "85200-12",
             "original_price": 61.17,
-            "availability_quantity": 7,
-            "availability_status": "Only 7 left in stock - order soon.",
             "product_category": "Tools & Home Improvement › Lighting & Ceiling Fans › Outdoor Lighting › Porch & Patio Lights › Wall Lights",
             "average_rating": 4.4,
             "total_reviews": 11,

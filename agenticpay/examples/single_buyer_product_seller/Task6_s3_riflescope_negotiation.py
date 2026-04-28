@@ -94,9 +94,9 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 3: Crimson Trace Riflescope - buyer_max_price: $210 (wants discount), seller_min_price: $180 (cost basis)
-    buyer_max_price = 210.0  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 180.0  # Minimum acceptable selling price for seller (confidential)
+    # Scenario 3: Crimson Trace Riflescope — public list reference (original_price $218.79); confidential walk-aways sit well below that anchor.
+    buyer_max_price = 168  # Maximum acceptable purchase price for buyer (confidential)
+    seller_min_price = 137  # Minimum acceptable selling price for seller (confidential)
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -115,7 +115,6 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "listing_age": "3 days",
-            "availability_status": "Only 14 left in stock (more on the way)."
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -138,7 +137,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Outdoor enthusiast and hunter interested in quality optics. Values durability, accuracy, and warranty. Prefers to buy from reputable sellers with good reviews."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
@@ -169,8 +168,6 @@ def main(model_name=None):
             "model": "Brushline Pro Riflescope 2.5-10x42mm CT Plex Reticle",
             "style": "2.5-10x42mm Plex",
             "original_price": 218.79,
-            "availability_quantity": 14,
-            "availability_status": "Only 14 left in stock (more on the way).",
             "product_category": "Sports & Outdoors › Hunting & Fishing › Shooting › Optics › Gun Scopes › Rifle Scopes",
             "average_rating": 4.3,
             "total_reviews": 28,

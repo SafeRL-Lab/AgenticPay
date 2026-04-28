@@ -6,8 +6,7 @@ Tests agent's ability to negotiate monthly rent and lease terms for a rental lis
 
 Listing copy, review counts, and image URL are aligned with the sixth record in
 ``agenticpay/data/airbnb_embeddings/airbnb_embeddings_sample10.jsonl`` (``_id`` 23160633).
-Monthly rent negotiation parameters are set for a plausible long-term lease framing, with
-``seller_min_price < buyer_max_price`` so the parties have an overlapping acceptable range.
+Confidential reservation prices sit strictly below the listing ``original_price`` anchor: ``seller_min_price < buyer_max_price < original_price``, widening the gap between the public list rent and the true bargainable zone.
 """
 
 import os
@@ -100,8 +99,8 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     # Scenario 22: Rent House — monthly rent negotiation (Barcelona center private room + balcony; Airbnb sample 23160633).
-    buyer_max_price = 1650.0  # Maximum acceptable monthly rent for tenant/buyer (confidential)
-    seller_min_price = 1500.0  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
+    buyer_max_price = 1216.60  # Maximum acceptable monthly rent for tenant/buyer (confidential); below listing original_price
+    seller_min_price = 1027.00  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -119,7 +118,7 @@ def main(model_name=None):
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",
-            "availability_status": "Available starting next month.",
+            # "availability_status": "Available starting next month.",
             "listing_age": "Listing ID 23160633 (sample scrape 2019-03-08)"
         },
         price_tolerance=price_tolerance,
@@ -143,7 +142,7 @@ def main(model_name=None):
     # )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Remote-friendly tenant moving to Barcelona who wants central walkability (Universitat / Sant Antoni) and a room with a balcony. Cares about clear monthly rent, shared-space expectations, and move-in timing."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I'm interested in the 'Double room in Barcelona Center with balcony' on Airbnb. I'd like to negotiate the monthly rent for a longer stay and confirm what's included (shared vs private, utilities, balcony use)."
@@ -166,7 +165,7 @@ def main(model_name=None):
             "color": "N/A",
             "size": "Private room · 1 bed · 1 bath (in apartment; ~2 min to Pl. Universitat per scrape)",
             "original_price": 1580.0,
-            "availability_status": "Available starting next month.",
+            # "availability_status": "Available starting next month.",
             "product_category": "Real Estate › Rentals › Apartments › Private room (Airbnb listing 23160633)",
             "average_rating": 4.2,
             "total_reviews": 4,

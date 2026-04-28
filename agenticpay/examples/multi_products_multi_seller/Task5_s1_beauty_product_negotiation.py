@@ -90,9 +90,9 @@ def main(model_name=None):
     
     # Agents: prices are TOTAL for the two-item bundle (confidential to each party)
     print("Creating agents...")
-    buyer_max_price = 26.0
-    seller1_min_price = 22.0
-    seller2_min_price = 20.5
+    buyer_max_price = 23.50
+    seller1_min_price = 20.89
+    seller2_min_price = 18.62
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -120,7 +120,7 @@ def main(model_name=None):
     )
     
     # Create user profile (text description of personal preferences)
-    user_profile = "Beauty-conscious user who researches product reviews before buying. Cares about brand quality and value for money. Prefers to buy from sellers with good ratings and reasonable prices."
+    user_profile = None
     print(f"User Profile: {user_profile}")
     
     user_requirement = "I want the Maybelline Turquoise eyeshadow and NOU Oliban EDT together—what's your best bundle price?"
@@ -139,8 +139,6 @@ def main(model_name=None):
                 "size": "0.09 Ounce",
                 "price": 7.5,
                 "original_price": 7.98,
-                "availability_quantity": 5,
-                "availability_status": "Only 5 left in stock - order soon.",
                 "product_category": "Beauty & Personal Care › Makeup › Eyes › Eyeshadow",
                 "average_rating": 4.2,
                 "total_reviews": 54,
@@ -155,7 +153,6 @@ def main(model_name=None):
                 "brand": "NOU",
                 "price": 21.95,
                 "original_price": 21.95,
-                "availability_status": "In Stock.",
                 "product_category": "Beauty & Personal Care › Fragrance",
                 "average_rating": 4,
                 "total_reviews": 6,
