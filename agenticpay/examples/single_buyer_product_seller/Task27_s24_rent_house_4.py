@@ -145,7 +145,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I'm looking at the whole sunny apartment near Bondi Beach on Airbnb. I'd like to negotiate the monthly rent for a longer lease and confirm furnishing dates and inclusions."
+    user_requirement = "I want the whole sunny apartment near Bondi Beach, monthly rent."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

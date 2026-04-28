@@ -158,7 +158,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm interested in the whole sunny apartment between Bondi Junction and Bondi Beach (Airbnb listing). I need to negotiate monthly rent while another party is also considering the lease."
+    user_requirement = "I want the Bondi Junction–Bondi sunny whole apartment—monthly rent vs. another party."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

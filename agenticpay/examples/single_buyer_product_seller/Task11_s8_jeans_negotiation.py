@@ -152,7 +152,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I'm looking for myhehthw Women's High Waisted Distressed Ripped Jeans, slim fit, stretch skinny style. Preferably in black or dark wash, size Medium or Large."
+    user_requirement = "I want myhehthw women's high-waist ripped skinny jeans, M/L, black or dark wash."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

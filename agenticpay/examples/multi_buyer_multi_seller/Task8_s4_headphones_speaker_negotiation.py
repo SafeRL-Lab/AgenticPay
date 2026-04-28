@@ -152,10 +152,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = (
-        "I want the listed product only: NVRADCHUA kids wireless over-ear headphones with Bluetooth, "
-        "3.5mm jack, volume control, foldable—matching the product card."
-    )
+    user_requirement = "I want NVRADCHUA kids Bluetooth over-ear headphones (foldable, with volume)."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

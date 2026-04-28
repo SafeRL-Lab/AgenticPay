@@ -121,7 +121,7 @@ def main(model_name=None):
     
     user_profile = None
     print(f"User Profile: {user_profile}")
-    user_requirement = "Dripped nachos and a Cinnamon Toast Crunch milkshake—what's the best all-in total?"
+    user_requirement = "I want Dripped Nachos plus a Cinnamon Toast Crunch milkshake—best all-in."
     print(f"Using default requirement: {user_requirement}")
     
     bundle_product_info = {

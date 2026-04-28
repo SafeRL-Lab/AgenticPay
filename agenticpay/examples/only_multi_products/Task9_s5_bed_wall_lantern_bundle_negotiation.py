@@ -179,7 +179,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for a Sea Gull Lighting Wynfield outdoor wall lantern for my porch and a Hillsdale Cole Frame Queen Bed for my bedroom. Prefer clear beveled glass and black finish for the lantern; for the bed need assembly required with box spring. Want to buy both as a bundle."
+    user_requirement = "I want a Sea Gull Wynfield outdoor wall lantern and a Hillsdale Cole queen bed frame."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

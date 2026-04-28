@@ -141,7 +141,7 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
     
     # Get user requirement
-    user_requirement = "I'm looking for kids wireless headphones with volume control, Bluetooth and 3.5mm jack, for school and travel. Prefer foldable design with good battery life and built-in microphone."
+    user_requirement = "I want kids cat-design Bluetooth/wired headphones with volume limit."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

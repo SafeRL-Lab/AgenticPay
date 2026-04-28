@@ -159,8 +159,8 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    # Concise English user query (simulated search / assistant request)
-    user_requirement = "I need a mid-term monthly rental in Barcelona—comparing a terrace flat vs. a center room with balcony."
+    # Short English user query (natural “I want …” style)
+    user_requirement = "I want a monthly Barcelona rental—terrace flat vs. center room."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

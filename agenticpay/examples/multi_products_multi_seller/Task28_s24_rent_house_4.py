@@ -114,7 +114,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "Santa Teresa 2BR + Istanbul private room—what's your best total monthly rent for both?"
+    user_requirement = "I want Santa Teresa 2BR plus Istanbul private room—best total monthly rent."
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://a0.muscache.com/im/pictures/30722181/864b3975_original.jpg?aki_policy=large"

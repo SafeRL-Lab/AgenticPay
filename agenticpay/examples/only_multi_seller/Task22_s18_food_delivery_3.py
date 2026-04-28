@@ -144,7 +144,7 @@ def main(model_name=None):
     #     user_requirement = "I want loaded fries (beef, cheese, sauce), delivered."
     #     print(f"Using default requirement: {user_requirement}")
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want loaded fries (beef, cheese, sauce), delivered."
+    user_requirement = "I want Slutty Fries from BunSlut, delivered."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

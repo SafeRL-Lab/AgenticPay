@@ -204,7 +204,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing both products)
     # Use default requirement for automatic running
-    user_requirement = "I want these two, new: AmeriMist lemon yellow airbrush color and the Smokehouse Treat sausage & cheese pack."
+    user_requirement = "I want AmeriMist lemon yellow and Smokehouse sausage & cheese pack together."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

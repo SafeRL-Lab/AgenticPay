@@ -156,7 +156,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for JSPOYOU Mens Short Sleeve Crewneck 3D Graphic Tunic Shirt, Big & Tall Tie Dye Summer Top. Prefer Medium or Large, C-gray or B-black color. For casual wear, gym, beach."
+    user_requirement = "I want JSPOYOU tie-dye 3D graphic tee—size/color from the listing."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

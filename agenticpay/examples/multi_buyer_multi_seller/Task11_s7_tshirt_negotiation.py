@@ -151,10 +151,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = (
-        "I want the listed product only: Marvel Avengers: Endgame Captain America America's Language T-Shirt, "
-        "new—matching the product card."
-    )
+    user_requirement = "I want the Marvel Endgame Captain America tee—new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

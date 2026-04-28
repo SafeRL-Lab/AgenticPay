@@ -189,7 +189,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Price: ${total_product_price:.2f}")
 
-    user_requirement = "I want these two together: Peroxicare 6-pack toothpaste and a BFWood walnut paddle brush—quote one total."
+    user_requirement = "I want Peroxicare 6-pack toothpaste and the BFWood walnut paddle brush."
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

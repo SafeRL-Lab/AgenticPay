@@ -150,7 +150,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I'm ordering Karaage Chicken from Izakaya for dinner. The restaurant is about 3.2 miles away, so I care about the final checkout total, not just the menu price, and the quoted price should include delivery and service fees while still staying reasonable."
+    user_requirement = "I want Karaage Chicken with yuzu marmalade from Izakaya, delivered."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

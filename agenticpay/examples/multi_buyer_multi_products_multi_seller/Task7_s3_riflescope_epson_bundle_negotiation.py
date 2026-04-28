@@ -155,7 +155,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want these two, new: Crimson Trace Brushline Pro 2.5-10x42 and Epson TM-T20 thermal printer."
+    user_requirement = "I want Brushline Pro scope and Epson TM-T20 together."
     print(f"Using default requirement: {user_requirement}")
 
     product_info = {

@@ -158,7 +158,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for AmeriColor AmeriMist Lemon Yellow airbrush food color for cake decorating and The Smokehouse Treat gift pack (smoked sausage and cheeses) for entertaining. Need food color that works on non-dairy whipped toppings, and quality meat and cheese for appetizers."
+    user_requirement = "I want AmeriColor AmeriMist lemon yellow airbrush color and The Smokehouse Treat pack."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

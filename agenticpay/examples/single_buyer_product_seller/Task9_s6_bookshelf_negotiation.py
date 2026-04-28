@@ -140,7 +140,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I'm looking for a 4-tier ladder bookshelf or bookcase organizer. Prefer iron construction, black color, with good bearing capacity for books and decorations. Easy to install is a plus."
+    user_requirement = "I want a 4-tier black iron ladder bookshelf."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

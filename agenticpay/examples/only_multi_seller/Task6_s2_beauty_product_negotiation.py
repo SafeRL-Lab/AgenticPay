@@ -190,7 +190,7 @@ def main(model_name=None):
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want to buy NOU Oliban Oriental Eau de Toilette for Men (1.7 Fl Oz), new."
+    user_requirement = "I want NOU Oliban men's EDT (1.7 fl oz), new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

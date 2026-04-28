@@ -114,7 +114,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want the Belvoir sparkling elderflower rose (24-pack case) and the CTS assorted tillandsia air plants 6-pack—lowest total for both?"
+    user_requirement = "I want Belvoir elderflower rose 24-pack plus CTS air plants 6-pack—lowest total."
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://m.media-amazon.com/images/I/31CRDrGsGkL.jpg"

@@ -156,7 +156,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for CTS AIR PLANTS Assorted Tillandsia Air Plants 6 Pack. Medium size (3\"-6\") for orbs. Prefer healthy plants, good variety. Need care instructions. For home decor and gifting."
+    user_requirement = "I want CTS assorted Tillandsia air plants—6-pack, medium size."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

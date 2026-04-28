@@ -183,7 +183,7 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
     
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want kids cat-design wireless over-ear headphones, new."
+    user_requirement = "I want kids cat-design Bluetooth over-ear headphones, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

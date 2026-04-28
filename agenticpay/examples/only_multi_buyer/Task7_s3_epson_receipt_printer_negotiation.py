@@ -158,7 +158,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "Need Epson thermal receipt printer with Ethernet interface for store. Prefer TM-T20 model, dark grey."
+    user_requirement = "I want an Epson TM-T20 thermal receipt printer, Ethernet, dark grey."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

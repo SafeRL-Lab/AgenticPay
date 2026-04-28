@@ -204,7 +204,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I want these two, new: N/C black flip-flops (size 44) and a Marvel Endgame Cap America tee."
+    user_requirement = "I want black flip-flops size 44 and the Captain America tee together."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

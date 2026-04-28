@@ -114,7 +114,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "Bungan beach house + Barcelona center room—what's your best total monthly for both?"
+    user_requirement = "I want Bungan beach house plus Barcelona center room—best combined monthly."
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://a0.muscache.com/4ea/air/v2//pictures/0bc2aef8-26cb-4c01-bbd8-6fc2a5f8cdb1.jpg?t=r:w1200-h720-sfit,e:fjpg-c85"

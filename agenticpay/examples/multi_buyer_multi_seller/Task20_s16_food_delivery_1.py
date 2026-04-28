@@ -159,10 +159,7 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
     
     # Concise English user query (simulated search / assistant request)
-    user_requirement = (
-        "I want the listed order only: Izakaya Karaage Chicken with spicy yuzu peel marmalade (single appetizer)—"
-        "negotiate the all-in total including menu, delivery, and service fees; matching the product card."
-    )
+    user_requirement = "I want Izakaya karaage chicken with yuzu marmalade—delivered all-in."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

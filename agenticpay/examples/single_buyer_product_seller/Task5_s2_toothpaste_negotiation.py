@@ -148,7 +148,7 @@ def main(model_name=None):
     #     print("No requirement entered, using default requirement...")
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
 
-    user_requirement = "I'm looking for ARM & HAMMER Peroxicare Toothpaste in Clean Mint flavor, preferably a 6-pack for family use, with good reviews for gum health and cavity protection."
+    user_requirement = "I want ARM & HAMMER Peroxicare toothpaste, Clean Mint, 6-pack."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

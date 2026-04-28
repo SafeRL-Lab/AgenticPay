@@ -150,7 +150,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I'm looking for AmeriColor AmeriMist Lemon Yellow airbrush food color for cake decorating. Need something that works on non-dairy whipped toppings."
+    user_requirement = "I want AmeriColor AmeriMist lemon yellow airbrush food color."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

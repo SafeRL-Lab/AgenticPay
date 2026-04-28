@@ -205,7 +205,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Reference: ${total_product_price:.2f}")
 
-    user_requirement = "Karaage chicken + cinnamon milkshake—quote one delivered total."
+    user_requirement = "I want Karaage Chicken and Cinnamon Toast Crunch Milkshake—one delivered total."
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

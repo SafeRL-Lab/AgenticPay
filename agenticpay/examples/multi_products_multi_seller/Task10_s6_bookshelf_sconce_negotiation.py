@@ -114,7 +114,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want the 4-tier black ladder bookshelf and the 2-pack oil-rubbed bronze wall sconces—what's your best total for both?"
+    user_requirement = "I want the 4-tier black ladder bookshelf plus 2-pack oil-rubbed bronze sconces—lowest total."
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://m.media-amazon.com/images/I/41Tbj+f2soL.jpg"

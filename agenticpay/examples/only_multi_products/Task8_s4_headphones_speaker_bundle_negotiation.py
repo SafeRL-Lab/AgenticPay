@@ -175,7 +175,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for kids wireless headphones with volume control, Bluetooth and 3.5mm jack for school and travel, plus a portable Bluetooth speaker with good bass and waterproof design for outdoor use. I want to buy both as a bundle."
+    user_requirement = "I want kids Bluetooth/wired headphones and a Sony SRS-XB33 portable speaker."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

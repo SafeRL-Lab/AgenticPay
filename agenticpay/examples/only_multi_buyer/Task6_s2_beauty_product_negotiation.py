@@ -157,7 +157,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "Looking for a natural wooden hair brush for scalp massage, preferably with beech bristles. Budget around $8."
+    user_requirement = "I want the BFWood black walnut paddle brush for scalp massage."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -145,7 +145,7 @@ def main(model_name=None):
     #     user_requirement = "I want one direct taxi ride from Union Sq to Lenox Hill West at an all-in flat fare."
     #     print(f"Using default requirement: {user_requirement}")
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "One yellow cab from Union Square to Lenox Hill West, all-in flat fare."
+    user_requirement = "I want a yellow cab from Union Square to Lenox Hill West, all-in fare."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

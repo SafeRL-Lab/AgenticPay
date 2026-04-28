@@ -187,9 +187,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Reference Sum: ${total_product_price:.2f}")
 
-    user_requirement = (
-        "Bundle the Bungan beach house and the Santa Teresa apt—give me one combined monthly total."
-    )
+    user_requirement = "I want Bungan Beach House and The Best location in Santa Teresa—one monthly rent."
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

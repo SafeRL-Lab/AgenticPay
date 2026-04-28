@@ -146,10 +146,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = (
-        "I want the listed product only: Kcelarec 4-tier iron ladder bookshelf organizer, black open bookcase, "
-        "new—matching the product card."
-    )
+    user_requirement = "I want the Kcelarec 4-tier black ladder bookshelf—new."
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

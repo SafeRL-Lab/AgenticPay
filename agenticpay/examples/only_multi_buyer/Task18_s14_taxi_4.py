@@ -157,7 +157,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I need a direct ride from Seaport to Battery Park City. Since this is a short downtown ride, I want a fair and clear all-in total fare."
+    user_requirement = "I want Seaport → Battery Park City taxi—all-in fare."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

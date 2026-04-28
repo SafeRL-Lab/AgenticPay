@@ -190,7 +190,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Price: ${total_product_price:.2f}")
 
-    user_requirement = "I want these two together: Maybelline Turquoise Glass eyeshadow and NOU Oliban 1.7oz EDT—quote me one total."
+    user_requirement = "I want Maybelline Turquoise Glass eyeshadow and NOU Oliban EDT together."
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

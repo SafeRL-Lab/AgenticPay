@@ -149,7 +149,7 @@ def main(model_name=None):
     #     print("No requirement entered, using default requirement...")
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
 
-    user_requirement = "I'm looking for Maybelline Expert Wear Eyeshadow in Turquoise Glass Perfect Pastels shade, preferably new with good reviews."
+    user_requirement = "I want Maybelline Expert Wear eyeshadow in Turquoise Glass Pastels, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

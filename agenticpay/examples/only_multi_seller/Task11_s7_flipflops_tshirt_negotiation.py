@@ -120,7 +120,7 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
     
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "Marvel Avengers Endgame Cap graphic tee, new."
+    user_requirement = "I want a Marvel Avengers Captain America graphic tee, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

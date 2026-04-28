@@ -120,7 +120,7 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
     
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "4-tier black iron ladder bookshelf, new."
+    user_requirement = "I want a 4-tier black iron ladder bookshelf, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

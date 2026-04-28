@@ -159,7 +159,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for Sony Extra Bass Portable Bluetooth Speaker, IP67 waterproof, with 24 hours battery life. Prefer renewed condition for outdoor parties and travel."
+    user_requirement = "I want a renewed Sony SRS-XB33 Extra Bass speaker—waterproof, for travel."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

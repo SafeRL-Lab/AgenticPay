@@ -140,7 +140,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = 'One yellow cab from Union Square to Lenox Hill West, all-in flat fare.'
+    user_requirement = "I want Union Sq → Lenox Hill West yellow cab—all-in flat fare."
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

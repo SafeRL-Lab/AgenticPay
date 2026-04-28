@@ -114,7 +114,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want the myhehthw high-waisted ripped jeans and the JSPOYOU men's tie-dye crewneck—best total for both?"
+    user_requirement = "I want myhehthw ripped high-waist jeans and JSPOYOU tie-dye tee—best total."
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://m.media-amazon.com/images/I/31Qo5LzPPjL.jpg"

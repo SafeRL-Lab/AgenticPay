@@ -223,10 +223,7 @@ def main(model_name=None):
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
     # Use default requirement for automatic running
-    user_requirement = (
-        "I want these two as one price: metered base fare + mandatory NYC fee package, "
-        "West Village→Sutton Place/Turtle Bay North, all-in."
-    )
+    user_requirement = "I want West Village to Sutton Place—base fare plus surcharges, all-in."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

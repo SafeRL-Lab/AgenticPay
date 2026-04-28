@@ -152,10 +152,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = (
-        "I want the listed product only: Sea Gull Lighting Wynfield one-light outdoor wall lantern, "
-        "clear beveled glass panels, black finish (model 85200-12), new—matching the product card."
-    )
+    user_requirement = "I want the Sea Gull Wynfield black outdoor wall lantern (85200-12)—new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

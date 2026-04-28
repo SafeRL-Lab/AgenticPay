@@ -140,7 +140,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I'm looking for men's flip flops, size 44, black color. Prefer cloth upper for comfort, arch support, and antiskid sole. For beach and pool use."
+    user_requirement = "I want men's black flip-flops, size 44, cloth upper."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

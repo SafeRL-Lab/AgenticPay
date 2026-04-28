@@ -200,9 +200,7 @@ def main(model_name=None):
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
     # Get user requirement
-    user_requirement = (
-        "AmeriMist lemon-yellow airbrush color (.65oz) and the Smokehouse sausage & cheese gift pack—one total."
-    )
+    user_requirement = "I want AmeriMist lemon yellow and the Smokehouse sausage & cheese pack."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

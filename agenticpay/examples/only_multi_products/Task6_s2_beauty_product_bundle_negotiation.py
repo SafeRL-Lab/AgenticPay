@@ -174,7 +174,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for a men's oriental woody fragrance and a quality wooden hair brush for scalp massage. Prefer natural ingredients, good reviews. Budget around $30 for both."
+    user_requirement = "I want NOU Oliban men's EDT and the BFWood paddle hair brush."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

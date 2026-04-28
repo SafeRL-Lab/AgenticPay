@@ -153,10 +153,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = (
-        "I want the listed product only: ARM & HAMMER Peroxicare fluoride toothpaste, Clean Mint, "
-        "6 ounce tubes, pack of 6, new—matching the product card."
-    )
+    user_requirement = "I want ARM & HAMMER Peroxicare toothpaste, Clean Mint—6-pack (new)."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -183,7 +183,7 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
     
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "Sea Gull Wynfield one-light outdoor wall lantern, black, new."
+    user_requirement = "I want a Sea Gull Wynfield outdoor wall lantern, black, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

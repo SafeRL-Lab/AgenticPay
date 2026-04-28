@@ -167,7 +167,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm ordering Karaage Chicken from Izakaya for dinner. The restaurant is about 3.2 miles away, so I care about the final checkout total, not just the menu price, and the quoted price should include delivery and service fees while still staying reasonable."
+    user_requirement = "I want Izakaya karaage chicken—all-in with delivery & service fees."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

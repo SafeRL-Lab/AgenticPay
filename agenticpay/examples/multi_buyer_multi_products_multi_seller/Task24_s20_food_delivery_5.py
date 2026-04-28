@@ -212,7 +212,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Menu subtotal (items only): ${total_product_price:.2f}")
     
-    user_requirement = "I want hibachi chicken and hibachi shrimp—negotiate the all-in delivered total for both."
+    user_requirement = "I want hibachi chicken and hibachi shrimp delivered—one total."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

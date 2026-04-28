@@ -159,11 +159,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = (
-        "I'm interested in the 'Double room in Barcelona Center with balcony' on Airbnb. I'd like to negotiate "
-        "the monthly rent for a longer stay and confirm what's included (shared vs private, utilities, balcony use), "
-        "knowing another prospective tenant may also be negotiating with the host."
-    )
+    user_requirement = "I want the Barcelona center double room with balcony—monthly rent vs. another bidder."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

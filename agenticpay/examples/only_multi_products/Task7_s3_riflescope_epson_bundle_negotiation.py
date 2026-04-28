@@ -183,7 +183,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I need a Crimson Trace Brushline Pro riflescope for hunting and an Epson TM-T20 thermal receipt printer for my store. Looking for a bundle deal from a reputable seller."
+    user_requirement = "I want a Crimson Trace Brushline Pro riflescope and an Epson TM-T20 receipt printer."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

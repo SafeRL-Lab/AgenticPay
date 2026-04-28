@@ -155,7 +155,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want these two, new: Arm & Hammer Peroxicare 6-pack and BFWood black walnut paddle brush."
+    user_requirement = "I want Peroxicare 6-pack and BFWood paddle brush together."
     print(f"Using default requirement: {user_requirement}")
 
     product_info = {

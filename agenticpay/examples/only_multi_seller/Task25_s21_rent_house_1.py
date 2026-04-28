@@ -145,7 +145,7 @@ def main(model_name=None):
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
     # One-lease user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I need a 1-month lease on the East Village studio, move-in ready."
+    user_requirement = "I want a 1-month lease on the East Village Living studio."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

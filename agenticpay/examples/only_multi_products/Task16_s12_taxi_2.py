@@ -169,7 +169,7 @@ def main(model_name=None):
     print(f"  Total Product Price: ${total_product_price:.2f}")
     
     # Use default requirement for automatic running
-    user_requirement = "I need a direct ride from Union Sq to Lenox Hill West. Since it is a short urban trip, I want one transparent all-in total covering both base fare and all required fees."
+    user_requirement = "I want a yellow cab from Union Square to Lenox Hill West, all-in fare."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

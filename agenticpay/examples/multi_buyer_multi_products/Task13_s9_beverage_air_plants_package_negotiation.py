@@ -198,9 +198,7 @@ def main(model_name=None):
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
     # Get user requirement
-    user_requirement = (
-        "Belvoir elderflower-rose sparkling (24×8.4oz case) and a Tillandsia 6-pack—quote one total."
-    )
+    user_requirement = "I want Belvoir elderflower rose sparkling case and the tillandsia 6-pack."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -154,11 +154,8 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    # Concise English user query (simulated search / assistant request)
-    user_requirement = (
-        "I want the listed product only: Maybelline New York Expert Wear eyeshadow singles, "
-        "130s Turquoise Glass Perfect Pastels, 0.09 oz, new—matching the product card."
-    )
+    # Short English user query (natural “I want …” style, grounded in product_info)
+    user_requirement = "I want Maybelline Expert Wear eyeshadow in Turquoise Glass—new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

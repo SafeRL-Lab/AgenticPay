@@ -163,7 +163,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for wall sconces with clear glass, glass shade, vanity light, light fixture for living room, dining room. Prefer oil rubbed bronze, antique industrial style."
+    user_requirement = "I want Fanyate 2-pack oil-rubbed bronze wall sconces with clear glass shades."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

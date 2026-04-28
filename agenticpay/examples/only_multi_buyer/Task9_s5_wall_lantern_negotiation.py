@@ -158,7 +158,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for a Sea Gull Lighting Wynfield outdoor wall lantern. Prefer clear beveled glass, black finish, one-light for porch or patio. Need UL listed for wet locations and dimmable."
+    user_requirement = "I want the Sea Gull Wynfield black one-light outdoor wall lantern (85200-12)."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

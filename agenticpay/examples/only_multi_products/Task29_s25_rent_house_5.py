@@ -164,7 +164,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I'm interested in the Istanbul private room and the Rio suite from the sample Airbnb data. Negotiate a single combined monthly rent for both stays."
+    user_requirement = "I want the Istanbul private room and the Rio Alugo suíte, one combined monthly rent."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

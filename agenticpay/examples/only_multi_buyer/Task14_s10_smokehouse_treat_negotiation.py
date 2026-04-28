@@ -156,7 +156,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for The Smokehouse Treat by Burgers' Smokehouse - the pack with fine smoked sausage and cheeses. Need one with 12 oz Smoked Ozark Sausage, 12 oz Beef Sausage, 11 oz Smoked Cheddar, 10 oz Baby Swiss. For serving guests or as a gift."
+    user_requirement = "I want Burgers' Smokehouse Treat gift pack—smoked sausage & cheeses as listed."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

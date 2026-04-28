@@ -107,7 +107,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "West Village to Sutton Place—best all-in total for the ride and mandatory fees?"
+    user_requirement = "I want West Village → Sutton Place—all-in fare with fees."
     print(f"Using default requirement: {user_requirement}")
 
     product_image_url = os.path.join(

@@ -167,7 +167,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm adding a Sprite from Dripped Birria to my order. Please negotiate using the all-in delivered total, including delivery and service fees."
+    user_requirement = "I want a Dripped Birria Sprite—all-in delivered."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -182,7 +182,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for a beauty bundle: Maybelline Expert Wear Eyeshadow in Turquoise shade and NOU Oliban Eau de Toilette for men, preferably new with good reviews."
+    user_requirement = "I want the Maybelline Turquoise Glass eyeshadow and NOU Oliban men's EDT."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

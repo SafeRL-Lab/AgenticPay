@@ -101,7 +101,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want the men's black flip flops (size 44) and the Marvel Avengers Endgame Cap tee—best total for both?"
+    user_requirement = "I want men's black flip-flops (size 44) and the Marvel Endgame Cap tee—best total."
     print(f"Using default requirement: {user_requirement}")
 
     bundle_product_info = {

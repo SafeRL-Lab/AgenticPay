@@ -155,7 +155,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for a bundle: myhehthw Women's High Waisted Distressed Ripped Jeans, slim fit, size Medium or Large in black or dark wash, and a Marvel Avengers Captain America T-shirt in black, men's fit. Prefer comfortable and good value."
+    user_requirement = "I want myhehthw high-waist ripped jeans and a black Captain America tee."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -114,7 +114,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want the AmeriMist lemon yellow airbrush food color and The Smokehouse sausage & cheese gift pack—best total for both?"
+    user_requirement = "I want AmeriMist lemon yellow food color plus Smokehouse sausage & cheese gift box—best total."
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://m.media-amazon.com/images/I/41p+jdUZTJL.jpg"

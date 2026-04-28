@@ -148,7 +148,7 @@ def main(model_name=None):
     #     print("No requirement entered, using default requirement...")
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
 
-    user_requirement = "I'm looking for a Crimson Trace Brushline Pro Riflescope, 2.5-10x42mm Plex style, for hunting. Prefer waterproof, shockproof construction with good reviews."
+    user_requirement = "I want a Crimson Trace Brushline Pro riflescope, 2.5-10x42mm Plex, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

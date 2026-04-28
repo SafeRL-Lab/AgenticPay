@@ -153,10 +153,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = (
-        "I want the listed product only: AmeriColor AmeriMist lemon yellow airbrush food color, 0.65 oz, "
-        "new—matching the product card."
-    )
+    user_requirement = "I want AmeriColor AmeriMist lemon yellow food color—new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

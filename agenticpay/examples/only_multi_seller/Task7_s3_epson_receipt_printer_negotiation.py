@@ -192,7 +192,7 @@ def main(model_name=None):
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want an Epson TM-T20 Ethernet receipt printer in dark grey, new."
+    user_requirement = "I want an Epson TM-T20 Ethernet receipt printer, dark grey, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

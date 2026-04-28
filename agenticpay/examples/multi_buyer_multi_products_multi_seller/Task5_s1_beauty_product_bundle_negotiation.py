@@ -146,7 +146,7 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
 
     # Concise English user query: exactly two products (simulated search / assistant request)
-    user_requirement = "I want these two, new: Turquoise Glass eyeshadow and NOU Oliban men's EDT."
+    user_requirement = "I want Turquoise Glass eyeshadow and NOU Oliban men's EDT together."
     print(f"Using default requirement: {user_requirement}")
 
     product1_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"

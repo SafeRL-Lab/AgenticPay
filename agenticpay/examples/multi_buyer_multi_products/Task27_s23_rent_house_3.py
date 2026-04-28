@@ -187,9 +187,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Reference Sum: ${total_product_price:.2f}")
 
-    user_requirement = (
-        "Taking the Circular Quay studio and the Bondi-area 2BR together—what's the combined monthly rent?"
-    )
+    user_requirement = "I want Mezzos Studio in Sydney CBD and Whole sunny apartment near Bondi Beach—one monthly rent."
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

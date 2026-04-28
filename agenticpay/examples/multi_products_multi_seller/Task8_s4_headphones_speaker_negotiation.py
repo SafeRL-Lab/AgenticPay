@@ -119,7 +119,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I need the kids Bluetooth headphones and the Sony SRS-XB33 speaker together—lowest total?"
+    user_requirement = "I want kids Bluetooth headphones and a Sony SRS-XB33 speaker—lowest total."
     print(f"Using default requirement: {user_requirement}")
     
     img1 = "https://m.media-amazon.com/images/I/41B+OC0qnOL.jpg"

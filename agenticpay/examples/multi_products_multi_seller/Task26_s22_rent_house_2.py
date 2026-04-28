@@ -114,7 +114,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "Sydney CBD studio + Bondi 2BR—what's your best total monthly rent for both?"
+    user_requirement = "I want Sydney CBD studio plus Bondi 2BR—best total monthly rent."
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://a0.muscache.com/im/pictures/0c59647f-273c-4510-a1f3-eb8a3f6cc650.jpg?aki_policy=large"

@@ -201,7 +201,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing both products)
     # Use default requirement for automatic running
-    user_requirement = "I want these two, new: a black 4-tier ladder bookshelf and a 2-pack ORB wall sconce with clear glass."
+    user_requirement = "I want the ladder bookshelf and Fanyate wall sconce 2-pack together."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -114,7 +114,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "Rio private suite + East Village 1BR—what's your best total monthly rent for both?"
+    user_requirement = "I want Rio private suite plus East Village 1BR—best total monthly rent."
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://a0.muscache.com/im/pictures/37894063/4cab868f_original.jpg?aki_policy=large"

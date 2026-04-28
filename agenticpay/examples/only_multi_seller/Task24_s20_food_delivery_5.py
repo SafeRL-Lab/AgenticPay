@@ -144,7 +144,7 @@ def main(model_name=None):
     #     user_requirement = "I want one Sprite, delivered."
     #     print(f"Using default requirement: {user_requirement}")
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want one Sprite, delivered."
+    user_requirement = "I want a Sprite from Dripped Birria, delivered."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

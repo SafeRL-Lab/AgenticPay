@@ -123,7 +123,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want the Maybelline Turquoise eyeshadow and NOU Oliban EDT together—what's your best bundle price?"
+    user_requirement = "I want Maybelline Turquoise eyeshadow plus NOU Oliban EDT—best bundle deal."
     print(f"Using default requirement: {user_requirement}")
     
     product1_image_url = "https://m.media-amazon.com/images/I/41IiEBGouZL.jpg"

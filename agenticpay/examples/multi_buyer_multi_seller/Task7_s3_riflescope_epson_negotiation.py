@@ -152,10 +152,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = (
-        "I want the listed product only: Crimson Trace Brushline Pro riflescope 2.5–10x42mm CT Plex reticle, "
-        "new for hunting/shooting/outdoor—matching the product card."
-    )
+    user_requirement = "I want a new Crimson Trace Brushline Pro 2.5–10x42 rifle scope."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -151,10 +151,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = (
-        "I want the listed product only: CTS assorted Tillandsia air plants 6-pack, medium (about 3–6 in), "
-        "new, with care instructions—matching the product card."
-    )
+    user_requirement = "I want a CTS Tillandsia air plants 6-pack (medium)—new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -197,9 +197,7 @@ def main(model_name=None):
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
     # Get user requirement
-    user_requirement = (
-        "I want a black 4-tier iron ladder bookshelf and a 2-pack ORB wall sconce with clear glass—quote one total."
-    )
+    user_requirement = "I want the black ladder bookshelf and Fanyate wall sconce 2-pack together."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

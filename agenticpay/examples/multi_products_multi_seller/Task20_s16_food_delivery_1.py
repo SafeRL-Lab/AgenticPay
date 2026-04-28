@@ -124,7 +124,7 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "Karaage chicken and karaage sliders with fries—what's your best delivered total?"
+    user_requirement = "I want karaage chicken and karaage sliders with fries—best delivered total."
     print(f"Using default requirement: {user_requirement}")
     
     bundle_product_info = {

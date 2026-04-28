@@ -156,10 +156,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = (
-        "I want the listed order only: Dripped Birria Dripped Nachos (birria beef, cheese sauce, jalapenos, etc.)—"
-        "negotiate the all-in total with fees; matching the product card."
-    )
+    user_requirement = "I want Dripped Birria dripped nachos—delivered all-in."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

@@ -149,7 +149,7 @@ def main(model_name=None):
     #     print("No requirement entered, using default requirement...")
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
 
-    user_requirement = "I need a direct ride from Seaport to Battery Park City. The distance is short, so I want a fair all-in flat fare and no hidden add-on fees."
+    user_requirement = "I want a yellow cab from Seaport to Battery Park City, all-in fare."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

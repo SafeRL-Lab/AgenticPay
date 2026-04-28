@@ -193,9 +193,7 @@ def main(model_name=None):
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
     # Get user requirement
-    user_requirement = (
-        "Women's high-waist ripped skinny jeans (size M) and a men's tie-dye crewneck tee—quote one total."
-    )
+    user_requirement = "I want the ripped high-waist jeans and JSPOYOU tie-dye tee together."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

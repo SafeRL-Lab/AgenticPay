@@ -191,7 +191,7 @@ def main(model_name=None):
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want to buy the Maybelline Expert Wear single eyeshadow in Turquoise Glass, new."
+    user_requirement = "I want Maybelline Expert Wear eyeshadow in Turquoise Glass, new."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

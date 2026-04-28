@@ -156,7 +156,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want the Bungan beach house and the Santa Teresa apartment as one monthly bundle; negotiate the total rent."
+    user_requirement = "I want Bungan Beach House and The Best location in Santa Teresa—one monthly rent."
     print(f"Using default requirement: {user_requirement}")
 
     # Two rental listings per bundle; images from airbnb_embeddings_sample10.jsonl (22123688, 2290346)

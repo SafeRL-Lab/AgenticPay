@@ -149,7 +149,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I'm looking for Belvoir Sparkling Elderflower Rose organic beverage. Interested in a case (24 bottles) for a party. Prefer organic and natural ingredients."
+    user_requirement = "I want Belvoir Sparkling Elderflower Rose, case of 24."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

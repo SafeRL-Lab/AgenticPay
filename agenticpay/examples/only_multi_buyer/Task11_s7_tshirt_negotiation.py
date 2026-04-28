@@ -157,7 +157,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for Marvel Avengers: Endgame Captain America T-Shirt, men's fit, black color. Prefer Officially Licensed merchandise."
+    user_requirement = "I want the Marvel Endgame Captain America tee (men's)—as listed."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

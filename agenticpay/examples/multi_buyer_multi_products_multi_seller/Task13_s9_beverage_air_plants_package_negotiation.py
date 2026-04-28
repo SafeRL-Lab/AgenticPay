@@ -201,7 +201,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing both products)
     # Use default requirement for automatic running
-    user_requirement = "I want these two, new: Belvoir Sparkling Elderflower Rose (24-pack case) and a CTS medium tillandsia 6-pack."
+    user_requirement = "I want Belvoir Sparkling Elderflower Rose case and tillandsia 6-pack together."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

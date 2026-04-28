@@ -119,7 +119,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want the Crimson Trace Brushline Pro scope and the Epson TM-T20 printer—what's your best combined price?"
+    user_requirement = "I want the Crimson Trace Brushline Pro scope and Epson TM-T20 printer—best combo price."
     print(f"Using default requirement: {user_requirement}")
     
     riflescope_image_url = "https://m.media-amazon.com/images/I/31j7DdlfrOL.jpg"

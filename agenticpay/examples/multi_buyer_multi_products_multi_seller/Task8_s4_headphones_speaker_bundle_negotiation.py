@@ -155,7 +155,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want these two, new: NVRADCHUA kids over-ear BT headphones and Sony SRS-XB33 Extra Bass speaker (renewed)."
+    user_requirement = "I want kids BT headphones and Sony SRS-XB33 speaker together."
     print(f"Using default requirement: {user_requirement}")
 
     product_info = {

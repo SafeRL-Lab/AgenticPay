@@ -212,7 +212,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Price: ${total_product_price:.2f}")
 
-    user_requirement = "Quote one total: metered base + surcharges, Seaport → Battery Park City."
+    user_requirement = "I want Seaport to Battery Park City—base fare plus surcharges, all-in."
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

@@ -118,7 +118,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want the Sea Gull Wynfield wall lantern and the Hillsdale Cole queen bed—what's your best price for both?"
+    user_requirement = "I want the Sea Gull Wynfield wall lantern and Hillsdale Cole queen bed—best together price."
     print(f"Using default requirement: {user_requirement}")
     
     bundle_product_info = {

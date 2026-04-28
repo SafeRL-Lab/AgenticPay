@@ -167,7 +167,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I want to order Slutty Fries from BunSlut. Please negotiate based on the full checkout total with delivery and service fees included, since that's what I actually pay."
+    user_requirement = "I want BunSlut Slutty Fries—full checkout with fees."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

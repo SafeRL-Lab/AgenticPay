@@ -148,7 +148,7 @@ def main(model_name=None):
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
     # One-lease user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I'm interested in the 'Double room in Barcelona Center with balcony' on Airbnb. I'd like to compare two offers for the same unit, negotiate the monthly rent for a longer stay, and confirm what's included (shared vs private, utilities, balcony use)."
+    user_requirement = "I want the Barcelona center double room with balcony (private room listing)."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

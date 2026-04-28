@@ -156,7 +156,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want the East Village studio and the E Village 1BR as one monthly bundle; negotiate the total rent."
+    user_requirement = "I want East Village Living and Cozy one-bedroom in E Village—one monthly rent."
     print(f"Using default requirement: {user_requirement}")
 
     # Two rental listings per bundle (same pair for both sellers); images from airbnb_embeddings_sample10.jsonl

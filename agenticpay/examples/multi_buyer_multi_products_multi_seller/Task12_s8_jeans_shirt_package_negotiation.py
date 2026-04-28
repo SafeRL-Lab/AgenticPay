@@ -200,7 +200,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing the clothing package)
     # Use default requirement for automatic running
-    user_requirement = "I want these two, new: myhehthw high-waist ripped stretch jeans and a JSPOYOU tie-dye short-sleeve crewneck top."
+    user_requirement = "I want the ripped jeans and JSPOYOU tie-dye tee together."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

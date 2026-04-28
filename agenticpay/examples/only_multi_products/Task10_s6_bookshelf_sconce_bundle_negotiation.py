@@ -163,7 +163,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I'm looking for a bookshelf and wall sconce bundle. Need 4-tier ladder bookshelf for home office and wall sconce with clear glass shade for bathroom, living room, or dining room. Prefer iron/metal construction, oil rubbed bronze vanity light fixture."
+    user_requirement = "I want a 4-tier black ladder bookshelf and the Fanyate 2-light oil-rubbed bronze sconce pack."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

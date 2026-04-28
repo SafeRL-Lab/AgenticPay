@@ -120,7 +120,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I need the ARM & HAMMER Peroxicare pack and the BFWood paddle brush—best total for both?"
+    user_requirement = "I want ARM & HAMMER Peroxicare toothpaste and the BFWood paddle brush—lowest total."
     print(f"Using default requirement: {user_requirement}")
     
     bundle_product_info = {

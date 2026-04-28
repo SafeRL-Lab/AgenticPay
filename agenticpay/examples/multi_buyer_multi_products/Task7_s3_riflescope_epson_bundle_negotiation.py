@@ -191,7 +191,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Price: ${total_product_price:.2f}")
 
-    user_requirement = "I want these two together: Brushline Pro 2.5-10x42 scope and Epson TM-T20—quote one total."
+    user_requirement = "I want the Brushline Pro scope and Epson TM-T20 together."
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)

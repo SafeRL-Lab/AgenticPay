@@ -151,10 +151,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = (
-        "I want the listed product only: JSPOYOU men's short-sleeve crewneck 3D graphic tunic shirt, "
-        "new—size and color per the product card."
-    )
+    user_requirement = "I want the JSPOYOU men's tie-dye 3D graphic tee—pick size/color from the listing."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
