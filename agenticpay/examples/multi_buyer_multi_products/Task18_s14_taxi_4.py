@@ -115,9 +115,100 @@ def main(model_name=None):
 
     # Public reference fare total ~$22.25 (sum of advertised line-item components). Negotiation bounds below that reference (confidential).
     print("Creating agents...")
-    buyer1_max_price = 16.69  # Maximum acceptable all-in fare total for buyer1 (confidential)
-    buyer2_max_price = 18.24  # Maximum acceptable all-in fare total for buyer2 (confidential)
-    seller_min_price = 14.77  # Minimum acceptable all-in total for seller (confidential)
+    product_request = "I want Seaport to Battery Park City—base fare plus surcharges, all-in."
+    buyer1_contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No all-in fare total, pickup wait time after driver arrival, or route preference has been selected "
+                "or agreed before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
+                "and discrete_terms.route_preference for this ride bundle."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The total all-in passenger payment for the ride (metered base segment + mandatory fees), in US dollars."
+            ),
+            "continuous_terms.wait_time_mins": (
+                "Minutes the driver waits after arriving at pickup before you are ready curbside."
+            ),
+            "discrete_terms.route_preference": (
+                "`tunnel` means using tolled tunnels/river crossings when faster; `local_streets` means congested surface "
+                "routes without tolls."
+            ),
+        },
+        "continuous_bounds": {
+            "wait_time_mins": {"min": 0, "max": 30},
+        },
+        "discrete_options": {
+            "route_preference": ["tunnel", "local_streets"],
+        },
+        "buyer_preferences": {
+            "v_base": 16.69,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for the ride before wait and route terms, in dollars. "
+                    "A lower total price is better because each dollar paid reduces your utility by one dollar."
+                ),
+                "continuous_weights.wait_time_mins": (
+                    "How much each extra minute of driver wait changes your utility, in dollars per minute. "
+                    "Positive means you benefit from more wait (e.g., still preparing)."
+                ),
+                "discrete_weights.route_preference": (
+                    "How much each route option changes your utility, in dollars (positive is good for you)."
+                ),
+            },
+            "continuous_weights": {"wait_time_mins": 1.0},
+            "discrete_weights": {
+                "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 14.77,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum acceptable all-in revenue for the ride before wait and route terms, in dollars. "
+                    "A higher total price is better because each dollar received increases your utility by one dollar."
+                ),
+                "continuous_weights.wait_time_mins": (
+                    "How much each extra minute of waiting changes your utility, in dollars per minute. "
+                    "Negative means waiting is costly for you."
+                ),
+                "discrete_weights.route_preference": (
+                    "How much each route option changes your utility, in dollars (positive is good for you)."
+                ),
+            },
+            "continuous_weights": {"wait_time_mins": -1.5},
+            "discrete_weights": {
+                "route_preference": {"tunnel": -3.0, "local_streets": 0.0},
+            },
+        },
+    }
+    buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 18.24
+    buyer2_contract_config["buyer_preferences"]["continuous_weights"]["wait_time_mins"] = 0.9
+    buyer2_contract_config["buyer_preferences"]["discrete_weights"]["route_preference"] = {
+        "tunnel": 3.6,
+        "local_streets": -1.8,
+    }
+    buyer2_contract_config["seller_preferences"]["c_base"] = 14.94
+    buyer2_contract_config["seller_preferences"]["continuous_weights"]["wait_time_mins"] = -1.45
+    buyer2_contract_config["seller_preferences"]["discrete_weights"]["route_preference"] = {
+        "tunnel": -2.85,
+        "local_streets": 0.0,
+    }
+    buyer_contract_configs = {
+        1: buyer1_contract_config,
+        2: buyer2_contract_config,
+    }
+    buyer1_max_price = buyer1_contract_config["buyer_preferences"]["v_base"]
+    buyer2_max_price = buyer2_contract_config["buyer_preferences"]["v_base"]
+    seller_min_price = min(
+        cfg["seller_preferences"]["c_base"] for cfg in buyer_contract_configs.values()
+    )
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -142,6 +233,7 @@ def main(model_name=None):
                 "Several drivers/platforms quote this exact two-line fare (base + mandatory add-ons); offers are for the total. "
                 "Each has a different internal floor; buyers only see trip facts, not operator identities."
             ),
+            "buyer_contract_configs": buyer_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
@@ -212,7 +304,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Price: ${total_product_price:.2f}")
 
-    user_requirement = "I want Seaport to Battery Park City—base fare plus surcharges, all-in."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)
@@ -233,7 +325,7 @@ def main(model_name=None):
         "all prices are the TOTAL for both. "
         "Each round, choose exactly ONE buyer and output that choice in a dedicated <selected_buyer> block containing only "
         "the digit 1 or 2. Follow the required <mental_model> / <message> format and include "
-        "### SELLER_PRICE($X) ### in <message>."
+        "one complete <contract>...</contract> JSON block in <message>."
     )
 
     results = {
@@ -410,6 +502,8 @@ def main(model_name=None):
             if info.get('selected_buyer'):
                 print(f"Final Selected Buyer: Buyer {info['selected_buyer']}")
                 print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
+            if info.get('agreed_contract') is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             buyer1_price = info.get('buyer1_price', 0) or 0
             seller_price_buyer1 = info.get('seller_price_buyer1', 0) or 0
             buyer2_price = info.get('buyer2_price', 0) or 0
@@ -447,6 +541,7 @@ def main(model_name=None):
                 "buyer2_price": info.get('buyer2_price'),
                 "seller_price_buyer1": info.get('seller_price_buyer1'),
                 "seller_price_buyer2": info.get('seller_price_buyer2'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer1_reward": info.get('buyer1_reward'),
@@ -460,6 +555,7 @@ def main(model_name=None):
                 "buyer1_max_price": buyer1_max_price,
                 "buyer2_max_price": buyer2_max_price,
                 "seller_min_price": seller_min_price,
+                "buyer_contract_configs": buyer_contract_configs,
                 "product_info": product_info,
                 "model": get_model_name(model),
             })
@@ -515,6 +611,8 @@ def main(model_name=None):
             if results.get('selected_buyer'):
                 f.write(f"Final Selected Buyer: Buyer {results['selected_buyer']}\n")
                 f.write(f"Final Deal Total Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"Final Contract: {results['agreed_contract']}\n\n")
             f.write("Final Prices (All-in Total for Both Fare Components):\n")
             f.write(f"  Buyer1: Buyer=${results['buyer1_price']:.2f} | Seller=${results['seller_price_buyer1']:.2f}" if results.get('buyer1_price') is not None and results.get('seller_price_buyer1') is not None else "  Buyer1: Not specified")
             f.write("\n")

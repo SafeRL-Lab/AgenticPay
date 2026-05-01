@@ -94,9 +94,83 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 14: Seaport -> Battery Park — public opening quote (initial_seller_price $28.00); confidential walk-aways sit well below that anchor.
-    buyer_max_price = 22.00  # Maximum acceptable total fare for buyer (confidential)
-    seller_min_price = 18.60  # Minimum acceptable total fare for seller (confidential)
+    # Multi-dimensional contract setup for reusable MAUT scoring in env.
+    contract_config = {
+        "contrainfo": {
+            "product_request": "I want a yellow cab from Seaport to Battery Park City, all-in fare.",
+            "initial_contract_status": (
+                "No total fare, passenger wait time, or route preference has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
+                "and discrete_terms.route_preference."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The all-in total fare the passenger pays for the ride, measured in US dollars. "
+                "It must include all mandatory surcharges, taxes, airport fees, tolls if any, and driver compensation."
+            ),
+            "continuous_terms.wait_time_mins": (
+                "How many minutes the driver agrees to wait at pickup before the passenger gets in."
+            ),
+            "discrete_terms.route_preference": (
+                "The route choice for the ride. `tunnel` means the driver uses a faster toll tunnel or equivalent "
+                "paid route when useful; `local_streets` means the driver avoids tolls and uses surface streets."
+            ),
+        },
+        "continuous_bounds": {
+            "wait_time_mins": {"min": 0, "max": 30}
+        },
+        "discrete_options": {
+            "route_preference": ["tunnel", "local_streets"],
+        },
+        "buyer_preferences": {
+            "v_base": 22.00,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this all-in taxi ride before wait time and route terms, measured in dollars. "
+                    "A lower fare is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.wait_time_mins": (
+                    "How much each additional minute of driver waiting changes your utility, measured in dollars per minute. "
+                    "A positive number means more pickup flexibility is better for you."
+                ),
+                "discrete_weights.route_preference": (
+                    "How much each route option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"wait_time_mins": 1.0},
+            "discrete_weights": {
+                "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 18.60,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost for providing this all-in taxi ride before wait time and route terms, measured in dollars. "
+                    "A higher fare is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.wait_time_mins": (
+                    "How much each additional minute of passenger waiting changes your utility, measured in dollars per minute. "
+                    "A negative number means waiting is costly for you."
+                ),
+                "discrete_weights.route_preference": (
+                    "How much each route option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"wait_time_mins": -1.5},
+            "discrete_weights": {
+                "route_preference": {"tunnel": -3.0, "local_streets": 0.0},
+            },
+        },
+    }
+    buyer_max_price = contract_config["buyer_preferences"]["v_base"]  # Keep for backward-compatible step reward display
+    seller_min_price = contract_config["seller_preferences"]["c_base"]  # Keep for backward-compatible step reward display
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -115,7 +189,8 @@ def main(model_name=None):
             "platform": "NYC Street Hail",
             "market_type": "Service Negotiation (Ride Fare)",
             "time_window": "Late night",
-            "traffic_context": "Dense Manhattan local roads"
+            "traffic_context": "Dense Manhattan local roads",
+            "contract_config": contract_config,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -149,7 +224,7 @@ def main(model_name=None):
     #     print("No requirement entered, using default requirement...")
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
 
-    user_requirement = "I want a yellow cab from Seaport to Battery Park City, all-in fare."
+    user_requirement = contract_config["contrainfo"]["product_request"]
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -313,6 +388,8 @@ def main(model_name=None):
             seller_price_str = f"${seller_price:.2f}" if seller_price is not None else "Not specified"
             buyer_price_str = f"${buyer_price:.2f}" if buyer_price is not None else "Not specified"
             print(f"Final Prices: Seller={seller_price_str} | Buyer={buyer_price_str}")
+            if info.get('agreed_contract') is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             # current_round has been incremented to reflect the completed round
             actual_rounds = info['round']
             print(f"Total Rounds: {actual_rounds}")
@@ -341,6 +418,7 @@ def main(model_name=None):
                 "seller_price": info.get('seller_price'),
                 "buyer_price": info.get('buyer_price'),
                 "agreed_price": info.get('agreed_price'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": actual_rounds,
                 "total_reward": float(reward) if reward is not None else None,
                 "seller_reward": info.get('seller_reward'),
@@ -352,6 +430,7 @@ def main(model_name=None):
                 "elapsed_time": elapsed_time,
                 "buyer_max_price": buyer_max_price,
                 "seller_min_price": seller_min_price,
+                "contract_config": contract_config,
                 "product_info": {
                     "Service Name": "Point-to-Point Taxi Ride (Flat Rate Negotiation)",
                     "Service Category": "Transportation & Mobility",
@@ -434,6 +513,8 @@ def main(model_name=None):
             f.write("\n")
             if results.get('agreed_price'):
                 f.write(f"  Agreed Price: ${results['agreed_price']:.2f}\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"  Agreed Contract: {results['agreed_contract']}\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:

@@ -49,7 +49,7 @@ save_run_history() {
 # If the list is empty, each script will use its default model
 # Example:
 # MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "claude-opus-4-7" "Qwen/Qwen2.5-VL-72B-Instruct" "Qwen/Qwen3-VL-32B-Instruct" "internvl3-38b")
-MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "Qwen/Qwen2.5-VL-72B-Instruct" "Qwen/Qwen3-VL-32B-Instruct" "internvl3-38b")
+MODELS=("gpt-5.4")
 
 
 # ============================================
@@ -63,31 +63,31 @@ MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "Qwen/Qwen2.5-VL-72B-Instruct" "Qwen/
 # must be listed as Task24_s21_rent_house_1.
 #
 # 下面为「最后 20 个」任务（Task9–Task28），可按需增删或改序：
-# TASKS=(
-#     "Task9"
-# )
-
 TASKS=(
     "Task5"
-    "Task6"
-    "Task7"
-    "Task8"
-    "Task9"
-    "Task15"
-    "Task16"
-    "Task17"
-    "Task18"
-    "Task19"
-    "Task20"
-    "Task21"
-    "Task22"
-    "Task23"
-    "Task24"
-    "Task25"
-    "Task26"
-    "Task27"
-    "Task28"
 )
+
+# TASKS=(
+#     "Task5"
+#     "Task6"
+#     "Task7"
+#     "Task8"
+#     "Task9"
+#     "Task15"
+#     "Task16"
+#     "Task17"
+#     "Task18"
+#     "Task19"
+#     "Task20"
+#     "Task21"
+#     "Task22"
+#     "Task23"
+#     "Task24"
+#     "Task25"
+#     "Task26"
+#     "Task27"
+#     "Task28"
+# )
 # TASKS=()   # 取消上面数组并置空，则运行本目录下全部任务
 
 # ============================================

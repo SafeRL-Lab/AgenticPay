@@ -118,13 +118,112 @@ def main(model_name=None):
     model = OpenAIVLM(model=model_name, api_key=api_key)
 
     print(f"✓ Successfully initialized: {model}")
-    
-    # Create Agents (bottom prices confidential). Public bundle list total ~$40.98; negotiation bounds below that reference.
+
+    # MAUT contract (score_design scenario 4): bundle price + delivery_days + return_policy + packaging.
     print("Creating agents...")
-    buyer1_max_price = 30.74  # Maximum acceptable total price for buyer1 (confidential)
-    buyer2_max_price = 33.19  # Maximum acceptable total price for buyer2 (confidential)
-    seller_min_price = 26.64  # Minimum acceptable total price for seller (confidential)
-    
+    product_request = "I want black flip-flops size 44 and the Captain America tee together."
+    buyer1_contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No total bundle price, delivery time, return policy, or packaging option has been selected "
+                "or agreed before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
+                "discrete_terms.return_policy, and discrete_terms.packaging for the two-item apparel bundle."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The total the buyer pays for flip-flops plus the Marvel tee together, in US dollars.",
+            "continuous_terms.delivery_days": (
+                "Days until the sandals and shirt bundle ships after agreement."
+            ),
+            "discrete_terms.return_policy": (
+                "Returns: `30_days` allows returns within 30 days; `none` is final sale."
+            ),
+            "discrete_terms.packaging": (
+                "`protective` uses extra cushioning for tees/footwear mix; "
+                "`standard` is ordinary poly-mailer/box packing."
+            ),
+        },
+        "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
+        "discrete_options": {
+            "return_policy": ["30_days", "none"],
+            "packaging": ["protective", "standard"],
+        },
+        "buyer_preferences": {
+            "v_base": 30.74,
+            "weight_descriptions": {
+                "v_base": (
+                    "Private max value for the bundle before shipping, returns, and packaging (USD); "
+                    "each dollar paid reduces utility by one dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "Utility change per extra delivery day ($/day); negative prefers faster shipping."
+                ),
+                "discrete_weights.return_policy": (
+                    "Utility ($) per return-policy choice."
+                ),
+                "discrete_weights.packaging": (
+                    "Utility ($) per packaging choice."
+                ),
+            },
+            "continuous_weights": {"delivery_days": -0.55},
+            "discrete_weights": {
+                "return_policy": {"30_days": 1.8, "none": -2.0},
+                "packaging": {"protective": 1.4, "standard": -0.6},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 26.64,
+            "weight_descriptions": {
+                "c_base": (
+                    "Private minimum fulfillment cost before shipping, returns, and packaging (USD)."
+                ),
+                "continuous_weights.delivery_days": (
+                    "Utility ($/day) for extra fulfillment slack."
+                ),
+                "discrete_weights.return_policy": (
+                    "Utility ($) per return-policy option."
+                ),
+                "discrete_weights.packaging": (
+                    "Utility ($) per packaging option."
+                ),
+            },
+            "continuous_weights": {"delivery_days": 0.35},
+            "discrete_weights": {
+                "return_policy": {"30_days": -2.2, "none": 1.5},
+                "packaging": {"protective": -1.3, "standard": 0.5},
+            },
+        },
+    }
+    buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 33.19
+    buyer2_contract_config["buyer_preferences"]["continuous_weights"]["delivery_days"] = -0.45
+    buyer2_contract_config["buyer_preferences"]["discrete_weights"]["return_policy"] = {
+        "30_days": 1.5,
+        "none": -1.6,
+    }
+    buyer2_contract_config["buyer_preferences"]["discrete_weights"]["packaging"] = {
+        "protective": 1.1,
+        "standard": -0.4,
+    }
+    buyer2_contract_config["seller_preferences"]["c_base"] = 26.94
+    buyer2_contract_config["seller_preferences"]["continuous_weights"]["delivery_days"] = 0.40
+    buyer2_contract_config["seller_preferences"]["discrete_weights"]["return_policy"] = {
+        "30_days": -2.0,
+        "none": 1.4,
+    }
+    buyer2_contract_config["seller_preferences"]["discrete_weights"]["packaging"] = {
+        "protective": -1.1,
+        "standard": 0.4,
+    }
+    buyer_contract_configs = {1: buyer1_contract_config, 2: buyer2_contract_config}
+    buyer1_max_price = buyer1_contract_config["buyer_preferences"]["v_base"]
+    buyer2_max_price = buyer2_contract_config["buyer_preferences"]["v_base"]
+    seller_min_price = min(cfg["seller_preferences"]["c_base"] for cfg in buyer_contract_configs.values())
+
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -148,6 +247,7 @@ def main(model_name=None):
                 "Several sellers list this exact two-item bundle; offers are for the bundle total. "
                 "Each seller has a different internal floor for the pair; buyers only see product facts, not seller identities."
             ),
+            "buyer_contract_configs": buyer_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
@@ -198,8 +298,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
-    # Get user requirement
-    user_requirement = "I want black flip-flops size 44 and the Captain America tee together."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -232,7 +331,7 @@ def main(model_name=None):
         "You are negotiating with two buyers for the SAME two-product bundle; all prices are the TOTAL for both items. "
         "Each round, choose exactly ONE buyer and output that choice in a dedicated <selected_buyer> block containing only "
         "the digit 1 or 2. Follow the required <mental_model> / <message> format and include "
-        "### SELLER_PRICE($X) ### in <message>."
+        "one complete <contract>...</contract> JSON block in <message>."
     )
 
     while not done:
@@ -402,6 +501,8 @@ def main(model_name=None):
             if info.get('selected_buyer'):
                 print(f"Final Selected Buyer: Buyer {info['selected_buyer']}")
                 print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
+            if info.get("agreed_contract") is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             buyer1_price = info.get('buyer1_price', 0) or 0
             seller_price_buyer1 = info.get('seller_price_buyer1', 0) or 0
             buyer2_price = info.get('buyer2_price', 0) or 0
@@ -439,6 +540,7 @@ def main(model_name=None):
                 "buyer2_price": info.get('buyer2_price'),
                 "seller_price_buyer1": info.get('seller_price_buyer1'),
                 "seller_price_buyer2": info.get('seller_price_buyer2'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer1_reward": info.get('buyer1_reward'),
@@ -452,6 +554,7 @@ def main(model_name=None):
                 "buyer1_max_price": buyer1_max_price,
                 "buyer2_max_price": buyer2_max_price,
                 "seller_min_price": seller_min_price,
+                "buyer_contract_configs": buyer_contract_configs,
                 "product_info": product_info,
                 "model": get_model_name(model),
             })
@@ -506,6 +609,8 @@ def main(model_name=None):
             if results.get('selected_buyer'):
                 f.write(f"Final Selected Buyer: Buyer {results['selected_buyer']}\n")
                 f.write(f"Final Deal Total Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"Final Contract: {results['agreed_contract']}\n\n")
             f.write("Final Prices (Total for Both Products):\n")
             f.write(f"  Buyer1: Buyer=${results['buyer1_price']:.2f} | Seller=${results['seller_price_buyer1']:.2f}" if results.get('buyer1_price') is not None and results.get('seller_price_buyer1') is not None else "  Buyer1: Not specified")
             f.write("\n")

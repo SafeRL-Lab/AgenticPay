@@ -127,7 +127,100 @@ def main(model_name=None):
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
     seller2 = SellerAgent(model=model, name="Seller2", seller_min_price=seller2_min_price)
-    
+
+    user_requirement = "I want Bungan Beach House and The Best location in Santa Teresa—one monthly rent."
+    product_request = user_requirement
+
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No total combined monthly rent, bundled lease length, or utilities-included policy "
+                "has been selected before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must set price (total USD monthly rent for both listings together), "
+                "continuous_terms.lease_months (integer months within bounds), and "
+                "discrete_terms.include_utilities (boolean true/false)."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "Total combined monthly rent in US dollars for the two-listing bundle (both units together)."
+            ),
+            "continuous_terms.lease_months": (
+                "Lease term in whole months applying to the bundled package (same commitment length for both listings)."
+            ),
+            "discrete_terms.include_utilities": (
+                "If true, quoted rent includes bundled utilities where applicable; if false, tenant pays utilities separately."
+            ),
+        },
+        "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
+        "discrete_options": {"include_utilities": [True, False]},
+    }
+    buyer1_preferences = {
+        "v_base": buyer1_max_price,
+        "weight_descriptions": {
+            "v_base": (
+                "Your private reservation value for the bundle’s monthly rent before lease length and utilities terms, in USD."
+            ),
+            "continuous_weights.lease_months": (
+                "Utility change per additional month of lease (USD/month); negative means you prefer shorter leases."
+            ),
+            "discrete_weights.include_utilities": (
+                "Utility change for each utilities-included option (USD); higher is better for you when included."
+            ),
+        },
+        "continuous_weights": {"lease_months": -7.0},
+        "discrete_weights": {"include_utilities": {True: 320.0, False: 0.0}},
+    }
+    buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
+    buyer2_preferences["v_base"] = buyer2_max_price
+    buyer2_preferences["continuous_weights"]["lease_months"] = -9.0
+    buyer2_preferences["discrete_weights"]["include_utilities"] = {True: 350.0, False: 0.0}
+    seller1_preferences = {
+        "c_base": seller1_min_price,
+        "weight_descriptions": {
+            "c_base": (
+                "Your private floor for acceptable total monthly rent before lease/utilities terms, in USD."
+            ),
+            "continuous_weights.lease_months": (
+                "Utility change per additional month (USD/month); positive means longer leases reduce vacancy risk for you."
+            ),
+            "discrete_weights.include_utilities": (
+                "Utility/cost impact when utilities are bundled into the rent (USD); negative values are costs to you."
+            ),
+        },
+        "continuous_weights": {"lease_months": 15.0},
+        "discrete_weights": {"include_utilities": {True: -150.0, False: 0.0}},
+    }
+    seller2_preferences = json.loads(json.dumps(seller1_preferences))
+    seller2_preferences["c_base"] = seller2_min_price
+    seller2_preferences["continuous_weights"]["lease_months"] = 17.0
+    seller2_preferences["discrete_weights"]["include_utilities"] = {True: -130.0, False: 0.0}
+    buyer_seller_contract_configs = {
+        "b1s1": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer1_preferences,
+            "seller_preferences": seller1_preferences,
+        },
+        "b1s2": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer1_preferences,
+            "seller_preferences": seller2_preferences,
+        },
+        "b2s1": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer2_preferences,
+            "seller_preferences": seller1_preferences,
+        },
+        "b2s2": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer2_preferences,
+            "seller_preferences": seller2_preferences,
+        },
+    }
+
     print("Creating sequential multi-buyer multi-seller two-product negotiation environment...")
     env = Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation(
         buyer1_agent=buyer1,
@@ -148,15 +241,14 @@ def main(model_name=None):
             "availability_status": "Available for lease discussion.",
             "listing_age": "2019 scrape (jsonl): 22123688 last_scraped 2019-03-07; 2290346 last_scraped 2019-02-11 — airbnb_embeddings_sample10.jsonl",
             "category": "Real Estate",
+            "buyer_seller_contract_configs": buyer_seller_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
     )
-    
+
     user_profile = None
     print(f"User Profile: {user_profile}")
-
-    user_requirement = "I want Bungan Beach House and The Best location in Santa Teresa—one monthly rent."
     print(f"Using default requirement: {user_requirement}")
 
     # Two rental listings per bundle; images from airbnb_embeddings_sample10.jsonl (22123688, 2290346)
@@ -244,8 +336,9 @@ def main(model_name=None):
         routing_instruction = (
             "You are negotiating with two sellers. Each round, choose exactly ONE seller "
             "and output that choice in a dedicated <selected_seller> block containing only "
-            "the digit 1 or 2. Then put only your negotiation text in <message>. "
-            "The price you discuss is the **total** combined monthly rent for both listings."
+            "the digit 1 or 2. Then put only your negotiation text in <message>, including "
+            "one complete <contract>...</contract> JSON block for the selected seller. "
+            "The contract `price` is the **total** combined monthly rent for both listings."
         )
         buyer1_response, buyer1_selected_seller = _run_buyer_routing(
             buyer1, combined_history_b1, observation, routing_instruction
@@ -310,23 +403,35 @@ def main(model_name=None):
         if buyer1_selected_seller == 1:
             seller1_action_buyer1 = seller1.respond(
                 conversation_history=conversation_history_b1s1,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 1, 1),
+                },
             )
         elif buyer1_selected_seller == 2:
             seller2_action_buyer1 = seller2.respond(
                 conversation_history=conversation_history_b1s2,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 1, 2),
+                },
             )
-        
+
         if buyer2_selected_seller == 1:
             seller1_action_buyer2 = seller1.respond(
                 conversation_history=conversation_history_b2s1,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 2, 1),
+                },
             )
         elif buyer2_selected_seller == 2:
             seller2_action_buyer2 = seller2.respond(
                 conversation_history=conversation_history_b2s2,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 2, 2),
+                },
             )
         
         # Execute step with selected sellers and actions
@@ -484,6 +589,10 @@ def main(model_name=None):
             if info.get("selected_buyer") and info.get("selected_seller"):
                 print(f"Selected Deal: Buyer {info['selected_buyer']} - Seller {info['selected_seller']}")
                 print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
+                pair_key = f"b{info['selected_buyer']}s{info['selected_seller']}"
+                agreed_contract = info.get(f"{pair_key}_agreed_contract")
+                if agreed_contract is not None:
+                    print(f"Final Contract: {agreed_contract}")
             print(
                 f"Buyer1-Seller1 Total: Buyer=${info.get('b1s1_buyer_price', 0) or 0:.2f} | "
                 f"Seller=${info.get('b1s1_seller_price', 0) or 0:.2f}"

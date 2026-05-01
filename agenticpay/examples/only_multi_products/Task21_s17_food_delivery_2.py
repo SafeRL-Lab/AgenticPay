@@ -87,8 +87,80 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 13.83  # Maximum acceptable all-in delivered total for buyer (confidential; below quoted checkout total)
-    seller_min_price = 11.55  # Minimum acceptable all-in delivered total for seller (confidential)
+    product_request = "I want Slutty Fries and Virgin Fries from BunSlut."
+    # Multi-dimensional contract setup for reusable MAUT scoring in env.
+    contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No delivered total price, delivery speed, or extra condiments option has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, discrete_terms.delivery_speed, and "
+                "discrete_terms.extra_condiments."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The all-in delivered total amount the buyer pays for the whole two-item food delivery order, measured in US dollars.",
+            "discrete_terms.delivery_speed": (
+                "The delivery speed for this food order. `rush` means prioritized fastest delivery; "
+                "`standard` means normal delivery; `batched` means slower bundled delivery with other orders."
+            ),
+            "discrete_terms.extra_condiments": (
+                "Whether the restaurant includes extra condiments, sauces, or small sides with the order."
+            ),
+        },
+        "continuous_bounds": {},
+        "discrete_options": {
+            "delivery_speed": ["rush", "standard", "batched"],
+            "extra_condiments": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": 13.83,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this delivered two-item food order before delivery speed and "
+                    "condiment terms, measured in dollars. A lower price is better for you because every dollar "
+                    "paid reduces your utility by 1 dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "How much each delivery-speed option changes your utility, measured in dollars."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "How much the extra-condiments option changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": 3.0, "standard": 0.0, "batched": -2.0},
+                "extra_condiments": {True: 1.5, False: 0.0},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 11.55,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost for fulfilling this delivered two-item food order before delivery "
+                    "speed and condiment terms, measured in dollars. A higher price is better for you because every "
+                    "dollar received increases your utility by 1 dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "How much each delivery-speed option changes your utility, measured in dollars."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "How much the extra-condiments option changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": -4.0, "standard": 0.0, "batched": 3.5},
+                "extra_condiments": {True: -0.5, False: 0.0},
+            },
+        },
+    }
+    buyer_max_price = contract_config["buyer_preferences"]["v_base"]  # Keep for backward-compatible price displays
+    seller_min_price = contract_config["seller_preferences"]["c_base"]  # Keep for backward-compatible price displays
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -113,6 +185,7 @@ def main(model_name=None):
             "delivery_fee": 2.29,
             "service_fee": 1.21,
             "quoted_total_price": 17.50,
+            "contract_config": contract_config,
         },
         price_tolerance=price_tolerance,
     )
@@ -167,7 +240,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I want Slutty Fries and Virgin Fries from BunSlut."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -252,6 +325,8 @@ def main(model_name=None):
             print(f"Final Total Prices: Seller={seller_price_str} | Buyer={buyer_price_str}")
             if info.get('agreed_price'):
                 print(f"Agreed Total Price: ${info.get('agreed_price', 0):.2f}")
+            if info.get('agreed_contract') is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             # current_round has been incremented to reflect the completed round
             actual_rounds = info['round']
             print(f"Total Rounds: {actual_rounds}")
@@ -274,15 +349,20 @@ def main(model_name=None):
                 "seller_price": info.get('seller_price'),
                 "buyer_price": info.get('buyer_price'),
                 "agreed_price": info.get('agreed_price'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "global_score": info.get('global_score'),
                 "buyer_score": info.get('buyer_score'),
                 "seller_score": info.get('seller_score'),
+                "buyer_utility": info.get('buyer_utility'),
+                "seller_utility": info.get('seller_utility'),
+                "z_max": info.get('z_max'),
                 "termination_reason": info.get('termination_reason'),
                 "elapsed_time": elapsed_time,
                 "buyer_max_price": buyer_max_price,
                 "seller_min_price": seller_min_price,
+                "contract_config": contract_config,
                 "product_info": product_info,
                 "model": get_model_name(model),
             })
@@ -341,6 +421,8 @@ def main(model_name=None):
             f.write("\n")
             if results.get('agreed_price'):
                 f.write(f"  Agreed Total Price: ${results['agreed_price']:.2f}\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"  Agreed Contract: {results['agreed_contract']}\n")
             f.write("\n")
             f.write("Products:\n")
             for i, p in enumerate(results.get('product_info', {}).get('products', []), 1):

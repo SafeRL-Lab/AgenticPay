@@ -120,11 +120,132 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products (Beverage + Air Plants)
     print("Creating agents...")
-    buyer1_max_price = 39.07  # Maximum acceptable total price for buyer1 (confidential)
-    buyer2_max_price = 42.34  # Maximum acceptable total price for buyer2 (confidential)
-    seller1_min_price = 36.26  # Minimum acceptable total selling price for seller1 (confidential)
-    seller2_min_price = 32.47  # Minimum acceptable total selling price for seller2 (confidential)
-    
+    product_request = (
+        "I want Belvoir Sparkling Elderflower Rose case and tillandsia 6-pack together."
+    )
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No total bundle price, delivery time, return policy, or gift-wrap option has been selected "
+                "or agreed before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
+                "discrete_terms.return_policy, and discrete_terms.gift_wrap. The price is the total "
+                "bundle price for both products (beverage case + air plants)."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The total amount of money the buyer pays for both products together, measured in US dollars.",
+            "continuous_terms.delivery_days": (
+                "How many days the seller can take to deliver the complete two-product bundle after the deal is made."
+            ),
+            "discrete_terms.return_policy": (
+                "The return rule for the whole bundle. `30_days` means the buyer can return the bundle within "
+                "30 days; `none` means the sale is final and returns are not allowed."
+            ),
+            "discrete_terms.gift_wrap": (
+                "`yes` means the seller uses upgraded packing (e.g., cushioning / gifting presentation) for plants and bottles; "
+                "`no` means standard parcel packaging."
+            ),
+        },
+        "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
+        "discrete_options": {
+            "return_policy": ["30_days", "none"],
+            "gift_wrap": ["yes", "no"],
+        },
+    }
+    buyer1_preferences = {
+        "v_base": 39.07,
+        "weight_descriptions": {
+            "v_base": (
+                "Your private maximum value for the two-product bundle before delivery, return, and gift-wrap terms, measured in dollars. "
+                "A lower price is better for you because every dollar paid reduces your utility by 1 dollar."
+            ),
+            "continuous_weights.delivery_days": (
+                "How much each additional delivery day changes your utility, measured in dollars per day. "
+                "A negative number means slower delivery is worse for you."
+            ),
+            "discrete_weights.return_policy": (
+                "How much each return-policy option changes your utility, measured in dollars. "
+                "Positive numbers are good for you; negative numbers are bad for you."
+            ),
+            "discrete_weights.gift_wrap": (
+                "How much each gift-wrap option changes your utility, measured in dollars. "
+                "Positive numbers are good for you; negative numbers are bad for you."
+            ),
+        },
+        "continuous_weights": {"delivery_days": -0.48},
+        "discrete_weights": {
+            "return_policy": {"30_days": 1.5, "none": -1.7},
+            "gift_wrap": {"yes": 1.15, "no": -0.3},
+        },
+    }
+    buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
+    buyer2_preferences["v_base"] = 42.34
+    buyer2_preferences["continuous_weights"]["delivery_days"] = -0.33
+    buyer2_preferences["discrete_weights"]["return_policy"] = {"30_days": 1.2, "none": -1.35}
+    buyer2_preferences["discrete_weights"]["gift_wrap"] = {"yes": 0.85, "no": -0.18}
+    seller1_preferences = {
+        "c_base": 36.26,
+        "weight_descriptions": {
+            "c_base": (
+                "Your private minimum cost for fulfilling the two-product bundle before delivery, return, and gift-wrap terms, measured in dollars. "
+                "A higher price is better for you because every dollar received increases your utility by 1 dollar."
+            ),
+            "continuous_weights.delivery_days": (
+                "How much each additional delivery day changes your utility, measured in dollars per day. "
+                "A positive number means more delivery flexibility is better for you."
+            ),
+            "discrete_weights.return_policy": (
+                "How much each return-policy option changes your utility, measured in dollars. "
+                "Positive numbers are good for you; negative numbers are bad for you."
+            ),
+            "discrete_weights.gift_wrap": (
+                "How much each gift-wrap option changes your utility, measured in dollars. "
+                "Positive numbers are good for you; negative numbers are bad for you."
+            ),
+        },
+        "continuous_weights": {"delivery_days": 0.33},
+        "discrete_weights": {
+            "return_policy": {"30_days": -1.85, "none": 1.12},
+            "gift_wrap": {"yes": -1.05, "no": 0.2},
+        },
+    }
+    seller2_preferences = json.loads(json.dumps(seller1_preferences))
+    seller2_preferences["c_base"] = 32.47
+    seller2_preferences["continuous_weights"]["delivery_days"] = 0.37
+    seller2_preferences["discrete_weights"]["return_policy"] = {"30_days": -1.6, "none": 0.95}
+    seller2_preferences["discrete_weights"]["gift_wrap"] = {"yes": -0.92, "no": 0.16}
+
+    buyer_seller_contract_configs = {
+        "b1s1": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer1_preferences,
+            "seller_preferences": seller1_preferences,
+        },
+        "b1s2": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer1_preferences,
+            "seller_preferences": seller2_preferences,
+        },
+        "b2s1": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer2_preferences,
+            "seller_preferences": seller1_preferences,
+        },
+        "b2s2": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer2_preferences,
+            "seller_preferences": seller2_preferences,
+        },
+    }
+    buyer1_max_price = buyer1_preferences["v_base"]
+    buyer2_max_price = buyer2_preferences["v_base"]
+    seller1_min_price = seller1_preferences["c_base"]
+    seller2_min_price = seller2_preferences["c_base"]
+
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -148,6 +269,7 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "note": "Multiple third-party offers for the same two-SKU cart; prices are bundle totals.",
+            "buyer_seller_contract_configs": buyer_seller_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -199,9 +321,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
-    # Get user requirement (should describe purchasing both products)
-    # Use default requirement for automatic running
-    user_requirement = "I want Belvoir Sparkling Elderflower Rose case and tillandsia 6-pack together."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -251,8 +371,9 @@ def main(model_name=None):
         routing_instruction = (
             "You are negotiating with two sellers. Each round, choose exactly ONE seller "
             "and output that choice in a dedicated <selected_seller> block containing only "
-            "the digit 1 or 2. Then put only your negotiation text in <message>. "
-            "The price you discuss is the **total** for both products in the cart."
+            "the digit 1 or 2. Then put only your negotiation text in <message>, including "
+            "one complete <contract>...</contract> JSON block for the selected seller. "
+            "The contract price is the **total** for both products in the cart."
         )
         buyer1_response, buyer1_selected_seller = _run_buyer_routing(
             buyer1, combined_history_b1, observation, routing_instruction
@@ -318,23 +439,35 @@ def main(model_name=None):
         if buyer1_selected_seller == 1:
             seller1_action_buyer1 = seller1.respond(
                 conversation_history=conversation_history_b1s1,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 1, 1),
+                },
             )
         elif buyer1_selected_seller == 2:
             seller2_action_buyer1 = seller2.respond(
                 conversation_history=conversation_history_b1s2,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 1, 2),
+                },
             )
-        
+
         if buyer2_selected_seller == 1:
             seller1_action_buyer2 = seller1.respond(
                 conversation_history=conversation_history_b2s1,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 2, 1),
+                },
             )
         elif buyer2_selected_seller == 2:
             seller2_action_buyer2 = seller2.respond(
                 conversation_history=conversation_history_b2s2,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 2, 2),
+                },
             )
         
         # Execute step with selected sellers and actions
@@ -466,6 +599,10 @@ def main(model_name=None):
             if info.get("selected_buyer") and info.get("selected_seller"):
                 print(f"Selected Deal: Buyer {info['selected_buyer']} - Seller {info['selected_seller']}")
                 print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
+                pair_key = f"b{info['selected_buyer']}s{info['selected_seller']}"
+                agreed_contract = info.get(f"{pair_key}_agreed_contract")
+                if agreed_contract is not None:
+                    print(f"Final Contract: {agreed_contract}")
             print(
                 f"Buyer1-Seller1 Total: Buyer=${info.get('b1s1_buyer_price', 0) or 0:.2f} | "
                 f"Seller=${info.get('b1s1_seller_price', 0) or 0:.2f}"
@@ -510,37 +647,54 @@ def main(model_name=None):
             product_info_out = info.get("product_info", {})
             results.update(
                 {
-                "status": info.get("status", "unknown"),
-                "success": terminated,
-                "selected_buyer": info.get("selected_buyer"),
-                "selected_seller": info.get("selected_seller"),
-                "final_deal_price": info.get("final_deal_price"),
-                "b1s1_buyer_price": info.get("b1s1_buyer_price"),
-                "b1s1_seller_price": info.get("b1s1_seller_price"),
-                "b1s2_buyer_price": info.get("b1s2_buyer_price"),
-                "b1s2_seller_price": info.get("b1s2_seller_price"),
-                "b2s1_buyer_price": info.get("b2s1_buyer_price"),
-                "b2s1_seller_price": info.get("b2s1_seller_price"),
-                "b2s2_buyer_price": info.get("b2s2_buyer_price"),
-                "b2s2_seller_price": info.get("b2s2_seller_price"),
-                "total_rounds": info.get("round", 0),
-                "total_reward": float(reward) if reward is not None else None,
-                "buyer1_reward": info.get("buyer1_reward"),
-                "buyer2_reward": info.get("buyer2_reward"),
-                "seller1_reward": info.get("seller1_reward"),
-                "seller2_reward": info.get("seller2_reward"),
-                "global_score": info.get("global_score"),
-                "buyer_score": info.get("buyer_score"),
-                "seller_score": info.get("seller_score"),
-                "termination_reason": info.get("termination_reason"),
-                "elapsed_time": elapsed_time,
-                "buyer1_max_price": buyer1_max_price,
-                "buyer2_max_price": buyer2_max_price,
-                "seller1_min_price": seller1_min_price,
-                "seller2_min_price": seller2_min_price,
-                "product_info": product_info_out,
-                "model": get_model_name(model),
-            }
+                    "status": info.get("status", "unknown"),
+                    "success": terminated,
+                    "selected_buyer": info.get("selected_buyer"),
+                    "selected_seller": info.get("selected_seller"),
+                    "final_deal_price": info.get("final_deal_price"),
+                    "b1s1_buyer_price": info.get("b1s1_buyer_price"),
+                    "b1s1_seller_price": info.get("b1s1_seller_price"),
+                    "b1s2_buyer_price": info.get("b1s2_buyer_price"),
+                    "b1s2_seller_price": info.get("b1s2_seller_price"),
+                    "b2s1_buyer_price": info.get("b2s1_buyer_price"),
+                    "b2s1_seller_price": info.get("b2s1_seller_price"),
+                    "b2s2_buyer_price": info.get("b2s2_buyer_price"),
+                    "b2s2_seller_price": info.get("b2s2_seller_price"),
+                    "b1s1_agreed_contract": info.get("b1s1_agreed_contract"),
+                    "b1s1_buyer_utility": info.get("b1s1_buyer_utility"),
+                    "b1s1_seller_utility": info.get("b1s1_seller_utility"),
+                    "b1s1_z_max": info.get("b1s1_z_max"),
+                    "b1s2_agreed_contract": info.get("b1s2_agreed_contract"),
+                    "b1s2_buyer_utility": info.get("b1s2_buyer_utility"),
+                    "b1s2_seller_utility": info.get("b1s2_seller_utility"),
+                    "b1s2_z_max": info.get("b1s2_z_max"),
+                    "b2s1_agreed_contract": info.get("b2s1_agreed_contract"),
+                    "b2s1_buyer_utility": info.get("b2s1_buyer_utility"),
+                    "b2s1_seller_utility": info.get("b2s1_seller_utility"),
+                    "b2s1_z_max": info.get("b2s1_z_max"),
+                    "b2s2_agreed_contract": info.get("b2s2_agreed_contract"),
+                    "b2s2_buyer_utility": info.get("b2s2_buyer_utility"),
+                    "b2s2_seller_utility": info.get("b2s2_seller_utility"),
+                    "b2s2_z_max": info.get("b2s2_z_max"),
+                    "total_rounds": info.get("round", 0),
+                    "total_reward": float(reward) if reward is not None else None,
+                    "buyer1_reward": info.get("buyer1_reward"),
+                    "buyer2_reward": info.get("buyer2_reward"),
+                    "seller1_reward": info.get("seller1_reward"),
+                    "seller2_reward": info.get("seller2_reward"),
+                    "global_score": info.get("global_score"),
+                    "buyer_score": info.get("buyer_score"),
+                    "seller_score": info.get("seller_score"),
+                    "termination_reason": info.get("termination_reason"),
+                    "elapsed_time": elapsed_time,
+                    "buyer1_max_price": buyer1_max_price,
+                    "buyer2_max_price": buyer2_max_price,
+                    "seller1_min_price": seller1_min_price,
+                    "seller2_min_price": seller2_min_price,
+                    "buyer_seller_contract_configs": buyer_seller_contract_configs,
+                    "product_info": product_info_out,
+                    "model": get_model_name(model),
+                }
             )
             break
     
@@ -593,6 +747,10 @@ def main(model_name=None):
             if results.get('selected_buyer') and results.get('selected_seller'):
                 f.write(f"Selected Deal: Buyer {results['selected_buyer']} - Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Total Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+                pair_key = f"b{results['selected_buyer']}s{results['selected_seller']}"
+                agreed_contract = results.get(f"{pair_key}_agreed_contract")
+                if agreed_contract is not None:
+                    f.write(f"Final Contract: {agreed_contract}\n\n")
             f.write("Final Total Prices (bundle):\n")
             f.write(
                 f"  Buyer1-Seller1: Buyer=${results['b1s1_buyer_price']:.2f} | Seller=${results['b1s1_seller_price']:.2f}\n"
@@ -614,6 +772,26 @@ def main(model_name=None):
                 if results.get("b2s2_buyer_price") is not None and results.get("b2s2_seller_price") is not None
                 else "  Buyer2-Seller2: Not specified\n\n"
             )
+            f.write("Contract Utilities:\n")
+            for pair_key, label in (
+                ("b1s1", "Buyer1-Seller1"),
+                ("b1s2", "Buyer1-Seller2"),
+                ("b2s1", "Buyer2-Seller1"),
+                ("b2s2", "Buyer2-Seller2"),
+            ):
+                z_max = results.get(f"{pair_key}_z_max")
+                buyer_utility = results.get(f"{pair_key}_buyer_utility")
+                seller_utility = results.get(f"{pair_key}_seller_utility")
+                agreed_contract = results.get(f"{pair_key}_agreed_contract")
+                if z_max is not None:
+                    f.write(f"  {label} Z_max: {z_max:.3f}\n")
+                if buyer_utility is not None:
+                    f.write(f"  {label} Buyer Utility: {buyer_utility:.3f}\n")
+                if seller_utility is not None:
+                    f.write(f"  {label} Seller Utility: {seller_utility:.3f}\n")
+                if agreed_contract is not None:
+                    f.write(f"  {label} Agreed Contract: {agreed_contract}\n")
+            f.write("\n")
             pin = results.get("product_info", {}) or {}
             f.write("Products:\n")
             for i, p in enumerate(pin.get("products", []), 1):

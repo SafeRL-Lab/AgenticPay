@@ -87,8 +87,82 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price = combined acceptable monthly rent for both listings (confidential)
     print("Creating agents...")
-    buyer_max_price = 800.0  # Maximum acceptable combined monthly rent for both units (confidential); below listing total reference
-    seller_min_price = 643.0  # Minimum acceptable combined monthly rent for both units (confidential); must be < buyer_max_price
+    product_request = (
+        "I want the Istanbul private room and the Rio Alugo suíte, one combined monthly rent."
+    )
+    contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No combined monthly rent, lease length, or utility-inclusion term has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.lease_months, "
+                "and discrete_terms.include_utilities."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The total combined monthly rent the tenant pays for both rentals in this bundle, measured in US dollars."
+            ),
+            "continuous_terms.lease_months": (
+                "The number of months in the lease term for the combined arrangement. It must be within the configured bounds."
+            ),
+            "discrete_terms.include_utilities": (
+                "Whether standard utilities are included in the combined monthly rent. true means utilities are included; "
+                "false means the tenant pays utilities separately."
+            ),
+        },
+        "continuous_bounds": {
+            "lease_months": {"min": 1, "max": 24},
+        },
+        "discrete_options": {
+            "include_utilities": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": 800.0,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum combined monthly rent for both units before lease-length and utility terms, "
+                    "measured in dollars. A lower rent is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars per month. "
+                    "A negative number means a longer commitment is worse for you."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much utility inclusion changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {"lease_months": -10.0},
+            "discrete_weights": {
+                "include_utilities": {True: 100.0, False: 0.0},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 643.0,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum acceptable combined monthly rent for both units before lease-length and utility terms, "
+                    "measured in dollars. A higher rent is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars per month. "
+                    "A positive number means longer occupancy reduces vacancy risk for you."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much including utilities changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {"lease_months": 20.0},
+            "discrete_weights": {
+                "include_utilities": {True: -60.0, False: 0.0},
+            },
+        },
+    }
+    buyer_max_price = contract_config["buyer_preferences"]["v_base"]
+    seller_min_price = contract_config["seller_preferences"]["c_base"]
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -107,6 +181,7 @@ def main(model_name=None):
             "market_type": "Residential Rental",
             "availability_status": "See each listing.",
             "listing_age": "Sample scrape 2019 (listings 25845370, 462902)",
+            "contract_config": contract_config,
         },
         price_tolerance=price_tolerance,
     )
@@ -162,9 +237,8 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Product Price: ${total_product_price:.2f}")
     
-    # Get user requirement (should describe purchasing two products)
-    # Use default requirement for automatic running
-    user_requirement = "I want the Istanbul private room and the Rio Alugo suíte, one combined monthly rent."
+    # User query (bundled lease); kept as product_request / user_requirement for env.reset
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -249,6 +323,8 @@ def main(model_name=None):
             print(f"Final Total Prices: Seller={seller_price_str} | Buyer={buyer_price_str}")
             if info.get('agreed_price'):
                 print(f"Agreed Total Price: ${info.get('agreed_price', 0):.2f}")
+            if info.get('agreed_contract') is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             # current_round has been incremented to reflect the completed round
             actual_rounds = info['round']
             print(f"Total Rounds: {actual_rounds}")
@@ -271,15 +347,20 @@ def main(model_name=None):
                 "seller_price": info.get('seller_price'),
                 "buyer_price": info.get('buyer_price'),
                 "agreed_price": info.get('agreed_price'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "global_score": info.get('global_score'),
                 "buyer_score": info.get('buyer_score'),
                 "seller_score": info.get('seller_score'),
+                "buyer_utility": info.get('buyer_utility'),
+                "seller_utility": info.get('seller_utility'),
+                "z_max": info.get('z_max'),
                 "termination_reason": info.get('termination_reason'),
                 "elapsed_time": elapsed_time,
                 "buyer_max_price": buyer_max_price,
                 "seller_min_price": seller_min_price,
+                "contract_config": contract_config,
                 "product_info": product_info,
                 "model": get_model_name(model),
             })
@@ -338,6 +419,8 @@ def main(model_name=None):
             f.write("\n")
             if results.get('agreed_price'):
                 f.write(f"  Agreed Total Price: ${results['agreed_price']:.2f}\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"  Agreed Contract: {results['agreed_contract']}\n")
             f.write("\n")
             f.write("Products:\n")
             for i, p in enumerate(results.get('product_info', {}).get('products', []), 1):

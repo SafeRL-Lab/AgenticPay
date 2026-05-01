@@ -95,8 +95,83 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     # Scenario 19: Dripped Nachos — public all-in reference (quoted_total_price $13.14); confidential walk-aways sit well below that anchor.
-    buyer_max_price = 10.20  # Maximum acceptable all-in order total for buyer (confidential)
-    seller_min_price = 8.80  # Minimum acceptable all-in order total for seller (confidential)
+    contract_config = {
+        "contrainfo": {
+            "product_request": "I want Dripped Nachos from Dripped Birria, delivered.",
+            "initial_contract_status": (
+                "No all-in price, delivery speed, or extra condiments option has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
+                "and discrete_terms.extra_condiments."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The all-in order total the buyer pays, measured in US dollars, including the food item "
+                "and mandatory delivery-related fees."
+            ),
+            "discrete_terms.delivery_speed": (
+                "The fulfillment speed for the DoorDash order. `rush` means prioritized delivery; "
+                "`standard` means normal delivery; `batched` means slower grouped delivery."
+            ),
+            "discrete_terms.extra_condiments": (
+                "Whether the order includes extra condiments, sauces, or small sides requested by the buyer."
+            ),
+        },
+        "continuous_bounds": {},
+        "discrete_options": {
+            "delivery_speed": ["rush", "standard", "batched"],
+            "extra_condiments": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": 10.20,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this all-in food delivery order before delivery speed "
+                    "and condiment terms, measured in dollars. A lower price is better for you because every "
+                    "dollar paid reduces your utility by 1 dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "How much each delivery speed option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "How much receiving extra condiments changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": 3.0, "standard": 0.0, "batched": -2.0},
+                "extra_condiments": {True: 1.5, False: 0.0},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 8.80,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost for fulfilling this all-in food delivery order before delivery "
+                    "speed and condiment terms, measured in dollars. A higher price is better for you because "
+                    "every dollar received increases your utility by 1 dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "How much each delivery speed option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "How much including extra condiments changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": -4.0, "standard": 0.0, "batched": 3.5},
+                "extra_condiments": {True: -0.5, False: 0.0},
+            },
+        },
+    }
+    buyer_max_price = contract_config["buyer_preferences"]["v_base"]  # Keep for backward-compatible step reward display
+    seller_min_price = contract_config["seller_preferences"]["c_base"]  # Keep for backward-compatible step reward display
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -124,7 +199,8 @@ def main(model_name=None):
             "delivery_fee": 2.49,
             "service_fee": 1.15,
             "quoted_total_price": 13.14,
-            "pricing_rule": "Negotiated price should be treated as the all-in order total including the food item and mandatory delivery-related fees."
+            "pricing_rule": "Negotiated price should be treated as the all-in order total including the food item and mandatory delivery-related fees.",
+            "contract_config": contract_config,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration

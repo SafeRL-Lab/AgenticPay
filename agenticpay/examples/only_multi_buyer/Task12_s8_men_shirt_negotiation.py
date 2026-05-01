@@ -121,12 +121,144 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    buyer1_max_price = 8.25  # Maximum acceptable price for buyer1 (confidential; tighter budget than buyer2)
-    buyer2_max_price = 8.78  # Maximum acceptable price for buyer2 (confidential; higher ceiling than buyer1)
-    seller_min_price = 7.03  # Minimum acceptable price for seller (confidential)
-    
+    product_request = "I want JSPOYOU tie-dye 3D graphic tee—size/color from the listing."
+    v_ref, c_ref = 8.7, 4.5
+    buyer1_max_price = 8.25
+    buyer2_max_price = 8.78
+    sb1, sb2 = buyer1_max_price / v_ref, buyer2_max_price / v_ref
+    c_b1_seller, c_b2_seller = 7.03, 7.16
+    ss1, ss2 = c_b1_seller / c_ref, c_b2_seller / c_ref
+
+    def _beauty_buyer_prefs(scale: float):
+        return {
+            "continuous_weights": {"delivery_days": -0.30 * scale},
+            "discrete_weights": {
+                "return_policy": {"30_days": 1.1 * scale, "none": -1.3 * scale},
+                "packaging": {"protective": 1.0 * scale, "standard": -0.4 * scale},
+            },
+        }
+
+    def _beauty_buyer_prefs_b2(scale: float):
+        return {
+            "continuous_weights": {"delivery_days": -0.20 * scale},
+            "discrete_weights": {
+                "return_policy": {"30_days": 0.9 * scale, "none": -1.0 * scale},
+                "packaging": {"protective": 0.8 * scale, "standard": -0.2 * scale},
+            },
+        }
+
+    def _beauty_seller_prefs(scale: float):
+        return {
+            "continuous_weights": {"delivery_days": 0.20 * scale},
+            "discrete_weights": {
+                "return_policy": {"30_days": -1.4 * scale, "none": 1.0 * scale},
+                "packaging": {"protective": -0.8 * scale, "standard": 0.3 * scale},
+            },
+        }
+
+    def _beauty_seller_prefs_b2(scale: float):
+        return {
+            "continuous_weights": {"delivery_days": 0.25 * scale},
+            "discrete_weights": {
+                "return_policy": {"30_days": -1.4 * scale, "none": 1.0 * scale},
+                "packaging": {"protective": -0.85 * scale, "standard": 0.32 * scale},
+            },
+        }
+
+    buyer1_contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No price, delivery time, return policy, or packaging option has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
+                "discrete_terms.return_policy, and discrete_terms.packaging."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The total amount of money the buyer pays for the whole deal, measured in US dollars.",
+            "continuous_terms.delivery_days": (
+                "How many days the seller can take to deliver the shirt after the deal is made."
+            ),
+            "discrete_terms.return_policy": (
+                "The return rule for the order. `30_days` means the buyer can return within 30 days; "
+                "`none` means the sale is final and returns are not allowed."
+            ),
+            "discrete_terms.packaging": (
+                "Shipment packaging. `protective` means extra protection for graphic prints and collars; "
+                "`standard` means normal packaging."
+            ),
+        },
+        "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
+        "discrete_options": {
+            "return_policy": ["30_days", "none"],
+            "packaging": ["protective", "standard"],
+        },
+        "buyer_preferences": {
+            "v_base": buyer1_max_price,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this shirt order before delivery, return, and packaging terms, measured in dollars. "
+                    "A lower price is better because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility ($/day). Negative means slower delivery is worse."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility ($). Positive is good for you."
+                ),
+                "discrete_weights.packaging": (
+                    "How much each packaging option changes your utility ($). Positive is good for you."
+                ),
+            },
+            **_beauty_buyer_prefs(sb1),
+        },
+        "seller_preferences": {
+            "c_base": c_b1_seller,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost before delivery, return, and packaging terms, measured in dollars. "
+                    "A higher price is better because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility ($/day). Positive means more lead time helps you."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility ($)."
+                ),
+                "discrete_weights.packaging": (
+                    "How much each packaging option changes your utility ($)."
+                ),
+            },
+            **_beauty_seller_prefs(ss1),
+        },
+    }
+    buyer2_contract_config = {
+        **{k: v for k, v in buyer1_contract_config.items() if k not in ("buyer_preferences", "seller_preferences")},
+        "buyer_preferences": {
+            **{k: v for k, v in buyer1_contract_config["buyer_preferences"].items() if k not in ("v_base", "continuous_weights", "discrete_weights")},
+            "v_base": buyer2_max_price,
+            "weight_descriptions": {
+                **buyer1_contract_config["buyer_preferences"]["weight_descriptions"],
+                "v_base": (
+                    "Your private maximum value for this shirt order before delivery, return, and packaging terms, measured in dollars. "
+                    "A lower price is better because every dollar paid reduces your utility by 1 dollar."
+                ),
+            },
+            **_beauty_buyer_prefs_b2(sb2),
+        },
+        "seller_preferences": {
+            **{k: v for k, v in buyer1_contract_config["seller_preferences"].items() if k not in ("c_base", "continuous_weights", "discrete_weights")},
+            "c_base": c_b2_seller,
+            **_beauty_seller_prefs_b2(ss2),
+        },
+    }
+    buyer_contract_configs = {1: buyer1_contract_config, 2: buyer2_contract_config}
+    seller_min_price = min(cfg["seller_preferences"]["c_base"] for cfg in buyer_contract_configs.values())
+
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -145,6 +277,7 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
+            "buyer_contract_configs": buyer_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -156,7 +289,7 @@ def main(model_name=None):
     
     # Get user requirement
     # Use default requirement for automatic running
-    user_requirement = "I want JSPOYOU tie-dye 3D graphic tee—size/color from the listing."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -191,7 +324,7 @@ def main(model_name=None):
         "You are negotiating with two buyers. Each round, choose exactly ONE buyer "
         "and output that choice in a dedicated <selected_buyer> block containing only "
         "the digit 1 or 2. Follow the required <mental_model> / <message> format and include "
-        "### SELLER_PRICE($X) ### in <message>."
+        "one complete <contract>...</contract> JSON block in <message>."
     )
     
     # Initialize results dictionary
@@ -395,6 +528,8 @@ def main(model_name=None):
             if info.get('selected_buyer'):
                 print(f"Final Selected Buyer: Buyer {info['selected_buyer']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
+            if info.get('agreed_contract') is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             buyer1_price = info.get('buyer1_price', 0) or 0
             seller_price_buyer1 = info.get('seller_price_buyer1', 0) or 0
             buyer2_price = info.get('buyer2_price', 0) or 0
@@ -432,6 +567,7 @@ def main(model_name=None):
                 "buyer2_price": info.get('buyer2_price'),
                 "seller_price_buyer1": info.get('seller_price_buyer1'),
                 "seller_price_buyer2": info.get('seller_price_buyer2'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer1_reward": info.get('buyer1_reward'),
@@ -445,6 +581,7 @@ def main(model_name=None):
                 "buyer1_max_price": buyer1_max_price,
                 "buyer2_max_price": buyer2_max_price,
                 "seller_min_price": seller_min_price,
+                "buyer_contract_configs": buyer_contract_configs,
                 "product_info": {
                     "name": "JSPOYOU Mens Short Sleeve Crewneck 3D Graphic Tunic Shirts Big & Tall Tie Dye Summer Top Basic Designed Classic Cotton Shirt",
                     "brand": "Brand: JSPOYOU",
@@ -505,6 +642,8 @@ def main(model_name=None):
             if results.get('selected_buyer'):
                 f.write(f"Final Selected Buyer: Buyer {results['selected_buyer']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"Final Contract: {results['agreed_contract']}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Buyer1 - Buyer Price: ${results['buyer1_price']:.2f}" if results.get('buyer1_price') is not None else "  Buyer1 - Buyer Price: Not specified")
             f.write("\n")

@@ -100,12 +100,96 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Same property from two offers: each seller has a different confidential floor monthly rent
+    # Same property from two offers: each seller can differ in private contract utility values.
     print("Creating agents...")
-    # Confidential band vs listing reference (1395): across scenarios s21→s25, seller floors (as % of quoted) decrease and buyer ceiling increases
-    buyer_max_price = 1070.0  # Max acceptable monthly rent (confidential — lowest buyer cap among s21–s25 suite)
-    seller1_min_price = 894.0  # Seller 1 floor (confidential — highest Seller1 floor among s21–s25)
-    seller2_min_price = 958.0  # Seller 2 floor (confidential — highest Seller2 floor among s21–s25)
+    product_request = "I want a 1-month lease on the East Village Living studio."
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No monthly rent, lease length, or utility-inclusion term has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.lease_months, "
+                "and discrete_terms.include_utilities."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The monthly rent the tenant pays for the lease, measured in US dollars.",
+            "continuous_terms.lease_months": (
+                "The number of months in the lease term. It must be within the configured bounds."
+            ),
+            "discrete_terms.include_utilities": (
+                "Whether standard utilities are included in the monthly rent. true means utilities are included; "
+                "false means the tenant pays utilities separately."
+            ),
+        },
+        "continuous_bounds": {
+            "lease_months": {"min": 1, "max": 24}
+        },
+        "discrete_options": {
+            "include_utilities": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": 1070.0,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum monthly rent before lease-length and utility terms, measured in dollars. "
+                    "A lower rent is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars per month. "
+                    "A negative number means longer commitment is worse for you."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much utility inclusion changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {"lease_months": -10.0},
+            "discrete_weights": {
+                "include_utilities": {True: 100.0, False: 0.0},
+            },
+        },
+    }
+    seller1_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 894.0,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum acceptable monthly rent before lease-length and utility terms, measured in dollars. "
+                    "A higher rent is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars per month. "
+                    "A positive number means longer occupancy reduces vacancy risk for you."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much including utilities changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {"lease_months": 20.0},
+            "discrete_weights": {
+                "include_utilities": {True: -60.0, False: 0.0},
+            },
+        },
+    }
+    seller2_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 958.0,
+            "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
+            "continuous_weights": {"lease_months": 18.0},
+            "discrete_weights": {
+                "include_utilities": {True: -55.0, False: 0.0},
+            },
+        },
+    }
+    seller_contract_configs = {1: seller1_contract_config, 2: seller2_contract_config}
+    buyer_max_price = shared_contract_fields["buyer_preferences"]["v_base"]
+    seller1_min_price = seller1_contract_config["seller_preferences"]["c_base"]
+    seller2_min_price = seller2_contract_config["seller_preferences"]["c_base"]
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -127,6 +211,7 @@ def main(model_name=None):
             "platform": "Rental marketplace",
             "market_type": "B2C",
             "note": "Multiple third-party offers exist for the same property listing.",
+            "seller_contract_configs": seller_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -145,7 +230,7 @@ def main(model_name=None):
     #     user_requirement = "I need a high-quality winter jacket for cold weather"
     #     print(f"Using default requirement: {user_requirement}")
     # One-lease user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want a 1-month lease on the East Village Living studio."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -373,6 +458,9 @@ def main(model_name=None):
             if info.get('selected_seller'):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
+                agreed_contract = info.get(f"agreed_contract_seller{info['selected_seller']}")
+                if agreed_contract is not None:
+                    print(f"Final Contract: {agreed_contract}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -410,6 +498,14 @@ def main(model_name=None):
                 "seller2_price": info.get('seller2_price'),
                 "buyer_price_seller1": info.get('buyer_price_seller1'),
                 "buyer_price_seller2": info.get('buyer_price_seller2'),
+                "agreed_contract_seller1": info.get('agreed_contract_seller1'),
+                "agreed_contract_seller2": info.get('agreed_contract_seller2'),
+                "buyer_utility_seller1": info.get('buyer_utility_seller1'),
+                "seller_utility_seller1": info.get('seller_utility_seller1'),
+                "z_max_seller1": info.get('z_max_seller1'),
+                "buyer_utility_seller2": info.get('buyer_utility_seller2'),
+                "seller_utility_seller2": info.get('seller_utility_seller2'),
+                "z_max_seller2": info.get('z_max_seller2'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer_reward": info.get('buyer_reward'),
@@ -423,6 +519,7 @@ def main(model_name=None):
                 "buyer_max_price": buyer_max_price,
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
+                "seller_contract_configs": seller_contract_configs,
                 "product_info": {
                     "name": "East Village Living — Entire studio (NYC East Village)",
                     "condition": "Move-in ready",
@@ -489,6 +586,9 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+                agreed_contract = results.get(f"agreed_contract_seller{results['selected_seller']}")
+                if agreed_contract is not None:
+                    f.write(f"Final Contract: {agreed_contract}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -498,6 +598,20 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
+            f.write("Contract Utilities:\n")
+            if results.get('z_max_seller1') is not None:
+                f.write(f"  Seller1 Z_max: {results['z_max_seller1']:.3f}\n")
+            if results.get('buyer_utility_seller1') is not None:
+                f.write(f"  Seller1 Buyer Utility: {results['buyer_utility_seller1']:.3f}\n")
+            if results.get('seller_utility_seller1') is not None:
+                f.write(f"  Seller1 Seller Utility: {results['seller_utility_seller1']:.3f}\n")
+            if results.get('z_max_seller2') is not None:
+                f.write(f"  Seller2 Z_max: {results['z_max_seller2']:.3f}\n")
+            if results.get('buyer_utility_seller2') is not None:
+                f.write(f"  Seller2 Buyer Utility: {results['buyer_utility_seller2']:.3f}\n")
+            if results.get('seller_utility_seller2') is not None:
+                f.write(f"  Seller2 Seller Utility: {results['seller_utility_seller2']:.3f}\n")
+            f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
                 f.write(f"  Total Reward: {results['total_reward']:.3f}\n")

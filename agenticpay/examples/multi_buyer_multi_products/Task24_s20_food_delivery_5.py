@@ -100,9 +100,98 @@ def main(model_name=None):
 
     # Public menu-original subtotal ~$16.50; delivered line references sum to ~$22.45. Negotiation bounds below original subtotal (confidential).
     print("Creating agents...")
-    buyer1_max_price = 12.38  # Maximum acceptable delivered bundle total for buyer1 (confidential)
-    buyer2_max_price = 13.53  # Maximum acceptable delivered bundle total for buyer2 (confidential)
-    seller_min_price = 10.89  # Minimum acceptable bundle total for seller (confidential)
+    product_request = "I want Karaage Chicken and Cinnamon Toast Crunch Milkshake—one delivered total."
+    buyer1_contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No total delivered bundle price, delivery_speed, or extra_condiments terms have been agreed before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly set price, continuous_terms (use {}), discrete_terms.delivery_speed, "
+                "and discrete_terms.extra_condiments for the two-line delivered bundle total."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The all-in delivered total the buyer pays for both menu lines together, in US dollars "
+                "(negotiate one number for the bundle, not separate line items)."
+            ),
+            "discrete_terms.delivery_speed": (
+                "How the order is dispatched. `rush` is fastest; `standard` is typical; `batched` is slower pooled delivery."
+            ),
+            "discrete_terms.extra_condiments": (
+                "Whether the bundle includes extra sides of sauce and small add-ons (`true`) or only the default (`false`)."
+            ),
+        },
+        "continuous_bounds": {},
+        "discrete_options": {
+            "delivery_speed": ["rush", "standard", "batched"],
+            "extra_condiments": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": 12.38,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for the delivered two-item bundle before speed and condiment terms, in dollars. "
+                    "A lower total price is better because each dollar paid reduces your utility by one dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "Dollar utility impact of each delivery-speed option; positive is good for you, negative is bad."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "Dollar utility impact of including extra condiments; positive is good for you, negative is bad."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": 2.62, "standard": 0.0, "batched": -2.12},
+                "extra_condiments": {True: 1.18, False: 0.0},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 10.89,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum acceptable revenue for the bundle before speed and condiment terms, in dollars. "
+                    "A higher total price is better because each dollar received increases your utility by one dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "Dollar impact of each delivery-speed option on your side; positive is good, negative is costly."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "Dollar impact of supplying extra condiments; usually a small cost."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": -3.92, "standard": 0.0, "batched": 3.38},
+                "extra_condiments": {True: -0.35, False: 0.0},
+            },
+        },
+    }
+    buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 13.53
+    buyer2_contract_config["buyer_preferences"]["discrete_weights"]["delivery_speed"] = {
+        "rush": 3.08,
+        "standard": 0.0,
+        "batched": -1.68,
+    }
+    buyer2_contract_config["buyer_preferences"]["discrete_weights"]["extra_condiments"] = {True: 1.45, False: 0.0}
+    buyer2_contract_config["seller_preferences"]["c_base"] = 11.1
+    buyer2_contract_config["seller_preferences"]["discrete_weights"]["delivery_speed"] = {
+        "rush": -3.72,
+        "standard": 0.0,
+        "batched": 3.18,
+    }
+    buyer2_contract_config["seller_preferences"]["discrete_weights"]["extra_condiments"] = {True: -0.3, False: 0.0}
+    buyer_contract_configs = {
+        1: buyer1_contract_config,
+        2: buyer2_contract_config,
+    }
+    buyer1_max_price = buyer1_contract_config["buyer_preferences"]["v_base"]
+    buyer2_max_price = buyer2_contract_config["buyer_preferences"]["v_base"]
+    seller_min_price = min(cfg["seller_preferences"]["c_base"] for cfg in buyer_contract_configs.values())
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -130,6 +219,7 @@ def main(model_name=None):
                 "Several delivery partners list this exact two-item bundle; offers are for the bundle total. "
                 "Each partner has a different internal floor for the pair; buyers only see item facts, not partner identities."
             ),
+            "buyer_contract_configs": buyer_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
@@ -205,7 +295,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Reference: ${total_product_price:.2f}")
 
-    user_requirement = "I want Karaage Chicken and Cinnamon Toast Crunch Milkshake—one delivered total."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)
@@ -225,7 +315,7 @@ def main(model_name=None):
         "You are negotiating with two buyers for the SAME two-product food delivery bundle; all prices are the TOTAL "
         "delivered amount for both lines together. Each round, choose exactly ONE buyer and output that choice in a "
         "dedicated <selected_buyer> block containing only the digit 1 or 2. Follow the required <mental_model> / "
-        "<message> format and include ### SELLER_PRICE($X) ### in <message>."
+        "<message> format and include one complete <contract>...</contract> JSON block in <message>."
     )
 
     results = {
@@ -407,6 +497,8 @@ def main(model_name=None):
             if info.get("selected_buyer"):
                 print(f"Final Selected Buyer: Buyer {info['selected_buyer']}")
                 print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
+            if info.get("agreed_contract") is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             buyer1_price = info.get("buyer1_price", 0) or 0
             seller_price_buyer1 = info.get("seller_price_buyer1", 0) or 0
             buyer2_price = info.get("buyer2_price", 0) or 0
@@ -442,6 +534,7 @@ def main(model_name=None):
                 "buyer2_price": info.get("buyer2_price"),
                 "seller_price_buyer1": info.get("seller_price_buyer1"),
                 "seller_price_buyer2": info.get("seller_price_buyer2"),
+                "agreed_contract": info.get("agreed_contract"),
                 "total_rounds": info.get("round", 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer1_reward": info.get("buyer1_reward"),
@@ -455,6 +548,7 @@ def main(model_name=None):
                 "buyer1_max_price": buyer1_max_price,
                 "buyer2_max_price": buyer2_max_price,
                 "seller_min_price": seller_min_price,
+                "buyer_contract_configs": buyer_contract_configs,
                 "product_info": product_info,
                 "model": get_model_name(model),
             })
@@ -500,6 +594,8 @@ def main(model_name=None):
             if results.get("selected_buyer"):
                 f.write(f"Final Selected Buyer: Buyer {results['selected_buyer']}\n")
                 f.write(f"Final Deal Total Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+            if results.get("agreed_contract") is not None:
+                f.write(f"Final Contract: {results['agreed_contract']}\n\n")
             f.write("Final Prices (bundle total):\n")
             f.write(
                 f"  Buyer1: Buyer=${results['buyer1_price']:.2f} | Seller=${results['seller_price_buyer1']:.2f}"

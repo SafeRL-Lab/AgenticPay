@@ -102,11 +102,91 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    # Same ride (route): reservation prices are below opening asks; calibrated vs initial_seller1 opening anchor
-    buyer_max_price = 20.15   # Maximum acceptable total fare for buyer (confidential; below opening-anchor reference)
-    seller1_min_price = 18.15  # Seller 1 floor (confidential; higher reservation than seller 2)
-    seller2_min_price = 16.17  # Seller 2 floor (confidential; lower cost / willing to go lower)
-    
+    # Same ride (route): multi-dimensional contract follows score_design.md taxi scenario; v_base / c_base match reservation prices.
+    user_requirement = "I want a yellow cab from Union Square to Lenox Hill West, all-in fare."
+    product_request = user_requirement
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No all-in fare price, passenger wait time before pickup, or route preference "
+                "(tunnel vs local streets) has been selected or agreed before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
+                "and discrete_terms.route_preference."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The total all-in amount in US dollars the passenger pays for the ride, including base fare "
+                "and mandatory surcharges/taxes in the listing; no extra fees after the deal."
+            ),
+            "continuous_terms.wait_time_mins": (
+                "Minutes after the deal before the passenger meets the driver at pickup; higher means more curb wait for the driver."
+            ),
+            "discrete_terms.route_preference": (
+                "`tunnel` uses a tolled crossing when it saves time; `local_streets` stays on congested surface streets without added toll."
+            ),
+        },
+        "continuous_bounds": {"wait_time_mins": {"min": 0, "max": 30}},
+        "discrete_options": {"route_preference": ["tunnel", "local_streets"]},
+        "buyer_preferences": {
+            "v_base": 20.15,
+            "weight_descriptions": {
+                "v_base": (
+                    "Private max willingness to pay for this ride before wait/route terms (USD); each $1 fare lowers utility by $1."
+                ),
+                "continuous_weights.wait_time_mins": (
+                    "USD per extra minute you need before curbside pickup; positive if delay before you appear helps you."
+                ),
+                "discrete_weights.route_preference": (
+                    "USD utility per route; tunnel is better when you are time-constrained."
+                ),
+            },
+            "continuous_weights": {"wait_time_mins": 1.0},
+            "discrete_weights": {
+                "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+            },
+        },
+    }
+    seller1_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 18.15,
+            "weight_descriptions": {
+                "c_base": (
+                    "Private minimum acceptable all-in payout before wait/route terms (USD); each $1 fare increases utility by $1."
+                ),
+                "continuous_weights.wait_time_mins": (
+                    "USD per minute of passenger delay at pickup; negative when idling costs you."
+                ),
+                "discrete_weights.route_preference": (
+                    "USD utility per route; tunnel often implies tolls you bear."
+                ),
+            },
+            "continuous_weights": {"wait_time_mins": -1.65},
+            "discrete_weights": {
+                "route_preference": {"tunnel": -3.2, "local_streets": 0.0},
+            },
+        },
+    }
+    seller2_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 16.17,
+            "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
+            "continuous_weights": {"wait_time_mins": -1.35},
+            "discrete_weights": {
+                "route_preference": {"tunnel": -2.85, "local_streets": 0.0},
+            },
+        },
+    }
+    seller_contract_configs = {1: seller1_contract_config, 2: seller2_contract_config}
+    buyer_max_price = shared_contract_fields["buyer_preferences"]["v_base"]
+    seller1_min_price = seller1_contract_config["seller_preferences"]["c_base"]
+    seller2_min_price = seller2_contract_config["seller_preferences"]["c_base"]
+
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
     seller2 = SellerAgent(model=model, name="Seller2", seller_min_price=seller2_min_price)
@@ -127,6 +207,7 @@ def main(model_name=None):
             "platform": "NYC Street Hail / Ride Apps",
             "market_type": "B2C",
             "note": "Multiple third-party offers exist for the same route and service.",
+            "seller_contract_configs": seller_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -144,8 +225,6 @@ def main(model_name=None):
     #     print("No requirement entered, using default requirement...")
     #     user_requirement = "I want one direct taxi ride from Union Sq to Lenox Hill West at an all-in flat fare."
     #     print(f"Using default requirement: {user_requirement}")
-    # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want a yellow cab from Union Square to Lenox Hill West, all-in fare."
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -389,6 +468,9 @@ def main(model_name=None):
             if info.get('selected_seller'):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
+                agreed_contract = info.get(f"agreed_contract_seller{info['selected_seller']}")
+                if agreed_contract is not None:
+                    print(f"Final Contract: {agreed_contract}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -439,6 +521,15 @@ def main(model_name=None):
                 "buyer_max_price": buyer_max_price,
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
+                "seller_contract_configs": seller_contract_configs,
+                "agreed_contract_seller1": info.get("agreed_contract_seller1"),
+                "agreed_contract_seller2": info.get("agreed_contract_seller2"),
+                "buyer_utility_seller1": info.get("buyer_utility_seller1"),
+                "seller_utility_seller1": info.get("seller_utility_seller1"),
+                "z_max_seller1": info.get("z_max_seller1"),
+                "buyer_utility_seller2": info.get("buyer_utility_seller2"),
+                "seller_utility_seller2": info.get("seller_utility_seller2"),
+                "z_max_seller2": info.get("z_max_seller2"),
                 "product_info": {
                     "name": "NYC yellow taxi: Union Square → Lenox Hill West (all-in flat fare)",
                     "product_category": "Transportation & Mobility › Taxi › Manhattan",
@@ -505,6 +596,23 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+                agreed_contract = results.get(f"agreed_contract_seller{results['selected_seller']}")
+                if agreed_contract is not None:
+                    f.write(f"Final Contract: {agreed_contract}\n\n")
+            f.write("Contract Utilities:\n")
+            if results.get('z_max_seller1') is not None:
+                f.write(f"  Seller1 Z_max: {results['z_max_seller1']:.3f}\n")
+            if results.get('buyer_utility_seller1') is not None:
+                f.write(f"  Seller1 Buyer Utility: {results['buyer_utility_seller1']:.3f}\n")
+            if results.get('seller_utility_seller1') is not None:
+                f.write(f"  Seller1 Seller Utility: {results['seller_utility_seller1']:.3f}\n")
+            if results.get('z_max_seller2') is not None:
+                f.write(f"  Seller2 Z_max: {results['z_max_seller2']:.3f}\n")
+            if results.get('buyer_utility_seller2') is not None:
+                f.write(f"  Seller2 Buyer Utility: {results['buyer_utility_seller2']:.3f}\n")
+            if results.get('seller_utility_seller2') is not None:
+                f.write(f"  Seller2 Seller Utility: {results['seller_utility_seller2']:.3f}\n")
+            f.write("\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")

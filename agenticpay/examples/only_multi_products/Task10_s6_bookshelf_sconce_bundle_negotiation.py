@@ -93,8 +93,96 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price represent total expected cost for both products
     print("Creating agents...")
-    buyer_max_price = 116.22  # Maximum acceptable total purchase price for buyer (confidential; below opening bundle reference)
-    seller_min_price = 96.60  # Minimum acceptable total selling price for seller (confidential)
+    product_request = "I want a 4-tier black ladder bookshelf and the Fanyate 2-light oil-rubbed bronze sconce pack."
+    # Multi-dimensional contract setup for reusable MAUT scoring in env.
+    contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No total bundle price, delivery time, return policy, or packaging option has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
+                "discrete_terms.return_policy, and discrete_terms.packaging."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The total amount of money the buyer pays for the whole two-product home goods bundle, measured in US dollars.",
+            "continuous_terms.delivery_days": (
+                "How many days the seller can take to deliver both home goods after the deal is made."
+            ),
+            "discrete_terms.return_policy": (
+                "The return rule for the bundle order. `30_days` means the buyer can return the items within 30 days; "
+                "`none` means the sale is final and returns are not allowed."
+            ),
+            "discrete_terms.packaging": (
+                "The packaging used for shipment. `protective` means extra protection for the bookshelf parts and sconce glass shades; "
+                "`standard` means normal packaging."
+            ),
+        },
+        "continuous_bounds": {
+            "delivery_days": {"min": 1, "max": 7}
+        },
+        "discrete_options": {
+            "return_policy": ["30_days", "none"],
+            "packaging": ["protective", "standard"],
+        },
+        "buyer_preferences": {
+            "v_base": 116.22,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this two-product home goods bundle before delivery, return, and packaging terms, measured in dollars. "
+                    "A lower price is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility, measured in dollars per day. "
+                    "A negative number means slower delivery is worse for you."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.packaging": (
+                    "How much each packaging option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"delivery_days": -0.25},
+            "discrete_weights": {
+                "return_policy": {"30_days": 1.0, "none": -1.2},
+                "packaging": {"protective": 0.9, "standard": -0.3},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 96.60,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost for fulfilling this two-product home goods bundle before delivery, return, and packaging terms, measured in dollars. "
+                    "A higher price is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility, measured in dollars per day. "
+                    "A positive number means more delivery flexibility is better for you."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.packaging": (
+                    "How much each packaging option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"delivery_days": 0.20},
+            "discrete_weights": {
+                "return_policy": {"30_days": -1.4, "none": 1.0},
+                "packaging": {"protective": -0.8, "standard": 0.3},
+            },
+        },
+    }
+    buyer_max_price = contract_config["buyer_preferences"]["v_base"]  # Keep for backward-compatible price displays
+    seller_min_price = contract_config["seller_preferences"]["c_base"]  # Keep for backward-compatible price displays
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
     
@@ -111,6 +199,7 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
+            "contract_config": contract_config,
         },
         price_tolerance=price_tolerance,
     )
@@ -163,7 +252,7 @@ def main(model_name=None):
     
     # Get user requirement (should describe purchasing two products)
     # Use default requirement for automatic running
-    user_requirement = "I want a 4-tier black ladder bookshelf and the Fanyate 2-light oil-rubbed bronze sconce pack."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -248,6 +337,8 @@ def main(model_name=None):
             print(f"Final Total Prices: Seller={seller_price_str} | Buyer={buyer_price_str}")
             if info.get('agreed_price'):
                 print(f"Agreed Total Price: ${info.get('agreed_price', 0):.2f}")
+            if info.get('agreed_contract') is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             # current_round has been incremented to reflect the completed round
             actual_rounds = info['round']
             print(f"Total Rounds: {actual_rounds}")
@@ -270,15 +361,20 @@ def main(model_name=None):
                 "seller_price": info.get('seller_price'),
                 "buyer_price": info.get('buyer_price'),
                 "agreed_price": info.get('agreed_price'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "global_score": info.get('global_score'),
                 "buyer_score": info.get('buyer_score'),
                 "seller_score": info.get('seller_score'),
+                "buyer_utility": info.get('buyer_utility'),
+                "seller_utility": info.get('seller_utility'),
+                "z_max": info.get('z_max'),
                 "termination_reason": info.get('termination_reason'),
                 "elapsed_time": elapsed_time,
                 "buyer_max_price": buyer_max_price,
                 "seller_min_price": seller_min_price,
+                "contract_config": contract_config,
                 "product_info": product_info,
                 "model": get_model_name(model),
             })
@@ -337,6 +433,8 @@ def main(model_name=None):
             f.write("\n")
             if results.get('agreed_price'):
                 f.write(f"  Agreed Total Price: ${results['agreed_price']:.2f}\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"  Agreed Contract: {results['agreed_contract']}\n")
             f.write("\n")
             f.write("Products:\n")
             for i, p in enumerate(results.get('product_info', {}).get('products', []), 1):

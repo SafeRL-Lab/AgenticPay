@@ -87,17 +87,106 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
     
-    # Agents: prices are TOTAL for the two-item bundle (all-in delivered; confidential to each party)
     print("Creating agents...")
-    buyer_max_price = 15.31
-    seller1_min_price = 13.61
-    seller2_min_price = 12.13
+    product_request = "I want Slutty Fries and Dripped Nachos—all-in delivered total."
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No total bundle price, delivery speed, or condiment option has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
+                "and discrete_terms.extra_condiments."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The total all-in amount the buyer pays for the full two-item food bundle, including food, "
+                "delivery, service fees, and any negotiated extras."
+            ),
+            "discrete_terms.delivery_speed": (
+                "Delivery service level. `rush` means fastest dedicated delivery; `standard` means normal delivery; "
+                "`batched` means slower grouped delivery."
+            ),
+            "discrete_terms.extra_condiments": (
+                "Whether extra sauce, pickles, napkins, or small side condiments are included with the bundle."
+            ),
+        },
+        "continuous_bounds": {},
+        "discrete_options": {
+            "delivery_speed": ["rush", "standard", "batched"],
+            "extra_condiments": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": 15.31,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this two-item delivered food bundle before delivery-speed and "
+                    "condiment terms, measured in dollars. A lower total price is better for you because every "
+                    "dollar paid reduces your utility by 1 dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "How much each delivery-speed option changes your utility, measured in dollars."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "How much receiving extra condiments changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": 3.0, "standard": 0.0, "batched": -2.0},
+                "extra_condiments": {True: 1.6, False: 0.0},
+            },
+        },
+    }
+    seller1_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 13.61,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost for fulfilling this two-item delivered food bundle before "
+                    "delivery-speed and condiment terms, measured in dollars. A higher total price is better "
+                    "for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "How much each delivery-speed option changes your utility, measured in dollars. "
+                    "Rush delivery is costly when courier capacity is tight."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "How much including extra condiments changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": -4.1, "standard": 0.0, "batched": 3.4},
+                "extra_condiments": {True: -0.55, False: 0.0},
+            },
+        },
+    }
+    seller2_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 12.13,
+            "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": -3.7, "standard": 0.0, "batched": 3.0},
+                "extra_condiments": {True: -0.4, False: 0.0},
+            },
+        },
+    }
+    seller_contract_configs = {1: seller1_contract_config, 2: seller2_contract_config}
+    buyer_max_price = shared_contract_fields["buyer_preferences"]["v_base"]
+    seller1_min_price = seller1_contract_config["seller_preferences"]["c_base"]
+    seller2_min_price = seller2_contract_config["seller_preferences"]["c_base"]
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
     seller2 = SellerAgent(model=model, name="Seller2", seller_min_price=seller2_min_price)
     
-    # Create environment
     print("Creating sequential multi-seller negotiation environment...")
     env = Task3SequentialTwoSellerPerOneProductNegotiation(
         buyer_agent=buyer,
@@ -114,14 +203,15 @@ def main(model_name=None):
             "market_type": "Food Delivery",
             "comparison_enabled": True,
             "availability_status": "Available for delivery.",
+            "seller_contract_configs": seller_contract_configs,
         },
         price_tolerance=0,
-        reward_weights=reward_weights,  # Reward weights configuration
+        reward_weights=reward_weights,
     )
     
     user_profile = None
     print(f"User Profile: {user_profile}")
-    user_requirement = "I want Slutty Fries and Dripped Nachos—all-in delivered total."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     bundle_product_info = {
@@ -219,7 +309,12 @@ def main(model_name=None):
             conversation_history=combined_history,
             current_state={
                 **observation,
-                "instruction": "Two sellers offer the SAME two food products as one delivered bundle. Each round pick ONE seller (use <selected_seller>) and negotiate the TOTAL all-in price for both items (including delivery and service fees)."
+                "instruction": (
+                    "Two sellers offer the SAME two food products as one delivered bundle. Each round pick ONE seller "
+                    "(use <selected_seller>) and negotiate the TOTAL all-in bundle price plus delivery_speed "
+                    "(rush | standard | batched) and whether extra_condiments are included—use a <contract> JSON block "
+                    "when you offer or accept."
+                ),
             }
         )
         

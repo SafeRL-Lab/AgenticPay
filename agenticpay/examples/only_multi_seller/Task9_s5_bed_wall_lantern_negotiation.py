@@ -147,11 +147,118 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Same product (SKU) from two listings: each seller has a different confidential floor (minimum) price
+    # Same product (SKU) from two listings: each seller can differ in private contract utility values.
     print("Creating agents...")
-    buyer_max_price = 47.41  # Maximum acceptable purchase price for buyer (confidential; below listed reference)
-    seller1_min_price = 42.70  # Seller 1 floor (confidential; higher reservation than seller 2)
-    seller2_min_price = 38.05  # Seller 2 floor (confidential; lower cost / willing to go lower)
+    product_request = "I want a Sea Gull Wynfield outdoor wall lantern, black, new."
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No price, delivery time, return policy, or glass/finish confirmation has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
+                "discrete_terms.return_policy, and discrete_terms.glass_finish_confirmation."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The total amount of money the buyer pays for the whole wall-lantern deal, measured in US dollars.",
+            "continuous_terms.delivery_days": (
+                "How many days the seller can take to deliver the wall lantern after the deal is made."
+            ),
+            "discrete_terms.return_policy": (
+                "The return rule for the order. `30_days` means the buyer can return the item within 30 days; "
+                "`none` means the sale is final and returns are not allowed."
+            ),
+            "discrete_terms.glass_finish_confirmation": (
+                "Whether the seller explicitly confirms the requested black finish and clear beveled glass. "
+                "`confirmed` means both requested attributes are guaranteed; `standard` means normal product "
+                "fulfillment without an extra attribute confirmation."
+            ),
+        },
+        "continuous_bounds": {
+            "delivery_days": {"min": 1, "max": 10}
+        },
+        "discrete_options": {
+            "return_policy": ["30_days", "none"],
+            "glass_finish_confirmation": ["confirmed", "standard"],
+        },
+        "buyer_preferences": {
+            "v_base": 47.41,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this wall lantern before delivery, return, and glass/finish terms, measured in dollars. "
+                    "A lower price is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility, measured in dollars per day. "
+                    "A negative number means slower delivery is worse for you."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.glass_finish_confirmation": (
+                    "How much each glass/finish confirmation option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"delivery_days": -0.45},
+            "discrete_weights": {
+                "return_policy": {"30_days": 3.0, "none": -3.5},
+                "glass_finish_confirmation": {"confirmed": 2.5, "standard": -1.2},
+            },
+        },
+    }
+    seller1_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 42.70,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost for fulfilling this wall-lantern order before delivery, return, and glass/finish terms, measured in dollars. "
+                    "A higher price is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility, measured in dollars per day. "
+                    "A positive number means more delivery flexibility is better for you."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.glass_finish_confirmation": (
+                    "How much each glass/finish confirmation option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"delivery_days": 0.35},
+            "discrete_weights": {
+                "return_policy": {"30_days": -3.2, "none": 2.0},
+                "glass_finish_confirmation": {"confirmed": -1.0, "standard": 0.4},
+            },
+        },
+    }
+    seller2_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 38.05,
+            "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
+            "continuous_weights": {"delivery_days": 0.42},
+            "discrete_weights": {
+                "return_policy": {"30_days": -2.6, "none": 1.6},
+                "glass_finish_confirmation": {"confirmed": -1.4, "standard": 0.5},
+            },
+        },
+    }
+    seller_contract_configs = {
+        1: seller1_contract_config,
+        2: seller2_contract_config,
+    }
+    buyer_max_price = shared_contract_fields["buyer_preferences"]["v_base"]  # Backward-compatible step reward display
+    seller1_min_price = seller1_contract_config["seller_preferences"]["c_base"]  # Backward-compatible step reward display
+    seller2_min_price = seller2_contract_config["seller_preferences"]["c_base"]  # Backward-compatible step reward display
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -173,6 +280,7 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "note": "Multiple third-party offers exist for the same product listing.",
+            "seller_contract_configs": seller_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -183,7 +291,7 @@ def main(model_name=None):
     print(f"User Profile: {user_profile}")
     
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want a Sea Gull Wynfield outdoor wall lantern, black, new."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -382,6 +490,9 @@ def main(model_name=None):
             if info.get('selected_seller'):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
+                agreed_contract = info.get(f"agreed_contract_seller{info['selected_seller']}")
+                if agreed_contract is not None:
+                    print(f"Final Contract: {agreed_contract}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -419,6 +530,14 @@ def main(model_name=None):
                 "seller2_price": info.get('seller2_price'),
                 "buyer_price_seller1": info.get('buyer_price_seller1'),
                 "buyer_price_seller2": info.get('buyer_price_seller2'),
+                "agreed_contract_seller1": info.get('agreed_contract_seller1'),
+                "agreed_contract_seller2": info.get('agreed_contract_seller2'),
+                "buyer_utility_seller1": info.get('buyer_utility_seller1'),
+                "seller_utility_seller1": info.get('seller_utility_seller1'),
+                "z_max_seller1": info.get('z_max_seller1'),
+                "buyer_utility_seller2": info.get('buyer_utility_seller2'),
+                "seller_utility_seller2": info.get('seller_utility_seller2'),
+                "z_max_seller2": info.get('z_max_seller2'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer_reward": info.get('buyer_reward'),
@@ -432,6 +551,7 @@ def main(model_name=None):
                 "buyer_max_price": buyer_max_price,
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
+                "seller_contract_configs": seller_contract_configs,
                 "product_info": {
                     "name": "Sea Gull Lighting 85200-12 Wynfield One-Light Outdoor Wall Lantern with Clear Beveled Glass Panels, Black Finish",
                     "condition": "New",
@@ -497,6 +617,9 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+                agreed_contract = results.get(f"agreed_contract_seller{results['selected_seller']}")
+                if agreed_contract is not None:
+                    f.write(f"Final Contract: {agreed_contract}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -506,6 +629,20 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
+            f.write("Contract Utilities:\n")
+            if results.get('z_max_seller1') is not None:
+                f.write(f"  Seller1 Z_max: {results['z_max_seller1']:.3f}\n")
+            if results.get('buyer_utility_seller1') is not None:
+                f.write(f"  Seller1 Buyer Utility: {results['buyer_utility_seller1']:.3f}\n")
+            if results.get('seller_utility_seller1') is not None:
+                f.write(f"  Seller1 Seller Utility: {results['seller_utility_seller1']:.3f}\n")
+            if results.get('z_max_seller2') is not None:
+                f.write(f"  Seller2 Z_max: {results['z_max_seller2']:.3f}\n")
+            if results.get('buyer_utility_seller2') is not None:
+                f.write(f"  Seller2 Buyer Utility: {results['buyer_utility_seller2']:.3f}\n")
+            if results.get('seller_utility_seller2') is not None:
+                f.write(f"  Seller2 Seller Utility: {results['seller_utility_seller2']:.3f}\n")
+            f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
                 f.write(f"  Total Reward: {results['total_reward']:.3f}\n")

@@ -114,9 +114,118 @@ def main(model_name=None):
 
     # Public reference: original sticker total ~$22.48 (same as list total). Negotiation bounds below that reference (confidential).
     print("Creating agents...")
-    buyer1_max_price = 16.86  # Maximum acceptable total for buyer1 (confidential)
-    buyer2_max_price = 18.26  # Maximum acceptable total for buyer2 (confidential)
-    seller_min_price = 14.67  # Minimum acceptable total for seller (confidential)
+    product_request = "I want Peroxicare 6-pack toothpaste and the BFWood walnut paddle brush."
+    _k1 = 16.86 / 24.8
+    _k2 = 18.26 / 26.2
+    buyer1_contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No total bundle price, delivery time, return policy, or packaging option has been selected "
+                "or agreed before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
+                "discrete_terms.return_policy, and discrete_terms.packaging for the two-item bundle."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The total amount of money the buyer pays for the whole two-item bundle, measured in US dollars.",
+            "continuous_terms.delivery_days": (
+                "How many days the seller can take to deliver both items in the bundle after the deal is made."
+            ),
+            "discrete_terms.return_policy": (
+                "The return rule for the bundle. `30_days` means the buyer can return the order within 30 days; "
+                "`none` means the sale is final and returns are not allowed."
+            ),
+            "discrete_terms.packaging": (
+                "The packaging used for shipment. `protective` means extra protection for the toothpaste pack and brush; "
+                "`standard` means normal packaging."
+            ),
+        },
+        "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
+        "discrete_options": {
+            "return_policy": ["30_days", "none"],
+            "packaging": ["protective", "standard"],
+        },
+        "buyer_preferences": {
+            "v_base": 16.86,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for the complete bundle before delivery, return, and packaging terms, "
+                    "measured in dollars. A lower total price is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility, measured in dollars per day. "
+                    "A negative number means slower delivery is worse for you."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.packaging": (
+                    "How much each packaging option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"delivery_days": -0.55 * _k1},
+            "discrete_weights": {
+                "return_policy": {"30_days": 1.8 * _k1, "none": -2.0 * _k1},
+                "packaging": {"protective": 1.4 * _k1, "standard": -0.6 * _k1},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 14.67,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost for fulfilling the complete bundle before delivery, return, and packaging terms, "
+                    "measured in dollars. A higher total price is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility, measured in dollars per day. "
+                    "A positive number means more delivery flexibility is better for you."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.packaging": (
+                    "How much each packaging option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"delivery_days": 0.35 * _k1},
+            "discrete_weights": {
+                "return_policy": {"30_days": -2.2 * _k1, "none": 1.5 * _k1},
+                "packaging": {"protective": -1.3 * _k1, "standard": 0.5 * _k1},
+            },
+        },
+    }
+    buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 18.26
+    buyer2_contract_config["buyer_preferences"]["continuous_weights"]["delivery_days"] = -0.45 * _k2
+    buyer2_contract_config["buyer_preferences"]["discrete_weights"]["return_policy"] = {
+        "30_days": 1.5 * _k2,
+        "none": -1.6 * _k2,
+    }
+    buyer2_contract_config["buyer_preferences"]["discrete_weights"]["packaging"] = {
+        "protective": 1.1 * _k2,
+        "standard": -0.4 * _k2,
+    }
+    buyer2_contract_config["seller_preferences"]["c_base"] = 14.95
+    buyer2_contract_config["seller_preferences"]["continuous_weights"]["delivery_days"] = 0.40 * _k2
+    buyer2_contract_config["seller_preferences"]["discrete_weights"]["return_policy"] = {
+        "30_days": -2.0 * _k2,
+        "none": 1.4 * _k2,
+    }
+    buyer2_contract_config["seller_preferences"]["discrete_weights"]["packaging"] = {
+        "protective": -1.1 * _k2,
+        "standard": 0.4 * _k2,
+    }
+    buyer_contract_configs = {1: buyer1_contract_config, 2: buyer2_contract_config}
+    buyer1_max_price = buyer1_contract_config["buyer_preferences"]["v_base"]
+    buyer2_max_price = buyer2_contract_config["buyer_preferences"]["v_base"]
+    seller_min_price = min(cfg["seller_preferences"]["c_base"] for cfg in buyer_contract_configs.values())
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -140,6 +249,7 @@ def main(model_name=None):
                 "Several sellers list this exact two-item bundle; offers are for the bundle total. "
                 "Each seller has a different internal floor for the pair; buyers only see product facts, not seller identities."
             ),
+            "buyer_contract_configs": buyer_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
@@ -189,7 +299,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Price: ${total_product_price:.2f}")
 
-    user_requirement = "I want Peroxicare 6-pack toothpaste and the BFWood walnut paddle brush."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)
@@ -209,7 +319,7 @@ def main(model_name=None):
         "You are negotiating with two buyers for the SAME two-product bundle; all prices are the TOTAL for both items. "
         "Each round, choose exactly ONE buyer and output that choice in a dedicated <selected_buyer> block containing only "
         "the digit 1 or 2. Follow the required <mental_model> / <message> format and include "
-        "### SELLER_PRICE($X) ### in <message>."
+        "one complete <contract>...</contract> JSON block in <message>."
     )
 
     results = {
@@ -391,6 +501,8 @@ def main(model_name=None):
             if info.get("selected_buyer"):
                 print(f"Final Selected Buyer: Buyer {info['selected_buyer']}")
                 print(f"Final Deal Total Price: ${info.get('final_deal_price', 0):.2f}")
+            if info.get("agreed_contract") is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             buyer1_price = info.get("buyer1_price", 0) or 0
             seller_price_buyer1 = info.get("seller_price_buyer1", 0) or 0
             buyer2_price = info.get("buyer2_price", 0) or 0
@@ -426,6 +538,7 @@ def main(model_name=None):
                 "buyer2_price": info.get("buyer2_price"),
                 "seller_price_buyer1": info.get("seller_price_buyer1"),
                 "seller_price_buyer2": info.get("seller_price_buyer2"),
+                "agreed_contract": info.get("agreed_contract"),
                 "total_rounds": info.get("round", 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer1_reward": info.get("buyer1_reward"),
@@ -439,6 +552,7 @@ def main(model_name=None):
                 "buyer1_max_price": buyer1_max_price,
                 "buyer2_max_price": buyer2_max_price,
                 "seller_min_price": seller_min_price,
+                "buyer_contract_configs": buyer_contract_configs,
                 "product_info": product_info,
                 "model": get_model_name(model),
             })
@@ -484,6 +598,8 @@ def main(model_name=None):
             if results.get("selected_buyer"):
                 f.write(f"Final Selected Buyer: Buyer {results['selected_buyer']}\n")
                 f.write(f"Final Deal Total Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+            if results.get("agreed_contract") is not None:
+                f.write(f"Final Contract: {results['agreed_contract']}\n\n")
             f.write("Final Prices (bundle total):\n")
             f.write(
                 f"  Buyer1: Buyer=${results['buyer1_price']:.2f} | Seller=${results['seller_price_buyer1']:.2f}"

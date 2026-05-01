@@ -121,6 +121,15 @@ class SellerAgent(BaseAgent):
         task_instruction_section = ""
         if task_instruction:
             task_instruction_section = f"\nTASK INSTRUCTION:\n- {task_instruction}\n"
+        contract_config = (
+            self.context.get("contract_config")
+            or self.context.get("environment_info", {}).get("contract_config")
+            or current_state.get("contract_config")
+        )
+        buyer_contract_configs = (
+            self.context.get("buyer_contract_configs")
+            or self.context.get("environment_info", {}).get("buyer_contract_configs")
+        )
         selected_buyer_rules = f"""
 - MULTI-BUYER ROUTING: You are negotiating with multiple potential buyers.
 - You MUST choose exactly one buyer for this turn and output it in a dedicated `<selected_buyer>` block.
@@ -132,29 +141,95 @@ class SellerAgent(BaseAgent):
 [one integer from 1 to {num_buyers}]
 </selected_buyer>
 """
+        if buyer_contract_configs:
+            config_summaries = {}
+            for buyer_id, cfg in buyer_contract_configs.items():
+                seller_preferences = cfg.get("seller_preferences", {})
+                config_summaries[buyer_id] = {
+                    "field_descriptions": cfg.get("field_descriptions", {}),
+                    "continuous_bounds": cfg.get("continuous_bounds", {}),
+                    "discrete_options": cfg.get("discrete_options", {}),
+                    "seller_preferences": seller_preferences,
+                    "weight_descriptions": seller_preferences.get("weight_descriptions", {}),
+                    "contrainfo": cfg.get("contrainfo", {}),
+                }
+            contract_rules = f"""
+- CONTRACT INFORMATION:
+  - You are negotiating with multiple buyers. Each buyer may have a different contract_config, but all buyers use the same JSON schema:
+    {{
+      "price": <number>,
+      "continuous_terms": <object>,
+      "discrete_terms": <object>
+    }}
+  - Buyer-specific public fields and your private seller utility information: {config_summaries}
+  - No contract field has a default value or is pre-agreed at the start of negotiation.
+  - The `<contract>` JSON in your message is your current complete proposal for the selected buyer, with every field filled by you.
+  - Each `<message>` must contain exactly one `<contract>...</contract>` JSON block following the selected buyer's schema/options.
+"""
+            structure_message_line = "[Your actual negotiation message to the selected buyer. You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block for that buyer.]"
+        elif contract_config:
+            continuous_bounds = contract_config.get("continuous_bounds", {})
+            discrete_options = contract_config.get("discrete_options", {})
+            field_descriptions = contract_config.get("field_descriptions", {})
+            seller_preferences = contract_config.get("seller_preferences", {})
+            weight_descriptions = seller_preferences.get("weight_descriptions", {})
+            contra_info = contract_config.get("contrainfo") or self.context.get("environment_info", {}).get("contrainfo", {})
+            contract_rules = f"""
+- CONTRACT INFORMATION:
+  - The negotiable contract has this JSON schema:
+    {{
+      "price": <number>,
+      "continuous_terms": <object>,
+      "discrete_terms": <object>
+    }}
+  - Field meanings: {field_descriptions}
+  - Valid continuous terms and bounds: {continuous_bounds}
+  - Valid discrete terms and options: {discrete_options}
+  - Your private utility information: {seller_preferences}
+  - Meaning of your private utility information: {weight_descriptions}
+  - Additional contract background (`contrainfo`): {contra_info}
+  - No contract field has a default value or is pre-agreed at the start of negotiation.
+  - The `<contract>` JSON in your message is your current complete proposal, with every field filled by you.
+  - Each `<message>` must contain exactly one `<contract>...</contract>` JSON block following the schema above.
+"""
+            structure_message_line = "[Your actual negotiation message to the buyer. You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block.]"
+        else:
+            contract_rules = """
+- **CRITICAL: In each turn, you MUST include exactly ONE ### SELLER_PRICE($X) ### inside `<message>` — including when you accept the buyer's offer or confirm terms.** There are no exceptions: without this tag each round, the environment may keep an outdated price and agreement checks will be wrong.
+- When you accept the buyer's price, set $X to the total sale price you agree to (typically the buyer's last ### BUYER_PRICE($Y) ### that you are accepting). When counter-offering, $X is your asking price.
+- **IMPORTANT: SELLER_PRICE($X) must be the TOTAL PRICE for the entire order/transaction, NOT a per-unit price.**
+  - If selling multiple units/items, $X should be the total amount the buyer will pay.
+  - Example: For 10,000 units at $0.40 each, use ### SELLER_PRICE($4000) ###, NOT ### SELLER_PRICE($0.40) ###
+- Example: "I can offer ### SELLER_PRICE($15) ### for this product."
+- Example: "How about ### SELLER_PRICE($13.00) ###?"
+- Example (accepting their offer): "You've got a deal at ### SELLER_PRICE($6.50) ### — I'll ship it today."
+- This specific format is required for the system to correctly extract your offer price.
+"""
+            structure_message_line = "[Your actual negotiation message to the buyer. Must include exactly one ### SELLER_PRICE($X) ### and obey all IMPORTANT rules above.]"
+
         if num_buyers >= 2:
             structure_tail = f"""{task_instruction_section}
 {selected_buyer_rules}
 You MUST format your entire output as follows (do NOT skip any block):
 <mental_model>
-[Opponent Reservation Price]: <your estimate and confidence score>
-[Opponent Strategy]: <your inference about the buyer's tactic>
-[My Strategy]: <your chosen tactic and reasoning>
+[Contract Situation]: <current state of the deal>
+[Opponent Position]: <what the other party seems to want>
+[My Next Move]: <what you should propose or say next>
 </mental_model>
 {selected_buyer_format}<message>
-[Your actual negotiation message to the chosen buyer. Must include exactly one ### SELLER_PRICE($X) ### and obey all IMPORTANT rules above.]
+{structure_message_line}
 </message>
 """
         else:
             structure_tail = f"""{task_instruction_section}
 You MUST format your entire output as follows (do NOT skip either block):
 <mental_model>
-[Opponent Reservation Price]: <your estimate and confidence score>
-[Opponent Strategy]: <your inference about the buyer's tactic>
-[My Strategy]: <your chosen tactic and reasoning>
+[Contract Situation]: <current state of the deal>
+[Opponent Position]: <what the other party seems to want>
+[My Next Move]: <what you should propose or say next>
 </mental_model>
 <message>
-[Your actual negotiation message to the buyer. Must include exactly one ### SELLER_PRICE($X) ### and obey all IMPORTANT rules above.]
+{structure_message_line}
 </message>
 """
         
@@ -165,23 +240,14 @@ IMPORTANT REMINDERS:
 {available_products_info}
 - Consider the environment factors: {self.context.get('environment_info', {})}.
 {personality_section}
-- **CRITICAL: In each turn, you MUST include exactly ONE ### SELLER_PRICE($X) ### inside `<message>` — including when you accept the buyer's offer or confirm terms.** There are no exceptions: without this tag each round, the environment may keep an outdated price and agreement checks will be wrong.
-- When you accept the buyer's price, set $X to the total sale price you agree to (typically the buyer's last ### BUYER_PRICE($Y) ### that you are accepting). When counter-offering, $X is your asking price.
-- **IMPORTANT: SELLER_PRICE($X) must be the TOTAL PRICE for the entire order/transaction, NOT a per-unit price.**
-  - If selling multiple units/items, $X should be the total amount the buyer will pay.
-  - Example: For 10,000 units at $0.40 each, use ### SELLER_PRICE($4000) ###, NOT ### SELLER_PRICE($0.40) ###
-- Example: "I can offer ### SELLER_PRICE($15) ### for this product."
-- Example: "How about ### SELLER_PRICE($13.00) ###?"
-- Example (accepting their offer): "You've got a deal at ### SELLER_PRICE($6.50) ### — I'll ship it today."
-- This specific format is required for the system to correctly extract your offer price.
+{contract_rules}
 - NEVER reveal your minimum acceptable price to the buyer.
 
 MENTAL MODELING INSTRUCTION:
-Before composing your negotiation message, you MUST first perform internal mental modeling of the negotiation.
-Think privately about the following three aspects:
-1. [Opponent Reservation Price]: Based on the conversation so far, what is the buyer's likely maximum acceptable price? Provide a specific estimated price range and a confidence score (0-100%).
-2. [Opponent Strategy]: What negotiation tactic or strategy is the buyer currently using? (e.g., aggressive lowballing, anchoring low, comparison shopping threat, value questioning, etc.)
-3. [My Strategy]: What is your current negotiation strategy and why? (e.g., holding firm on value, slow concession, urgency creation, bundle offer, etc.)
+Before replying, briefly think about:
+1. [Contract Situation]: What is the current state of the deal?
+2. [Opponent Position]: What does the other party seem to want?
+3. [My Next Move]: What should you propose or say next?
 
 {structure_tail}
 """

@@ -61,6 +61,49 @@ def get_model_name(model):
             return model_str
 
 
+def _run_buyer_routing(
+    buyer,
+    combined_history: list,
+    observation: dict,
+    routing_instruction: str,
+):
+    """Align with Task5: structured ``<selected_seller>`` + retries + random fallback."""
+    max_selection_retries = 2
+    retry_count = 0
+    inst = routing_instruction
+    buyer_response = None
+    selected_seller = None
+    while True:
+        buyer_response = buyer.respond(
+            conversation_history=combined_history,
+            current_state={
+                **observation,
+                "instruction": inst,
+                "num_sellers": 2,
+            },
+        )
+        selected_seller = buyer.last_selected_seller
+        if selected_seller is not None:
+            break
+        if retry_count >= max_selection_retries:
+            break
+        retry_count += 1
+        print(
+            f"\n[Warning] Missing <selected_seller>; retrying buyer response "
+            f"({retry_count}/{max_selection_retries})..."
+        )
+        inst = (
+            routing_instruction
+            + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
+        )
+    if selected_seller is None:
+        selected_seller = random.choice([1, 2])
+        print(
+            f"\n[Warning] Failed to parse <selected_seller> after retries; "
+            f"randomly selecting Seller {selected_seller}."
+        )
+    return buyer_response, selected_seller
+
 
 def main(model_name=None):
     """Main function: Demonstrates sequential multi-seller negotiation flow
@@ -101,12 +144,107 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Same product (SKU) from two listings: each seller has a different confidential floor (minimum) price
+    # Same product (SKU) from two listings: multidimensional contract; floors from seller c_base (MAUT).
     print("Creating agents...")
-    buyer_max_price = 15.46  # Maximum acceptable purchase price for buyer (confidential; below listed reference)
-    seller1_min_price = 13.93  # Seller 1 floor (confidential; higher reservation than seller 2)
-    seller2_min_price = 12.41  # Seller 2 floor (confidential; lower cost / willing to go lower)
-    
+    product_request = "I want a CTS assorted Tillandsia air plant 6-pack, new."
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No price, delivery time, return policy, or packaging option has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
+                "discrete_terms.return_policy, and discrete_terms.packaging."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The total payment for the six-pack of live Tillandsia, in US dollars."
+            ),
+            "continuous_terms.delivery_days": (
+                "Transit days until the fragile plants arrive; faster often reduces wilt risk."
+            ),
+            "discrete_terms.return_policy": (
+                "`30_days`: conditional returns per policy; `none`: live-plant/final-sale style rule."
+            ),
+            "discrete_terms.packaging": (
+                "`protective`: cushioning/moisture buffer for spikes; "
+                "`standard`: lighter mailer assuming buyer accepts more handling risk."
+            ),
+        },
+        "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
+        "discrete_options": {
+            "return_policy": ["30_days", "none"],
+            "packaging": ["protective", "standard"],
+        },
+        "buyer_preferences": {
+            "v_base": 15.46,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum willingness to pay for these air plants before terms (US dollars)."
+                ),
+                "continuous_weights.delivery_days": (
+                    "Dollar change per extra transit day from your viewpoint; slower usually hurts fragile plants."
+                ),
+                "discrete_weights.return_policy": (
+                    "Dollar utility from each return-policy option."
+                ),
+                "discrete_weights.packaging": (
+                    "Dollar utility from cushioning vs standard packaging."
+                ),
+            },
+            "continuous_weights": {"delivery_days": -0.25},
+            "discrete_weights": {
+                "return_policy": {"30_days": 1.0, "none": -1.2},
+                "packaging": {"protective": 0.9, "standard": -0.3},
+            },
+        },
+    }
+    seller1_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 13.93,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your baseline cost floor fulfilling the 6-pack before ship speed or packaging tiers "
+                    "(US dollars)."
+                ),
+                "continuous_weights.delivery_days": (
+                    "Seller-side utility adjustment per transit day."
+                ),
+                "discrete_weights.return_policy": (
+                    "Seller utility from each return policy (returns are costly for live goods)."
+                ),
+                "discrete_weights.packaging": (
+                    "Seller utility from packaging choice."
+                ),
+            },
+            "continuous_weights": {"delivery_days": 0.15},
+            "discrete_weights": {
+                "return_policy": {"30_days": -1.6, "none": 1.1},
+                "packaging": {"protective": -0.6, "standard": 0.25},
+            },
+        },
+    }
+    seller2_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 12.41,
+            "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
+            "continuous_weights": {"delivery_days": 0.25},
+            "discrete_weights": {
+                "return_policy": {"30_days": -1.2, "none": 0.8},
+                "packaging": {"protective": -0.95, "standard": 0.35},
+            },
+        },
+    }
+    seller_contract_configs = {1: seller1_contract_config, 2: seller2_contract_config}
+    buyer_max_price = shared_contract_fields["buyer_preferences"]["v_base"]
+    seller1_min_price = seller1_contract_config["seller_preferences"]["c_base"]
+    seller2_min_price = seller2_contract_config["seller_preferences"]["c_base"]
+
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
     seller2 = SellerAgent(model=model, name="Seller2", seller_min_price=seller2_min_price)
@@ -127,6 +265,7 @@ def main(model_name=None):
             "platform": "Amazon",
             "market_type": "B2C",
             "note": "Multiple third-party offers exist for the same product listing.",
+            "seller_contract_configs": seller_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -136,8 +275,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want a CTS assorted Tillandsia air plant 6-pack, new."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -203,36 +341,9 @@ def main(model_name=None):
             "and output that choice in a dedicated <selected_seller> block containing only "
             "the digit 1 or 2. Then put only your negotiation text in <message>."
         )
-        buyer_response = buyer.respond(
-            conversation_history=combined_history,
-            current_state={
-                **observation,
-                "instruction": routing_instruction
-            }
+        buyer_response, selected_seller = _run_buyer_routing(
+            buyer, combined_history, observation, routing_instruction
         )
-
-        # Routing relies on the structured <selected_seller> block.
-        # If parsing fails, retry a few times; if still missing, fallback to random seller.
-        selected_seller = buyer.last_selected_seller
-        max_selection_retries = 2
-        retry_count = 0
-        while selected_seller is None and retry_count < max_selection_retries:
-            retry_count += 1
-            print(f"\n[Warning] Missing <selected_seller>; retrying buyer response ({retry_count}/{max_selection_retries})...")
-            buyer_response = buyer.respond(
-                conversation_history=combined_history,
-                current_state={
-                    **observation,
-                    "instruction": (
-                        routing_instruction
-                        + " IMPORTANT: You MUST include a valid <selected_seller> block with only 1 or 2."
-                    )
-                }
-            )
-            selected_seller = buyer.last_selected_seller
-        if selected_seller is None:
-            selected_seller = random.choice([1, 2])
-            print(f"\n[Warning] Failed to parse <selected_seller> after retries; randomly selecting Seller {selected_seller}.")
         print(f"\n[Buyer chooses to negotiate with Seller {selected_seller} this round]")
         
         # BuyerAgent returns only the <message> block as the negotiation message.
@@ -363,6 +474,9 @@ def main(model_name=None):
             if info.get('selected_seller'):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
+                agreed_contract = info.get(f"agreed_contract_seller{info['selected_seller']}")
+                if agreed_contract is not None:
+                    print(f"Final Contract: {agreed_contract}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -400,6 +514,14 @@ def main(model_name=None):
                 "seller2_price": info.get('seller2_price'),
                 "buyer_price_seller1": info.get('buyer_price_seller1'),
                 "buyer_price_seller2": info.get('buyer_price_seller2'),
+                "agreed_contract_seller1": info.get('agreed_contract_seller1'),
+                "agreed_contract_seller2": info.get('agreed_contract_seller2'),
+                "buyer_utility_seller1": info.get('buyer_utility_seller1'),
+                "seller_utility_seller1": info.get('seller_utility_seller1'),
+                "z_max_seller1": info.get('z_max_seller1'),
+                "buyer_utility_seller2": info.get('buyer_utility_seller2'),
+                "seller_utility_seller2": info.get('seller_utility_seller2'),
+                "z_max_seller2": info.get('z_max_seller2'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer_reward": info.get('buyer_reward'),
@@ -413,6 +535,7 @@ def main(model_name=None):
                 "buyer_max_price": buyer_max_price,
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
+                "seller_contract_configs": seller_contract_configs,
                 "product_info": {
                     "name": "CTS AIR PLANTS Assorted Tillandsia Air Plants 6 Pack",
                     "condition": "New",
@@ -477,6 +600,9 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+                agreed_contract = results.get(f"agreed_contract_seller{results['selected_seller']}")
+                if agreed_contract is not None:
+                    f.write(f"Final Contract: {agreed_contract}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")
@@ -486,6 +612,20 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Seller2 - Buyer Price: ${results['buyer_price_seller2']:.2f}" if results.get('buyer_price_seller2') is not None else "  Seller2 - Buyer Price: Not specified")
             f.write("\n\n")
+            f.write("Contract Utilities:\n")
+            if results.get('z_max_seller1') is not None:
+                f.write(f"  Seller1 Z_max: {results['z_max_seller1']:.3f}\n")
+            if results.get('buyer_utility_seller1') is not None:
+                f.write(f"  Seller1 Buyer Utility: {results['buyer_utility_seller1']:.3f}\n")
+            if results.get('seller_utility_seller1') is not None:
+                f.write(f"  Seller1 Seller Utility: {results['seller_utility_seller1']:.3f}\n")
+            if results.get('z_max_seller2') is not None:
+                f.write(f"  Seller2 Z_max: {results['z_max_seller2']:.3f}\n")
+            if results.get('buyer_utility_seller2') is not None:
+                f.write(f"  Seller2 Buyer Utility: {results['buyer_utility_seller2']:.3f}\n")
+            if results.get('seller_utility_seller2') is not None:
+                f.write(f"  Seller2 Seller Utility: {results['seller_utility_seller2']:.3f}\n")
+            f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:
                 f.write(f"  Total Reward: {results['total_reward']:.3f}\n")

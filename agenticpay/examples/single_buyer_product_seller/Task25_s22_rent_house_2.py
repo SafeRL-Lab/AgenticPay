@@ -98,9 +98,80 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Scenario 22: Rent House — monthly rent negotiation (Barcelona center private room + balcony; Airbnb sample 23160633).
-    buyer_max_price = 1216.60  # Maximum acceptable monthly rent for tenant/buyer (confidential); below listing original_price
-    seller_min_price = 1027.00  # Minimum acceptable monthly rent for landlord/seller (confidential); must be < buyer_max_price
+    # Multi-dimensional contract setup for reusable MAUT scoring in env.
+    contract_config = {
+        "contrainfo": {
+            "product_request": "I want the Barcelona center double room with balcony, monthly rent.",
+            "initial_contract_status": (
+                "No monthly rent, lease length, or utilities-included term has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.lease_months, "
+                "and discrete_terms.include_utilities."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The monthly rent the tenant pays, measured in US dollars per month.",
+            "continuous_terms.lease_months": (
+                "The number of months covered by the rental lease."
+            ),
+            "discrete_terms.include_utilities": (
+                "Whether the monthly rent includes basic utilities. `true` means utilities are included; "
+                "`false` means the tenant pays utilities separately."
+            ),
+        },
+        "continuous_bounds": {
+            "lease_months": {"min": 1, "max": 24}
+        },
+        "discrete_options": {
+            "include_utilities": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": 1216.60,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this monthly rental before lease length and utilities terms, measured in dollars per month. "
+                    "A lower rent is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars. "
+                    "A negative number means a longer lease is worse for you."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much each utilities-included option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"lease_months": -10.0},
+            "discrete_weights": {
+                "include_utilities": {True: 100.0, False: 0.0},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 1027.00,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum acceptable monthly rent before lease length and utilities terms, measured in dollars per month. "
+                    "A higher rent is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars. "
+                    "A positive number means a longer lease is better for you because it reduces vacancy risk."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much each utilities-included option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"lease_months": 20.0},
+            "discrete_weights": {
+                "include_utilities": {True: -60.0, False: 0.0},
+            },
+        },
+    }
+    buyer_max_price = contract_config["buyer_preferences"]["v_base"]  # Keep for backward-compatible step reward display
+    seller_min_price = contract_config["seller_preferences"]["c_base"]  # Keep for backward-compatible step reward display
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -119,7 +190,8 @@ def main(model_name=None):
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",
             # "availability_status": "Available starting next month.",
-            "listing_age": "Listing ID 23160633 (sample scrape 2019-03-08)"
+            "listing_age": "Listing ID 23160633 (sample scrape 2019-03-08)",
+            "contract_config": contract_config,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -145,7 +217,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want the Barcelona center double room with balcony, monthly rent."
+    user_requirement = contract_config["contrainfo"]["product_request"]
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -293,6 +365,8 @@ def main(model_name=None):
             seller_price_str = f"${seller_price:.2f}" if seller_price is not None else "Not specified"
             buyer_price_str = f"${buyer_price:.2f}" if buyer_price is not None else "Not specified"
             print(f"Final Prices: Seller={seller_price_str} | Buyer={buyer_price_str}")
+            if info.get('agreed_contract') is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             # current_round has been incremented to reflect the completed round
             actual_rounds = info['round']
             print(f"Total Rounds: {actual_rounds}")
@@ -321,6 +395,7 @@ def main(model_name=None):
                 "seller_price": info.get('seller_price'),
                 "buyer_price": info.get('buyer_price'),
                 "agreed_price": info.get('agreed_price'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": actual_rounds,
                 "total_reward": float(reward) if reward is not None else None,
                 "seller_reward": info.get('seller_reward'),
@@ -332,6 +407,7 @@ def main(model_name=None):
                 "elapsed_time": elapsed_time,
                 "buyer_max_price": buyer_max_price,
                 "seller_min_price": seller_min_price,
+                "contract_config": contract_config,
                 "product_info": {
                     "name": "Double room in Barcelona Center with balcony — Eixample / Sant Antoni",
                     "brand": "Host: listing 23160633 (Barcelona center)",
@@ -400,6 +476,8 @@ def main(model_name=None):
             f.write("\n")
             if results.get('agreed_price'):
                 f.write(f"  Agreed Price: ${results['agreed_price']:.2f}\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"  Agreed Contract: {results['agreed_contract']}\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:

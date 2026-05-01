@@ -74,10 +74,104 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    # Prices are TOTAL for both line items (confidential to each party)
     buyer_max_price = 10.17
     seller1_min_price = 9.04
     seller2_min_price = 8.05
+
+    product_request = "I want Gramercy → Murray Hill—best all-in for ride plus fees."
+    user_requirement = product_request
+
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No all-in bundle price, pickup wait time, or route preference has been "
+                "agreed before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
+                "and discrete_terms.route_preference. The price is the all-in total for the main trip "
+                "plus mandatory fees line items together."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The all-in total fare the buyer pays for the bundled taxi trip (metered portion plus "
+                "mandatory surcharges/fees/taxes as listed), measured in US dollars."
+            ),
+            "continuous_terms.wait_time_mins": (
+                "How many minutes the driver waits after arrival before pickup "
+                "(how long the passenger needs to get curbside)."
+            ),
+            "discrete_terms.route_preference": (
+                "Routing: `tunnel` uses tolled crossings / faster links where applicable; "
+                "`local_streets` stays on congested surface streets without tunnel toll to the driver."
+            ),
+        },
+        "continuous_bounds": {
+            "wait_time_mins": {"min": 0, "max": 30},
+        },
+        "discrete_options": {
+            "route_preference": ["tunnel", "local_streets"],
+        },
+        "buyer_preferences": {
+            "v_base": buyer_max_price,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum all-in value for this ride bundle before wait and route terms, in dollars. "
+                    "Paying `price` reduces utility one-for-one."
+                ),
+                "continuous_weights.wait_time_mins": (
+                    "Dollar change in utility per extra minute of driver wait before pickup; "
+                    "positive means you value more time to get downstairs."
+                ),
+                "discrete_weights.route_preference": (
+                    "Dollar utility for each route choice (time vs congestion vs toll exposure)."
+                ),
+            },
+            "continuous_weights": {"wait_time_mins": 1.0},
+            "discrete_weights": {
+                "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+            },
+        },
+    }
+    seller1_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": seller1_min_price,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum all-in revenue for this bundle before wait and route terms, in dollars. "
+                    "Receiving `price` raises utility one-for-one."
+                ),
+                "continuous_weights.wait_time_mins": (
+                    "Dollar change per minute of idle waiting; negative means waiting is costly."
+                ),
+                "discrete_weights.route_preference": (
+                    "Dollar utility per route; tunnel often implies tolls and different trip cost."
+                ),
+            },
+            "continuous_weights": {"wait_time_mins": -1.5},
+            "discrete_weights": {
+                "route_preference": {"tunnel": -3.0, "local_streets": 0.0},
+            },
+        },
+    }
+    seller2_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": seller2_min_price,
+            "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
+            "continuous_weights": {"wait_time_mins": -1.35},
+            "discrete_weights": {
+                "route_preference": {"tunnel": -2.55, "local_streets": -0.1},
+            },
+        },
+    }
+    seller_contract_configs = {
+        1: seller1_contract_config,
+        2: seller2_contract_config,
+    }
 
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -99,6 +193,7 @@ def main(model_name=None):
             "market_type": "B2C",
             "comparison_enabled": True,
             "traffic_context": "Dense Manhattan local roads",
+            "seller_contract_configs": seller_contract_configs,
         },
         price_tolerance=0,
         reward_weights=reward_weights,
@@ -107,7 +202,6 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want Gramercy → Murray Hill—best all-in for ride plus fees."
     print(f"Using default requirement: {user_requirement}")
 
     product_image_url = os.path.join(

@@ -83,9 +83,107 @@ def main(model_name=None):
 
     # List-reference bundle total (quoted_price) = 1395 + 1280 = 2675. True reservation band below anchor: Seller1_min > Seller2_min; buyer_max/quoted rises monotonically s21→s25 (here lowest tier ~75%); ZOPA vs Seller1 ~8% of quoted.
     print("Creating agents...")
-    buyer_max_price = 2009.0
-    seller1_min_price = 1790.0
-    seller2_min_price = 1668.0
+    _bundle_buyer_max = 2009.0
+    _bundle_seller1_min = 1790.0
+    _bundle_seller2_min = 1668.0
+    product_request = (
+        "I want East Village studio plus Barcelona Ramblas terrace apt—best combined monthly rent."
+    )
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No total bundle monthly rent, lease length, or utility-inclusion term has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.lease_months, "
+                "and discrete_terms.include_utilities. The price is the TOTAL monthly rent for both rental units together."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The total amount of money the tenant pays per month for the full two-rental bundle, measured in US dollars."
+            ),
+            "continuous_terms.lease_months": (
+                "The number of months in the lease term for the bundle. It must be within the configured bounds."
+            ),
+            "discrete_terms.include_utilities": (
+                "Whether standard utilities are included in the total monthly rent. true means utilities are included; "
+                "false means the tenant pays utilities separately."
+            ),
+        },
+        "continuous_bounds": {
+            "lease_months": {"min": 1, "max": 24},
+        },
+        "discrete_options": {
+            "include_utilities": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": _bundle_buyer_max,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum total monthly rent for the two-unit bundle before lease-length and utility terms, "
+                    "measured in dollars. A lower total rent is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars per month. "
+                    "A negative number means longer commitment is worse for you."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much utility inclusion changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"lease_months": -10.0},
+            "discrete_weights": {
+                "include_utilities": {True: 100.0, False: 0.0},
+            },
+        },
+    }
+    seller1_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": _bundle_seller1_min,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum acceptable total monthly rent for the two-unit bundle before lease-length and "
+                    "utility terms, measured in dollars. A higher total rent is better for you because every dollar received "
+                    "increases your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars per month. "
+                    "A positive number means longer occupancy reduces vacancy risk for you."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much including utilities in the bundle rent changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"lease_months": 20.0},
+            "discrete_weights": {
+                "include_utilities": {True: -60.0, False: 0.0},
+            },
+        },
+    }
+    seller2_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": _bundle_seller2_min,
+            "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
+            "continuous_weights": {"lease_months": 18.0},
+            "discrete_weights": {
+                "include_utilities": {True: -55.0, False: 0.0},
+            },
+        },
+    }
+    seller_contract_configs = {
+        1: seller1_contract_config,
+        2: seller2_contract_config,
+    }
+    buyer_max_price = shared_contract_fields["buyer_preferences"]["v_base"]
+    seller1_min_price = seller1_contract_config["seller_preferences"]["c_base"]
+    seller2_min_price = seller2_contract_config["seller_preferences"]["c_base"]
 
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -106,6 +204,7 @@ def main(model_name=None):
             "platform": "Airbnb (long-term lease framing)",
             "market_type": "Residential Rental",
             "comparison_enabled": True,
+            "seller_contract_configs": seller_contract_configs,
         },
         price_tolerance=0,
         reward_weights=reward_weights,
@@ -114,7 +213,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
 
-    user_requirement = "I want East Village studio plus Barcelona Ramblas terrace apt—best combined monthly rent."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
 
     img1 = "https://a0.muscache.com/im/pictures/9f7b13d2-1c37-4c46-9f05-0a7046acba30.jpg?aki_policy=large"

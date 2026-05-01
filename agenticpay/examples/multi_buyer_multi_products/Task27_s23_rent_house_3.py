@@ -1,7 +1,7 @@
 """Task27 Scenario 23: Sydney — Sequential Two-Buyer Two-Listing Rental Bundle
 
 Several landlords may list the same two units; negotiation is for the combined monthly total (long-term lease framing).
-Aligned with Task5: seller routes via ``<selected_buyer>``; ``Z_market`` uses max(buyer1_max, buyer2_max) in the env.
+Aligned with Task5: seller routes via ``<selected_buyer>``; contract mode uses the larger of the two buyers' ``Z_max`` as ``z_market`` for normalized scores.
 Listing copy derived from ``airbnb_embeddings_sample10.jsonl`` (``_id`` 14096512, 16289600).
 Category: Real Estate — Residential Rentals
 """
@@ -102,10 +102,92 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    # Private band vs listing sum ($6730): seller floor ~64%; Buyer1/Buyer2 ceilings spread apart; both below public reference.
-    buyer1_max_price = 4550.0  # Maximum acceptable bundle total for Buyer1 (stricter than Buyer2).
-    buyer2_max_price = 5383.0  # Maximum acceptable bundle total for Buyer2.
-    seller_min_price = 4307.0  # Minimum acceptable bundle total for seller (reservation floor).
+    product_request = (
+        "I want Mezzos Studio in Sydney CBD and Whole sunny apartment near Bondi Beach—one monthly rent."
+    )
+    buyer1_contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No combined monthly bundle rent, lease length in months, or utilities-included boolean "
+                "has been fixed before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must set price (total USD/month for both units), "
+                "continuous_terms.lease_months, and discrete_terms.include_utilities."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "Total combined monthly rent for both listings in the bundle, in US dollars "
+                "(not nightly)."
+            ),
+            "continuous_terms.lease_months": (
+                "Lease commitment length in months for the bundle (one number applies to the whole deal)."
+            ),
+            "discrete_terms.include_utilities": (
+                "If true, quoted rent includes major utilities as bundled; if false, tenant pays utilities separately."
+            ),
+        },
+        "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
+        "discrete_options": {"include_utilities": [True, False]},
+        "buyer_preferences": {
+            "v_base": 4550.0,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your reservation value for the bundle before price and non-price terms, in $/month; "
+                    "paying more reduces utility one-for-one."
+                ),
+                "continuous_weights.lease_months": (
+                    "$/month change per extra committed month; negative means you dislike long leases."
+                ),
+                "discrete_weights.include_utilities": (
+                    "One-time $/month-style utility bump for bundled vs separate utility bills."
+                ),
+            },
+            "continuous_weights": {"lease_months": -11.0},
+            "discrete_weights": {"include_utilities": {True: 128.0, False: 0.0}},
+        },
+        "seller_preferences": {
+            "c_base": 4307.0,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your reservation floor for the bundle before price and terms, in $/month; "
+                    "receiving more rent increases utility one-for-one."
+                ),
+                "continuous_weights.lease_months": (
+                    "$/month per extra committed month; positive means you value reduced vacancy risk."
+                ),
+                "discrete_weights.include_utilities": (
+                    "Cost/annoyance of bundling utilities into rent (negative for include_utilities true)."
+                ),
+            },
+            "continuous_weights": {"lease_months": 19.0},
+            "discrete_weights": {"include_utilities": {True: -80.0, False: 0.0}},
+        },
+    }
+    buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 5383.0
+    buyer2_contract_config["buyer_preferences"]["continuous_weights"]["lease_months"] = -8.5
+    buyer2_contract_config["buyer_preferences"]["discrete_weights"]["include_utilities"] = {
+        True: 158.0,
+        False: 0.0,
+    }
+    buyer2_contract_config["seller_preferences"]["c_base"] = 4397.0
+    buyer2_contract_config["seller_preferences"]["continuous_weights"]["lease_months"] = 23.0
+    buyer2_contract_config["seller_preferences"]["discrete_weights"]["include_utilities"] = {
+        True: -93.0,
+        False: 0.0,
+    }
+    buyer_contract_configs = {
+        1: buyer1_contract_config,
+        2: buyer2_contract_config,
+    }
+    buyer1_max_price = buyer1_contract_config["buyer_preferences"]["v_base"]
+    buyer2_max_price = buyer2_contract_config["buyer_preferences"]["v_base"]
+    seller_min_price = min(
+        cfg["seller_preferences"]["c_base"] for cfg in buyer_contract_configs.values()
+    )
 
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
@@ -130,6 +212,7 @@ def main(model_name=None):
                 "Several landlords list this exact two-unit bundle; offers are for the combined monthly total. "
                 "Each seller has a different internal floor for the pair; tenants only see listing facts, not owner identities."
             ),
+            "buyer_contract_configs": buyer_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
@@ -187,7 +270,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Bundle Reference Sum: ${total_product_price:.2f}")
 
-    user_requirement = "I want Mezzos Studio in Sydney CBD and Whole sunny apartment near Bondi Beach—one monthly rent."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
 
     print("\n" + "=" * 60)
@@ -208,7 +291,7 @@ def main(model_name=None):
         "TOTAL combined monthly rent for both units. "
         "Each round, choose exactly ONE buyer and output that choice in a dedicated <selected_buyer> block containing only "
         "the digit 1 or 2. Follow the required <mental_model> / <message> format and include "
-        "### SELLER_PRICE($X) ### in <message>."
+        "one complete <contract>...</contract> JSON block in <message> (price, lease_months, include_utilities)."
     )
 
     results = {

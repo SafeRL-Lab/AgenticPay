@@ -104,9 +104,95 @@ def main(model_name=None):
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
-    # Belvoir Elderflower Rose (24/case) — public list reference (original_price $32.00); confidential walk-aways sit well below that anchor.
-    buyer_max_price = 25.00  # Maximum acceptable purchase price for buyer (confidential)
-    seller_min_price = 20.20  # Minimum acceptable selling price for seller (confidential)
+    # Multi-dimensional contract setup for reusable MAUT scoring in env.
+    contract_config = {
+        "contrainfo": {
+            "product_request": "I want Belvoir Sparkling Elderflower Rose, case of 24.",
+            "initial_contract_status": (
+                "No price, delivery time, return policy, or case freshness/packing guarantee has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
+                "discrete_terms.return_policy, and discrete_terms.freshness_packing_guarantee."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The total amount of money the buyer pays for the full 24-bottle case, measured in US dollars.",
+            "continuous_terms.delivery_days": (
+                "How many days the seller can take to deliver the beverage case after the deal is made."
+            ),
+            "discrete_terms.return_policy": (
+                "The return rule for the order. `30_days` means the buyer can return the item within 30 days; "
+                "`none` means the sale is final and returns are not allowed."
+            ),
+            "discrete_terms.freshness_packing_guarantee": (
+                "The guarantee for freshness and safe case packing. `fresh_protective_case` means the seller guarantees "
+                "fresh stock and protective packing for the bottles; `standard` means normal grocery fulfillment."
+            ),
+        },
+        "continuous_bounds": {
+            "delivery_days": {"min": 1, "max": 7}
+        },
+        "discrete_options": {
+            "return_policy": ["30_days", "none"],
+            "freshness_packing_guarantee": ["fresh_protective_case", "standard"],
+        },
+        "buyer_preferences": {
+            "v_base": 25.00,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this 24-bottle beverage case before delivery, return, and freshness/packing terms, measured in dollars. "
+                    "A lower price is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility, measured in dollars per day. "
+                    "A negative number means slower delivery is worse for you."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.freshness_packing_guarantee": (
+                    "How much each freshness/packing guarantee option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"delivery_days": -0.30},
+            "discrete_weights": {
+                "return_policy": {"30_days": 2.0, "none": -2.2},
+                "freshness_packing_guarantee": {"fresh_protective_case": 2.5, "standard": -1.0},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 20.20,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost for fulfilling this 24-bottle beverage case before delivery, return, and freshness/packing terms, measured in dollars. "
+                    "A higher price is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.delivery_days": (
+                    "How much each additional delivery day changes your utility, measured in dollars per day. "
+                    "A positive number means more delivery flexibility is better for you."
+                ),
+                "discrete_weights.return_policy": (
+                    "How much each return-policy option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+                "discrete_weights.freshness_packing_guarantee": (
+                    "How much each freshness/packing guarantee option changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
+            },
+            "continuous_weights": {"delivery_days": 0.22},
+            "discrete_weights": {
+                "return_policy": {"30_days": -2.5, "none": 1.7},
+                "freshness_packing_guarantee": {"fresh_protective_case": -1.4, "standard": 0.5},
+            },
+        },
+    }
+    buyer_max_price = contract_config["buyer_preferences"]["v_base"]  # Keep for backward-compatible step reward display
+    seller_min_price = contract_config["seller_preferences"]["c_base"]  # Keep for backward-compatible step reward display
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -124,6 +210,7 @@ def main(model_name=None):
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",
+            "contract_config": contract_config,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -149,7 +236,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want Belvoir Sparkling Elderflower Rose, case of 24."
+    user_requirement = contract_config["contrainfo"]["product_request"]
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -294,6 +381,8 @@ def main(model_name=None):
             seller_price_str = f"${seller_price:.2f}" if seller_price is not None else "Not specified"
             buyer_price_str = f"${buyer_price:.2f}" if buyer_price is not None else "Not specified"
             print(f"Final Prices: Seller={seller_price_str} | Buyer={buyer_price_str}")
+            if info.get('agreed_contract') is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             # current_round has been incremented to reflect the completed round
             actual_rounds = info['round']
             print(f"Total Rounds: {actual_rounds}")
@@ -322,6 +411,7 @@ def main(model_name=None):
                 "seller_price": info.get('seller_price'),
                 "buyer_price": info.get('buyer_price'),
                 "agreed_price": info.get('agreed_price'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": actual_rounds,
                 "total_reward": float(reward) if reward is not None else None,
                 "seller_reward": info.get('seller_reward'),
@@ -333,6 +423,7 @@ def main(model_name=None):
                 "elapsed_time": elapsed_time,
                 "buyer_max_price": buyer_max_price,
                 "seller_min_price": seller_min_price,
+                "contract_config": contract_config,
                 "product_info": {
                     "name": "Belvoir, Beverage Sparkling Elderflower Rose organic, 8.4 Fl Oz",
                     "brand": "Belvoir",
@@ -400,6 +491,8 @@ def main(model_name=None):
             f.write("\n")
             if results.get('agreed_price'):
                 f.write(f"  Agreed Price: ${results['agreed_price']:.2f}\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"  Agreed Contract: {results['agreed_contract']}\n")
             f.write("\n")
             f.write("Rewards:\n")
             if results.get('total_reward') is not None:

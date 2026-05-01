@@ -117,18 +117,125 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     print("Creating agents...")
     buyer1_max_price = 16.73  # Maximum acceptable total fare for buyer1 (confidential)
     buyer2_max_price = 18.13  # Maximum acceptable total fare for buyer2 (confidential)
     seller1_min_price = 15.53  # Minimum acceptable total fare for seller1 (confidential; higher than seller 2)
     seller2_min_price = 13.91  # Minimum acceptable total fare for seller2 (confidential)
-    
+
+    product_request = (
+        "I want Seaport to Battery Park City—base fare plus surcharges, all-in."
+    )
+    _m = 0.97  # MAUT weight scale vs paper baseline (~$18 v_base)
+
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No total all-in fare, curb wait time, or route preference has been selected "
+                "or agreed before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
+                "and discrete_terms.route_preference. The price is the passenger-paid total "
+                "for both fare components (metered base + mandatory fees)."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The total amount the passenger pays for the ride bundle, all-inclusive, in US dollars."
+            ),
+            "continuous_terms.wait_time_mins": (
+                "Pickup curb delay in minutes after the driver arrives before starting the priced portion."
+            ),
+            "discrete_terms.route_preference": (
+                "`tunnel` uses tolled crossings when faster; `local_streets` avoids tolls on congested surface roads."
+            ),
+        },
+        "continuous_bounds": {"wait_time_mins": {"min": 0, "max": 30}},
+        "discrete_options": {"route_preference": ["tunnel", "local_streets"]},
+    }
+
+    buyer1_preferences = {
+        "v_base": buyer1_max_price,
+        "weight_descriptions": {
+            "v_base": (
+                "Your private maximum value for the all-in bundle before wait/route terms, in dollars."
+            ),
+            "continuous_weights.wait_time_mins": (
+                "Utility change per extra minute you keep the driver waiting at pickup (dollars per minute)."
+            ),
+            "discrete_weights.route_preference": (
+                "Extra dollar utility for tunnel vs local routing beyond price."
+            ),
+        },
+        "continuous_weights": {"wait_time_mins": 1.0 * _m},
+        "discrete_weights": {
+            "route_preference": {"tunnel": 4.0 * _m, "local_streets": -2.0 * _m},
+        },
+    }
+    buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
+    buyer2_preferences["v_base"] = buyer2_max_price
+    buyer2_preferences["continuous_weights"]["wait_time_mins"] = 0.72 * _m
+    buyer2_preferences["discrete_weights"]["route_preference"] = {
+        "tunnel": 3.35 * _m,
+        "local_streets": -1.55 * _m,
+    }
+
+    seller1_preferences = {
+        "c_base": seller1_min_price,
+        "weight_descriptions": {
+            "c_base": (
+                "Your private minimum acceptable revenue for the bundle before wait/route terms, in dollars."
+            ),
+            "continuous_weights.wait_time_mins": (
+                "Utility change per extra pickup wait minute for you (dollars per minute)."
+            ),
+            "discrete_weights.route_preference": (
+                "Extra dollar utility/cost for tunnel tolls vs surface routing."
+            ),
+        },
+        "continuous_weights": {"wait_time_mins": -1.5 * _m},
+        "discrete_weights": {
+            "route_preference": {"tunnel": -3.0 * _m, "local_streets": 0.0},
+        },
+    }
+    seller2_preferences = json.loads(json.dumps(seller1_preferences))
+    seller2_preferences["c_base"] = seller2_min_price
+    seller2_preferences["continuous_weights"]["wait_time_mins"] = -1.35 * _m
+    seller2_preferences["discrete_weights"]["route_preference"] = {
+        "tunnel": -2.72 * _m,
+        "local_streets": 0.08 * _m,
+    }
+
+    buyer_seller_contract_configs = {
+        "b1s1": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer1_preferences,
+            "seller_preferences": seller1_preferences,
+        },
+        "b1s2": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer1_preferences,
+            "seller_preferences": seller2_preferences,
+        },
+        "b2s1": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer2_preferences,
+            "seller_preferences": seller1_preferences,
+        },
+        "b2s2": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer2_preferences,
+            "seller_preferences": seller2_preferences,
+        },
+    }
+
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
     seller2 = SellerAgent(model=model, name="Seller2", seller_min_price=seller2_min_price)
-    
+
     # Create environment
     print("Creating sequential multi-buyer multi-seller multi-product taxi negotiation environment...")
     env = Task3SequentialTwoBuyerTwoSellerTwoProductNegotiation(
@@ -149,6 +256,7 @@ def main(model_name=None):
             "traffic_context": "Downtown Manhattan short route",
             "category": "Daily Life Consumption",
             "note": "Multiple third-party quotes exist for the same two-service cart; prices are all-in totals.",
+            "buyer_seller_contract_configs": buyer_seller_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -222,8 +330,7 @@ def main(model_name=None):
         print(f"  {i}. {p['name']}: ${p['price']:.2f}")
     print(f"  Total Package Price: ${total_product_price:.2f}")
     
-    # Use default requirement for automatic running
-    user_requirement = "I want Seaport to Battery Park City—base fare plus surcharges, all-in."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -273,8 +380,10 @@ def main(model_name=None):
         routing_instruction = (
             "You are negotiating with two sellers. Each round, choose exactly ONE seller "
             "and output that choice in a dedicated <selected_seller> block containing only "
-            "the digit 1 or 2. Then put only your negotiation text in <message>. "
-            "The price you discuss is the **all-in total** for both fare components (base + mandatory fees)."
+            "the digit 1 or 2. Then put only your negotiation text in <message>, including "
+            "one complete <contract>...</contract> JSON block with price (all-in total), "
+            "continuous_terms.wait_time_mins in [0,30], and discrete_terms.route_preference "
+            "either tunnel or local_streets."
         )
         buyer1_response, buyer1_selected_seller = _run_buyer_routing(
             buyer1, combined_history_b1, observation, routing_instruction
@@ -545,6 +654,22 @@ def main(model_name=None):
                     "b2s1_seller_price": info.get("b2s1_seller_price"),
                     "b2s2_buyer_price": info.get("b2s2_buyer_price"),
                     "b2s2_seller_price": info.get("b2s2_seller_price"),
+                    "b1s1_agreed_contract": info.get("b1s1_agreed_contract"),
+                    "b1s1_buyer_utility": info.get("b1s1_buyer_utility"),
+                    "b1s1_seller_utility": info.get("b1s1_seller_utility"),
+                    "b1s1_z_max": info.get("b1s1_z_max"),
+                    "b1s2_agreed_contract": info.get("b1s2_agreed_contract"),
+                    "b1s2_buyer_utility": info.get("b1s2_buyer_utility"),
+                    "b1s2_seller_utility": info.get("b1s2_seller_utility"),
+                    "b1s2_z_max": info.get("b1s2_z_max"),
+                    "b2s1_agreed_contract": info.get("b2s1_agreed_contract"),
+                    "b2s1_buyer_utility": info.get("b2s1_buyer_utility"),
+                    "b2s1_seller_utility": info.get("b2s1_seller_utility"),
+                    "b2s1_z_max": info.get("b2s1_z_max"),
+                    "b2s2_agreed_contract": info.get("b2s2_agreed_contract"),
+                    "b2s2_buyer_utility": info.get("b2s2_buyer_utility"),
+                    "b2s2_seller_utility": info.get("b2s2_seller_utility"),
+                    "b2s2_z_max": info.get("b2s2_z_max"),
                     "total_rounds": info.get("round", 0),
                     "total_reward": float(reward) if reward is not None else None,
                     "buyer1_reward": info.get("buyer1_reward"),

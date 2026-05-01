@@ -100,11 +100,96 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Same dish from two offers: each seller has a different confidential floor (all-in total)
+    # Same dish from two offers: each seller can differ in private contract utility values.
     print("Creating agents...")
-    buyer_max_price = 6.98  # Maximum acceptable all-in order total for buyer (confidential; below menu list reference)
-    seller1_min_price = 6.28  # Seller 1 floor (confidential; higher reservation than seller 2)
-    seller2_min_price = 5.60  # Seller 2 floor (confidential; lower cost / willing to go lower)
+    product_request = "I want Karaage Chicken with yuzu marmalade from Izakaya, delivered."
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No all-in price, delivery speed, or condiment option has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
+                "and discrete_terms.extra_condiments."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The all-in order total paid by the buyer, including food, delivery, service fees, and any negotiated extras.",
+            "discrete_terms.delivery_speed": (
+                "Delivery service level. `rush` means fastest dedicated delivery; `standard` means normal delivery; "
+                "`batched` means slower grouped delivery."
+            ),
+            "discrete_terms.extra_condiments": (
+                "Whether extra sauce, pickles, napkins, or small side condiments are included with the order."
+            ),
+        },
+        "continuous_bounds": {},
+        "discrete_options": {
+            "delivery_speed": ["rush", "standard", "batched"],
+            "extra_condiments": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": 12.0,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum value for this delivered karaage order before delivery-speed and condiment terms, measured in dollars. "
+                    "A lower price is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "How much each delivery-speed option changes your utility, measured in dollars."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "How much receiving extra condiments changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": 3.0, "standard": 0.0, "batched": -2.0},
+                "extra_condiments": {True: 1.5, False: 0.0},
+            },
+        },
+    }
+    seller1_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 8.0,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum cost for fulfilling this delivered karaage order before delivery-speed and condiment terms, measured in dollars. "
+                    "A higher price is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "discrete_weights.delivery_speed": (
+                    "How much each delivery-speed option changes your utility, measured in dollars. Rush delivery is costly when courier capacity is tight."
+                ),
+                "discrete_weights.extra_condiments": (
+                    "How much including extra condiments changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": -4.0, "standard": 0.0, "batched": 3.5},
+                "extra_condiments": {True: -0.5, False: 0.0},
+            },
+        },
+    }
+    seller2_contract_config = {
+        **shared_contract_fields,
+        "seller_preferences": {
+            "c_base": 7.6,
+            "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
+            "continuous_weights": {},
+            "discrete_weights": {
+                "delivery_speed": {"rush": -3.6, "standard": 0.0, "batched": 3.1},
+                "extra_condiments": {True: -0.4, False: 0.0},
+            },
+        },
+    }
+    seller_contract_configs = {1: seller1_contract_config, 2: seller2_contract_config}
+    buyer_max_price = shared_contract_fields["buyer_preferences"]["v_base"]
+    seller1_min_price = seller1_contract_config["seller_preferences"]["c_base"]
+    seller2_min_price = seller2_contract_config["seller_preferences"]["c_base"]
     
     buyer = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -126,6 +211,7 @@ def main(model_name=None):
             "platform": "DoorDash",
             "market_type": "Food Delivery",
             "note": "Multiple third-party offers exist for the same product listing.",
+            "seller_contract_configs": seller_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -144,7 +230,7 @@ def main(model_name=None):
     #     user_requirement = "I want karaage chicken with spicy yuzu marmalade, delivered."
     #     print(f"Using default requirement: {user_requirement}")
     # One-product user query: concise, natural English (simulated search / assistant request)
-    user_requirement = "I want Karaage Chicken with yuzu marmalade from Izakaya, delivered."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -373,6 +459,9 @@ def main(model_name=None):
             if info.get('selected_seller'):
                 print(f"Final Selected Seller: Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
+                agreed_contract = info.get(f"agreed_contract_seller{info['selected_seller']}")
+                if agreed_contract is not None:
+                    print(f"Final Contract: {agreed_contract}")
             seller1_price = info.get('seller1_price', 0) or 0
             buyer_price_seller1 = info.get('buyer_price_seller1', 0) or 0
             seller2_price = info.get('seller2_price', 0) or 0
@@ -410,6 +499,14 @@ def main(model_name=None):
                 "seller2_price": info.get('seller2_price'),
                 "buyer_price_seller1": info.get('buyer_price_seller1'),
                 "buyer_price_seller2": info.get('buyer_price_seller2'),
+                "agreed_contract_seller1": info.get('agreed_contract_seller1'),
+                "agreed_contract_seller2": info.get('agreed_contract_seller2'),
+                "buyer_utility_seller1": info.get('buyer_utility_seller1'),
+                "seller_utility_seller1": info.get('seller_utility_seller1'),
+                "z_max_seller1": info.get('z_max_seller1'),
+                "buyer_utility_seller2": info.get('buyer_utility_seller2'),
+                "seller_utility_seller2": info.get('seller_utility_seller2'),
+                "z_max_seller2": info.get('z_max_seller2'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer_reward": info.get('buyer_reward'),
@@ -423,6 +520,7 @@ def main(model_name=None):
                 "buyer_max_price": buyer_max_price,
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
+                "seller_contract_configs": seller_contract_configs,
                 "product_info": {
                     "name": "Karaage Chicken",
                     "condition": "Prepared fresh to order",
@@ -489,6 +587,23 @@ def main(model_name=None):
             if results.get('selected_seller'):
                 f.write(f"Final Selected Seller: Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+                agreed_contract = results.get(f"agreed_contract_seller{results['selected_seller']}")
+                if agreed_contract is not None:
+                    f.write(f"Final Contract: {agreed_contract}\n\n")
+            f.write("Contract Utilities:\n")
+            if results.get('z_max_seller1') is not None:
+                f.write(f"  Seller1 Z_max: {results['z_max_seller1']:.3f}\n")
+            if results.get('buyer_utility_seller1') is not None:
+                f.write(f"  Seller1 Buyer Utility: {results['buyer_utility_seller1']:.3f}\n")
+            if results.get('seller_utility_seller1') is not None:
+                f.write(f"  Seller1 Seller Utility: {results['seller_utility_seller1']:.3f}\n")
+            if results.get('z_max_seller2') is not None:
+                f.write(f"  Seller2 Z_max: {results['z_max_seller2']:.3f}\n")
+            if results.get('buyer_utility_seller2') is not None:
+                f.write(f"  Seller2 Buyer Utility: {results['buyer_utility_seller2']:.3f}\n")
+            if results.get('seller_utility_seller2') is not None:
+                f.write(f"  Seller2 Seller Utility: {results['seller_utility_seller2']:.3f}\n")
+            f.write("\n")
             f.write("Final Prices:\n")
             f.write(f"  Seller1 - Seller Price: ${results['seller1_price']:.2f}" if results.get('seller1_price') is not None else "  Seller1 - Seller Price: Not specified")
             f.write("\n")

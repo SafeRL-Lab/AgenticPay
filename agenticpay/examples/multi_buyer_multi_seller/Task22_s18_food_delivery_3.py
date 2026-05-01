@@ -115,13 +115,124 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Two offers: each has a different confidential floor (all-in order totals)
+    # Same loaded fries listing, two all-in quotes: per buyer–seller pair MAUT (delivery_speed + extra_condiments).
     print("Creating agents...")
-    buyer1_max_price = 10.16  # Maximum acceptable all-in total for Buyer 1 — offer 1 (confidential; below quoted total anchor)
-    buyer2_max_price = 11.00  # Maximum acceptable all-in total for Buyer 2 — offer 2 (confidential; below quoted total anchor)
-    seller1_min_price = 9.42  # Minimum acceptable all-in total for Seller 1 (confidential; below quoted total anchor)
-    seller2_min_price = 8.43  # Minimum acceptable all-in total for Seller 2 (confidential; below quoted total anchor)
-    
+    product_request = "I want BunSlut Slutty Fries—delivered all-in."
+    shared_contract_fields = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No price, delivery speed tier, or extra condiments option has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
+                "and discrete_terms.extra_condiments (boolean true or false)."
+            ),
+        },
+        "field_descriptions": {
+            "price": (
+                "The total all-in amount the buyer pays for the order, in US dollars "
+                "(menu item + delivery + service fees)."
+            ),
+            "discrete_terms.delivery_speed": (
+                "Fulfillment priority. `rush` prioritizes fastest dispatch; `standard` is typical routing; "
+                "`batched` pools the order for slower routing that saves courier utilization."
+            ),
+            "discrete_terms.extra_condiments": (
+                "Whether complimentary extra sauces or small sides are included when applicable. "
+                "`true` adds extras; `false` is the base-only configuration."
+            ),
+        },
+        "continuous_bounds": {},
+        "discrete_options": {
+            "delivery_speed": ["rush", "standard", "batched"],
+            "extra_condiments": [True, False],
+        },
+    }
+    buyer1_preferences = {
+        "v_base": 10.16,
+        "weight_descriptions": {
+            "v_base": (
+                "Your private maximum value for this delivered order before delivery-speed and condiment terms, "
+                "in dollars. A lower price improves your utility one-for-one."
+            ),
+            "discrete_weights.delivery_speed": (
+                "Utility impact of each delivery tier in dollars (rush / standard / batched)."
+            ),
+            "discrete_weights.extra_condiments": (
+                "Utility impact of including extra condiments (true vs false) in dollars."
+            ),
+        },
+        "continuous_weights": {},
+        "discrete_weights": {
+            "delivery_speed": {"rush": 2.88, "standard": 0.0, "batched": -1.98},
+            "extra_condiments": {True: 1.48, False: 0.0},
+        },
+    }
+    buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
+    buyer2_preferences["v_base"] = 11.00
+    buyer2_preferences["discrete_weights"]["delivery_speed"] = {
+        "rush": 3.08,
+        "standard": 0.0,
+        "batched": -2.14,
+    }
+    buyer2_preferences["discrete_weights"]["extra_condiments"] = {True: 1.28, False: 0.0}
+    seller1_preferences = {
+        "c_base": 9.42,
+        "weight_descriptions": {
+            "c_base": (
+                "Your private minimum all-in payout for fulfilling this order before speed and condiment terms, "
+                "in dollars. A higher negotiated price improves your utility one-for-one."
+            ),
+            "discrete_weights.delivery_speed": (
+                "How each delivery tier changes your utility in dollars (courier cost and ops load)."
+            ),
+            "discrete_weights.extra_condiments": (
+                "Cost impact of bundling extra condiments for the customer."
+            ),
+        },
+        "continuous_weights": {},
+        "discrete_weights": {
+            "delivery_speed": {"rush": -3.90, "standard": 0.0, "batched": 3.54},
+            "extra_condiments": {True: -0.47, False: 0.0},
+        },
+    }
+    seller2_preferences = json.loads(json.dumps(seller1_preferences))
+    seller2_preferences["c_base"] = 8.43
+    seller2_preferences["discrete_weights"]["delivery_speed"] = {
+        "rush": -3.75,
+        "standard": 0.0,
+        "batched": 3.70,
+    }
+    seller2_preferences["discrete_weights"]["extra_condiments"] = {True: -0.41, False: 0.0}
+    buyer_seller_contract_configs = {
+        "b1s1": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer1_preferences,
+            "seller_preferences": seller1_preferences,
+        },
+        "b1s2": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer1_preferences,
+            "seller_preferences": seller2_preferences,
+        },
+        "b2s1": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer2_preferences,
+            "seller_preferences": seller1_preferences,
+        },
+        "b2s2": {
+            **shared_contract_fields,
+            "buyer_preferences": buyer2_preferences,
+            "seller_preferences": seller2_preferences,
+        },
+    }
+    buyer1_max_price = buyer1_preferences["v_base"]
+    buyer2_max_price = buyer2_preferences["v_base"]
+    seller1_min_price = seller1_preferences["c_base"]
+    seller2_min_price = seller2_preferences["c_base"]
+
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
@@ -148,6 +259,7 @@ def main(model_name=None):
             "estimated_delivery_time": "20-40 minutes",
             "restaurant_price_range": "$$",
             "pricing_rule": "Negotiated price is the all-in order total (menu item + delivery + service fees).",
+            "buyer_seller_contract_configs": buyer_seller_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,
@@ -156,7 +268,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want BunSlut Slutty Fries—delivered all-in."
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -228,7 +340,8 @@ def main(model_name=None):
         routing_instruction = (
             "You are negotiating with two sellers. Each round, choose exactly ONE seller "
             "and output that choice in a dedicated <selected_seller> block containing only "
-            "the digit 1 or 2. Then put only your negotiation text in <message>."
+            "the digit 1 or 2. Then put only your negotiation text in <message>, including "
+            "one complete <contract>...</contract> JSON block for the selected seller."
         )
         buyer1_response, buyer1_selected_seller = _run_buyer_routing(
             buyer1, combined_history_b1, observation, routing_instruction
@@ -294,23 +407,35 @@ def main(model_name=None):
         if buyer1_selected_seller == 1:
             seller1_action_buyer1 = seller1.respond(
                 conversation_history=conversation_history_b1s1,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 1, 1),
+                },
             )
         elif buyer1_selected_seller == 2:
             seller2_action_buyer1 = seller2.respond(
                 conversation_history=conversation_history_b1s2,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 1, 2),
+                },
             )
         
         if buyer2_selected_seller == 1:
             seller1_action_buyer2 = seller1.respond(
                 conversation_history=conversation_history_b2s1,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 2, 1),
+                },
             )
         elif buyer2_selected_seller == 2:
             seller2_action_buyer2 = seller2.respond(
                 conversation_history=conversation_history_b2s2,
-                current_state=observation
+                current_state={
+                    **observation,
+                    "contract_config": env._build_role_contract_config("seller", 2, 2),
+                },
             )
         
         # Execute step with selected sellers and actions
@@ -442,6 +567,10 @@ def main(model_name=None):
             if info.get('selected_buyer') and info.get('selected_seller'):
                 print(f"Selected Deal: Buyer {info['selected_buyer']} - Seller {info['selected_seller']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
+                pair_key = f"b{info['selected_buyer']}s{info['selected_seller']}"
+                agreed_contract = info.get(f"{pair_key}_agreed_contract")
+                if agreed_contract is not None:
+                    print(f"Final Contract: {agreed_contract}")
             print(f"Buyer1-Seller1 Prices: Buyer=${info.get('b1s1_buyer_price', 0) or 0:.2f} | Seller=${info.get('b1s1_seller_price', 0) or 0:.2f}")
             print(f"Buyer1-Seller2 Prices: Buyer=${info.get('b1s2_buyer_price', 0) or 0:.2f} | Seller=${info.get('b1s2_seller_price', 0) or 0:.2f}")
             print(f"Buyer2-Seller1 Prices: Buyer=${info.get('b2s1_buyer_price', 0) or 0:.2f} | Seller=${info.get('b2s1_seller_price', 0) or 0:.2f}")
@@ -506,6 +635,23 @@ def main(model_name=None):
                 "buyer2_max_price": buyer2_max_price,
                 "seller1_min_price": seller1_min_price,
                 "seller2_min_price": seller2_min_price,
+                "buyer_seller_contract_configs": buyer_seller_contract_configs,
+                "b1s1_agreed_contract": info.get('b1s1_agreed_contract'),
+                "b1s1_buyer_utility": info.get('b1s1_buyer_utility'),
+                "b1s1_seller_utility": info.get('b1s1_seller_utility'),
+                "b1s1_z_max": info.get('b1s1_z_max'),
+                "b1s2_agreed_contract": info.get('b1s2_agreed_contract'),
+                "b1s2_buyer_utility": info.get('b1s2_buyer_utility'),
+                "b1s2_seller_utility": info.get('b1s2_seller_utility'),
+                "b1s2_z_max": info.get('b1s2_z_max'),
+                "b2s1_agreed_contract": info.get('b2s1_agreed_contract'),
+                "b2s1_buyer_utility": info.get('b2s1_buyer_utility'),
+                "b2s1_seller_utility": info.get('b2s1_seller_utility'),
+                "b2s1_z_max": info.get('b2s1_z_max'),
+                "b2s2_agreed_contract": info.get('b2s2_agreed_contract'),
+                "b2s2_buyer_utility": info.get('b2s2_buyer_utility'),
+                "b2s2_seller_utility": info.get('b2s2_seller_utility'),
+                "b2s2_z_max": info.get('b2s2_z_max'),
                 "product_info": product_info,
                 "model": get_model_name(model),
             })
@@ -560,6 +706,10 @@ def main(model_name=None):
             if results.get('selected_buyer') and results.get('selected_seller'):
                 f.write(f"Selected Deal: Buyer {results['selected_buyer']} - Seller {results['selected_seller']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+                pair_key = f"b{results['selected_buyer']}s{results['selected_seller']}"
+                agreed_contract = results.get(f"{pair_key}_agreed_contract")
+                if agreed_contract is not None:
+                    f.write(f"Final Contract: {agreed_contract}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Buyer1-Seller1: Buyer=${results['b1s1_buyer_price']:.2f} | Seller=${results['b1s1_seller_price']:.2f}" if results.get('b1s1_buyer_price') is not None and results.get('b1s1_seller_price') is not None else "  Buyer1-Seller1: Not specified")
             f.write("\n")
@@ -569,6 +719,26 @@ def main(model_name=None):
             f.write("\n")
             f.write(f"  Buyer2-Seller2: Buyer=${results['b2s2_buyer_price']:.2f} | Seller=${results['b2s2_seller_price']:.2f}" if results.get('b2s2_buyer_price') is not None and results.get('b2s2_seller_price') is not None else "  Buyer2-Seller2: Not specified")
             f.write("\n\n")
+            f.write("Contract Utilities:\n")
+            for pair_key, label in (
+                ("b1s1", "Buyer1-Seller1"),
+                ("b1s2", "Buyer1-Seller2"),
+                ("b2s1", "Buyer2-Seller1"),
+                ("b2s2", "Buyer2-Seller2"),
+            ):
+                z_max = results.get(f"{pair_key}_z_max")
+                buyer_utility = results.get(f"{pair_key}_buyer_utility")
+                seller_utility = results.get(f"{pair_key}_seller_utility")
+                agreed_contract = results.get(f"{pair_key}_agreed_contract")
+                if z_max is not None:
+                    f.write(f"  {label} Z_max: {z_max:.3f}\n")
+                if buyer_utility is not None:
+                    f.write(f"  {label} Buyer Utility: {buyer_utility:.3f}\n")
+                if seller_utility is not None:
+                    f.write(f"  {label} Seller Utility: {seller_utility:.3f}\n")
+                if agreed_contract is not None:
+                    f.write(f"  {label} Agreed Contract: {agreed_contract}\n")
+            f.write("\n")
             product_info = results.get('product_info', {})
             f.write("Product:\n")
             f.write(f"  Name: {product_info.get('name', 'N/A')}\n")

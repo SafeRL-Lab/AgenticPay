@@ -13,6 +13,7 @@ import json
 import time
 import random
 import argparse
+from copy import deepcopy
 from pathlib import Path
 from datetime import datetime
 
@@ -123,12 +124,99 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Create Agents — reservation prices / MAUT come from per-buyer contract configs (score_design § 租房)
     print("Creating agents...")
-    buyer1_max_price = 1082.0  # Buyer 1 — lower confidential ceiling than Buyer 2 (stricter budget)
-    buyer2_max_price = 1130.0  # Buyer 2 — higher confidential ceiling than Buyer 1
-    seller_min_price = 970.0  # Landlord reservation (highest sm/q among s21–s25); < both buyer_max < listing reference
-    
+    product_request = "I want the East Village studio (entire place)—monthly rent vs. another bidder."
+    buyer1_contract_config = {
+        "contrainfo": {
+            "product_request": product_request,
+            "initial_contract_status": (
+                "No monthly rent, lease length, or utility-inclusion term has been selected or agreed "
+                "before negotiation starts."
+            ),
+            "contract_completion_requirement": (
+                "A valid offer must explicitly fill price, continuous_terms.lease_months, "
+                "and discrete_terms.include_utilities."
+            ),
+        },
+        "field_descriptions": {
+            "price": "The monthly rent the tenant pays for the lease, measured in US dollars.",
+            "continuous_terms.lease_months": (
+                "How many months the lease runs after the deal is made; must be within the configured bounds."
+            ),
+            "discrete_terms.include_utilities": (
+                "Whether standard utilities are included in the monthly rent. true means utilities are included; "
+                "false means the tenant pays utilities separately."
+            ),
+        },
+        "continuous_bounds": {
+            "lease_months": {"min": 1, "max": 24},
+        },
+        "discrete_options": {
+            "include_utilities": [True, False],
+        },
+        "buyer_preferences": {
+            "v_base": 1082.0,
+            "weight_descriptions": {
+                "v_base": (
+                    "Your private maximum monthly rent before lease-length and utility terms, measured in dollars. "
+                    "A lower rent is better for you because every dollar paid reduces your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars per month. "
+                    "A negative number means longer commitment is worse for you."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much utility inclusion changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {"lease_months": -10.0},
+            "discrete_weights": {
+                "include_utilities": {True: 100.0, False: 0.0},
+            },
+        },
+        "seller_preferences": {
+            "c_base": 970.0,
+            "weight_descriptions": {
+                "c_base": (
+                    "Your private minimum acceptable monthly rent before lease-length and utility terms, measured in dollars. "
+                    "A higher rent is better for you because every dollar received increases your utility by 1 dollar."
+                ),
+                "continuous_weights.lease_months": (
+                    "How much each additional lease month changes your utility, measured in dollars per month. "
+                    "A positive number means longer occupancy reduces vacancy risk for you."
+                ),
+                "discrete_weights.include_utilities": (
+                    "How much including utilities changes your utility, measured in dollars."
+                ),
+            },
+            "continuous_weights": {"lease_months": 20.0},
+            "discrete_weights": {
+                "include_utilities": {True: -60.0, False: 0.0},
+            },
+        },
+    }
+    buyer2_contract_config = deepcopy(buyer1_contract_config)
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 1130.0
+    buyer2_contract_config["buyer_preferences"]["continuous_weights"]["lease_months"] = -8.0
+    buyer2_contract_config["buyer_preferences"]["discrete_weights"]["include_utilities"] = {
+        True: 88.0,
+        False: 0.0,
+    }
+    buyer2_contract_config["seller_preferences"]["c_base"] = 973.0
+    buyer2_contract_config["seller_preferences"]["continuous_weights"]["lease_months"] = 18.0
+    buyer2_contract_config["seller_preferences"]["discrete_weights"]["include_utilities"] = {
+        True: -55.0,
+        False: 0.0,
+    }
+    buyer_contract_configs = {
+        1: buyer1_contract_config,
+        2: buyer2_contract_config,
+    }
+    buyer1_max_price = buyer1_contract_config["buyer_preferences"]["v_base"]
+    buyer2_max_price = buyer2_contract_config["buyer_preferences"]["v_base"]
+    seller_min_price = min(cfg["seller_preferences"]["c_base"] for cfg in buyer_contract_configs.values())
+
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)
     buyer2 = BuyerAgent(model=model, name="Buyer2", buyer_max_price=buyer2_max_price)
     seller = SellerAgent(model=model, name="Seller1", seller_min_price=seller_min_price)
@@ -149,6 +237,7 @@ def main(model_name=None):
             "market_type": "Residential Rental",
             "availability_status": "Available now.",
             "listing_age": "Listing ID 13183672 (sample scrape 2019-03-06)",
+            "buyer_contract_configs": buyer_contract_configs,
         },
         price_tolerance=price_tolerance,
         reward_weights=reward_weights,  # Reward weights configuration
@@ -158,9 +247,8 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    # Get user requirement
-    # Use default requirement for automatic running
-    user_requirement = "I want the East Village studio (entire place)—monthly rent vs. another bidder."
+    # User requirement = product_request (preserves original query text)
+    user_requirement = product_request
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment
@@ -195,7 +283,7 @@ def main(model_name=None):
         "You are negotiating with two prospective tenants (buyers). Each round, choose exactly ONE buyer "
         "and output that choice in a dedicated <selected_buyer> block containing only "
         "the digit 1 or 2. Follow the required <mental_model> / <message> format and include "
-        "### SELLER_PRICE($X) ### in <message> (monthly rent)."
+        "one complete <contract>...</contract> JSON block in <message> (monthly rent in price, plus lease_months and include_utilities)."
     )
     
     # Start negotiation loop
@@ -404,6 +492,8 @@ def main(model_name=None):
             if info.get('selected_buyer'):
                 print(f"Final Selected Buyer: Buyer {info['selected_buyer']}")
                 print(f"Final Deal Price: ${info.get('final_deal_price', 0):.2f}")
+            if info.get('agreed_contract') is not None:
+                print(f"Final Contract: {info['agreed_contract']}")
             buyer1_price = info.get('buyer1_price', 0) or 0
             seller_price_buyer1 = info.get('seller_price_buyer1', 0) or 0
             buyer2_price = info.get('buyer2_price', 0) or 0
@@ -441,6 +531,7 @@ def main(model_name=None):
                 "buyer2_price": info.get('buyer2_price'),
                 "seller_price_buyer1": info.get('seller_price_buyer1'),
                 "seller_price_buyer2": info.get('seller_price_buyer2'),
+                "agreed_contract": info.get('agreed_contract'),
                 "total_rounds": info.get('round', 0),
                 "total_reward": float(reward) if reward is not None else None,
                 "buyer1_reward": info.get('buyer1_reward'),
@@ -454,6 +545,7 @@ def main(model_name=None):
                 "buyer1_max_price": buyer1_max_price,
                 "buyer2_max_price": buyer2_max_price,
                 "seller_min_price": seller_min_price,
+                "buyer_contract_configs": buyer_contract_configs,
                 "product_info": {
                     "name": "East Village Living — Entire studio (NYC East Village)",
                     "brand": "Host: Erica",
@@ -516,6 +608,8 @@ def main(model_name=None):
             if results.get('selected_buyer'):
                 f.write(f"Final Selected Buyer: Buyer {results['selected_buyer']}\n")
                 f.write(f"Final Deal Price: ${results.get('final_deal_price', 0):.2f}\n\n")
+            if results.get('agreed_contract') is not None:
+                f.write(f"Final Contract: {results['agreed_contract']}\n\n")
             f.write("Final Prices:\n")
             f.write(f"  Buyer1 - Buyer Price: ${results['buyer1_price']:.2f}" if results.get('buyer1_price') is not None else "  Buyer1 - Buyer Price: Not specified")
             f.write("\n")

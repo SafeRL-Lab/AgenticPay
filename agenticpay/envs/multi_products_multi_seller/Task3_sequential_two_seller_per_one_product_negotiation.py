@@ -6,7 +6,9 @@ Each seller has their own unique product. Buyer can switch between two sellers a
 
 from __future__ import annotations
 
+import json
 import re
+from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
 from agenticpay.core import BaseEnv, NegotiationStatus, NegotiationInfo
@@ -115,6 +117,12 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         self.seller1_min_price = seller1_min_price
         self.seller2_min_price = seller2_min_price
         self.environment_info = environment_info or {}
+        self.contract_configs = self._normalize_contract_configs(self.environment_info)
+        self.use_contract_mode = bool(self.contract_configs)
+        self.z_max_by_seller = {
+            seller_id: self._calculate_z_max(config)
+            for seller_id, config in self.contract_configs.items()
+        } if self.use_contract_mode else {}
         self.price_tolerance = price_tolerance
         
         # Set default reward weights
@@ -163,6 +171,268 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         # Store product info for each seller
         self.seller1_product_info: Optional[Dict[str, Any]] = None
         self.seller2_product_info: Optional[Dict[str, Any]] = None
+
+        self._reset_contract_metadata()
+
+    def _normalize_contract_configs(self, environment_info: Dict[str, Any]) -> Dict[int, Dict[str, Any]]:
+        """Normalize seller-specific or shared contract config into {1: cfg, 2: cfg}."""
+        raw_configs = environment_info.get("seller_contract_configs")
+        if isinstance(raw_configs, dict):
+            configs: Dict[int, Dict[str, Any]] = {}
+            for seller_id in (1, 2):
+                value = raw_configs.get(seller_id) or raw_configs.get(str(seller_id)) or raw_configs.get(f"seller{seller_id}")
+                if isinstance(value, dict):
+                    configs[seller_id] = deepcopy(value)
+            if configs:
+                return configs
+
+        shared_config = environment_info.get("contract_config")
+        if isinstance(shared_config, dict) and shared_config:
+            return {1: deepcopy(shared_config), 2: deepcopy(shared_config)}
+        return {}
+
+    def _reset_contract_metadata(self) -> None:
+        """Initialize per-seller contract state used by contract-mode scoring."""
+        for state in (self.state_seller1, self.state_seller2):
+            state.metadata["buyer_contract"] = None
+            state.metadata["seller_contract"] = None
+            state.metadata["agreed_contract"] = None
+            state.metadata["buyer_utility"] = None
+            state.metadata["seller_utility"] = None
+            state.metadata["z_max"] = None
+        for seller_id, z_max in self.z_max_by_seller.items():
+            self._get_seller_state(seller_id).metadata["z_max"] = z_max
+
+    def _get_seller_state(self, seller_id: int) -> NegotiationState:
+        if seller_id == 1:
+            return self.state_seller1
+        if seller_id == 2:
+            return self.state_seller2
+        raise ValueError(f"seller_id must be 1 or 2, got {seller_id}")
+
+    def _get_seller_contract_config(self, seller_id: int) -> Dict[str, Any]:
+        return self.contract_configs.get(seller_id, {})
+
+    def _build_public_contract_config(self, seller_id: int) -> Dict[str, Any]:
+        """Build contract config fields both sides may see for one seller."""
+        config = self._get_seller_contract_config(seller_id)
+        if not config:
+            return {}
+        public_config: Dict[str, Any] = {"seller_id": seller_id}
+        for key in ("continuous_bounds", "discrete_options", "field_descriptions", "contrainfo"):
+            if key in config:
+                public_config[key] = deepcopy(config[key])
+        return public_config
+
+    def _build_role_contract_config(self, role: str, seller_id: int) -> Dict[str, Any]:
+        """Expose only the role's private preferences for one seller."""
+        config = self._get_seller_contract_config(seller_id)
+        role_config = self._build_public_contract_config(seller_id)
+        if role == "buyer" and "buyer_preferences" in config:
+            role_config["buyer_preferences"] = deepcopy(config["buyer_preferences"])
+        if role == "seller" and "seller_preferences" in config:
+            role_config["seller_preferences"] = deepcopy(config["seller_preferences"])
+        return role_config
+
+    def _build_buyer_contract_configs(self) -> Dict[int, Dict[str, Any]]:
+        return {
+            seller_id: self._build_role_contract_config("buyer", seller_id)
+            for seller_id in (1, 2)
+            if seller_id in self.contract_configs
+        }
+
+    def _build_role_environment_info(self, role: str, seller_id: Optional[int] = None) -> Dict[str, Any]:
+        """Build role-specific environment info without leaking counterparty preferences."""
+        role_env_info = deepcopy(self.environment_info)
+        role_env_info.pop("contract_config", None)
+        role_env_info.pop("seller_contract_configs", None)
+        if not self.use_contract_mode:
+            return role_env_info
+
+        if role == "buyer":
+            role_env_info["seller_contract_configs"] = self._build_buyer_contract_configs()
+            if seller_id is not None:
+                role_env_info["contract_config"] = self._build_role_contract_config("buyer", seller_id)
+        elif role == "seller" and seller_id is not None:
+            role_env_info["contract_config"] = self._build_role_contract_config("seller", seller_id)
+        return role_env_info
+
+    def _normalize_contract(self, contract: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Normalize contract schema to a stable internal representation."""
+        if not isinstance(contract, dict):
+            return None
+        try:
+            price = float(contract.get("price"))
+        except (TypeError, ValueError):
+            return None
+        if price <= 0:
+            return None
+
+        continuous_terms = contract.get("continuous_terms", {})
+        discrete_terms = contract.get("discrete_terms", {})
+        if not isinstance(continuous_terms, dict) or not isinstance(discrete_terms, dict):
+            return None
+
+        return {
+            "price": price,
+            "continuous_terms": continuous_terms,
+            "discrete_terms": discrete_terms,
+        }
+
+    def _extract_contract(self, text: str) -> Optional[Dict[str, Any]]:
+        """Extract contract JSON from <contract>...</contract> block."""
+        if not text:
+            return None
+        contract_match = re.search(r"<contract>\s*(.*?)\s*</contract>", text, re.DOTALL | re.IGNORECASE)
+        if not contract_match:
+            return None
+        try:
+            contract_obj = json.loads(contract_match.group(1).strip())
+        except json.JSONDecodeError:
+            return None
+        return self._normalize_contract(contract_obj)
+
+    def _validate_contract(self, contract: Optional[Dict[str, Any]], seller_id: int) -> bool:
+        """Validate contract against the selected seller's bounds/options."""
+        if not contract:
+            return False
+        if not self.use_contract_mode:
+            return True
+
+        config = self._get_seller_contract_config(seller_id)
+        continuous_bounds = config.get("continuous_bounds", {})
+        discrete_options = config.get("discrete_options", {})
+        continuous_terms = contract.get("continuous_terms", {})
+        discrete_terms = contract.get("discrete_terms", {})
+
+        for term in continuous_terms.keys():
+            if term not in continuous_bounds:
+                return False
+        for term in discrete_terms.keys():
+            if term not in discrete_options:
+                return False
+
+        for term, bounds in continuous_bounds.items():
+            if term not in continuous_terms:
+                return False
+            try:
+                numeric_value = float(continuous_terms.get(term))
+            except (TypeError, ValueError):
+                return False
+            min_v = bounds.get("min")
+            max_v = bounds.get("max")
+            if min_v is not None and numeric_value < min_v:
+                return False
+            if max_v is not None and numeric_value > max_v:
+                return False
+
+        for term, options in discrete_options.items():
+            if term not in discrete_terms:
+                return False
+            if discrete_terms.get(term) not in options:
+                return False
+
+        return True
+
+    def _calculate_contract_utilities(self, contract: Dict[str, Any], seller_id: int) -> Tuple[float, float]:
+        """Compute raw MAUT utilities (U_b, U_s) for one seller's contract config."""
+        config = self._get_seller_contract_config(seller_id)
+        buyer_prefs = config.get("buyer_preferences", {})
+        seller_prefs = config.get("seller_preferences", {})
+
+        price = float(contract["price"])
+        buyer_utility = float(buyer_prefs.get("v_base", 0.0)) - price
+        seller_utility = price - float(seller_prefs.get("c_base", 0.0))
+
+        buyer_cw = buyer_prefs.get("continuous_weights", {})
+        seller_cw = seller_prefs.get("continuous_weights", {})
+        for term, value in contract.get("continuous_terms", {}).items():
+            try:
+                numeric_value = float(value)
+            except (TypeError, ValueError):
+                continue
+            buyer_utility += float(buyer_cw.get(term, 0.0)) * numeric_value
+            seller_utility += float(seller_cw.get(term, 0.0)) * numeric_value
+
+        buyer_dw = buyer_prefs.get("discrete_weights", {})
+        seller_dw = seller_prefs.get("discrete_weights", {})
+        for term, value in contract.get("discrete_terms", {}).items():
+            buyer_utility += float(buyer_dw.get(term, {}).get(value, 0.0))
+            seller_utility += float(seller_dw.get(term, {}).get(value, 0.0))
+
+        return buyer_utility, seller_utility
+
+    def _calculate_z_max(self, config: Dict[str, Any]) -> Optional[float]:
+        """Compute theoretical max surplus Z_max for one seller."""
+        if not config:
+            return None
+
+        buyer_prefs = config.get("buyer_preferences", {})
+        seller_prefs = config.get("seller_preferences", {})
+        z_max = float(buyer_prefs.get("v_base", 0.0)) - float(seller_prefs.get("c_base", 0.0))
+
+        buyer_cw = buyer_prefs.get("continuous_weights", {})
+        seller_cw = seller_prefs.get("continuous_weights", {})
+        for term, bounds in config.get("continuous_bounds", {}).items():
+            total_weight = float(buyer_cw.get(term, 0.0)) + float(seller_cw.get(term, 0.0))
+            min_v = float(bounds.get("min", 0.0))
+            max_v = float(bounds.get("max", 0.0))
+            z_max += total_weight * (max_v if total_weight >= 0 else min_v)
+
+        buyer_dw = buyer_prefs.get("discrete_weights", {})
+        seller_dw = seller_prefs.get("discrete_weights", {})
+        for term, options in config.get("discrete_options", {}).items():
+            best = None
+            for opt in options:
+                candidate = float(buyer_dw.get(term, {}).get(opt, 0.0)) + float(seller_dw.get(term, {}).get(opt, 0.0))
+                if best is None or candidate > best:
+                    best = candidate
+            if best is not None:
+                z_max += best
+
+        return z_max
+
+    def _contracts_compatible(self, buyer_contract: Dict[str, Any], seller_contract: Dict[str, Any]) -> bool:
+        """Check whether two contracts are compatible enough to settle."""
+        if buyer_contract.get("continuous_terms", {}) != seller_contract.get("continuous_terms", {}):
+            return False
+        if buyer_contract.get("discrete_terms", {}) != seller_contract.get("discrete_terms", {}):
+            return False
+        buyer_price = float(buyer_contract["price"])
+        seller_price = float(seller_contract["price"])
+        if abs(buyer_price - seller_price) <= self.price_tolerance:
+            return True
+        return seller_price <= buyer_price
+
+    def _resolve_agreed_contract(self, seller_id: int) -> Optional[Dict[str, Any]]:
+        """Build the final contract for a compatible buyer/seller pair."""
+        state = self._get_seller_state(seller_id)
+        buyer_contract = state.metadata.get("buyer_contract")
+        seller_contract = state.metadata.get("seller_contract")
+        if not buyer_contract or not seller_contract:
+            return None
+        if not self._contracts_compatible(buyer_contract, seller_contract):
+            return None
+
+        buyer_price = float(buyer_contract["price"])
+        seller_price = float(seller_contract["price"])
+        agreed_price = seller_price if seller_price <= buyer_price else (buyer_price + seller_price) / 2
+        return {
+            "price": agreed_price,
+            "continuous_terms": buyer_contract.get("continuous_terms", {}),
+            "discrete_terms": buyer_contract.get("discrete_terms", {}),
+        }
+
+    def _get_market_best_contract_seller(self) -> Optional[int]:
+        """Choose the seller with the highest theoretical total utility."""
+        candidates = [
+            (seller_id, z_max)
+            for seller_id, z_max in self.z_max_by_seller.items()
+            if z_max is not None
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=lambda item: item[1])[0]
     
     def reset(
         self,
@@ -194,6 +464,7 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         self.current_selected_seller = None
         self.final_selected_seller = None
         self.final_deal_price = None
+        self._reset_contract_metadata()
         
         # Store product info for each seller
         self.seller1_product_info = seller1_product_info or {}
@@ -217,12 +488,13 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "user_requirement": user_requirement,
             "max_price": self.buyer_max_price,
             "user_profile": user_profile,
-            "environment_info": self.environment_info,
+            "environment_info": self._build_role_environment_info("buyer"),
             "seller1_product_info": self.seller1_product_info,
             "seller2_product_info": self.seller2_product_info,
             "num_sellers": 2,  # Inform buyer there are 2 sellers
             "negotiation_mode": "sequential",  # Inform buyer this is sequential negotiation
             "product_images": product_images,  # For VLM: product images (URL/path) for img input
+            "seller_contract_configs": self._build_buyer_contract_configs() if self.use_contract_mode else {},
         }
         prods = self.seller1_product_info.get("products")
         if (
@@ -243,9 +515,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "product_info": self.seller1_product_info,
             "initial_price": self.initial_seller1_price,
             "min_price": self.seller1_min_price,
-            "environment_info": self.environment_info,
+            "environment_info": self._build_role_environment_info("seller", 1),
             "seller_id": 1,  # Identify as seller 1
             "product_images": seller1_images,  # For VLM: product image (URL/path) for img input
+            "contract_config": self._build_role_contract_config("seller", 1) if self.use_contract_mode else {},
         }
         self.seller1_agent.initialize(seller1_context)
         
@@ -255,9 +528,10 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "product_info": self.seller2_product_info,
             "initial_price": self.initial_seller2_price,
             "min_price": self.seller2_min_price,
-            "environment_info": self.environment_info,
+            "environment_info": self._build_role_environment_info("seller", 2),
             "seller_id": 2,  # Identify as seller 2
             "product_images": seller2_images,  # For VLM: product image (URL/path) for img input
+            "contract_config": self._build_role_contract_config("seller", 2) if self.use_contract_mode else {},
         }
         self.seller2_agent.initialize(seller2_context)
         
@@ -297,12 +571,22 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         if buyer_action is not None:
             if selected_seller == 1:
                 self.memory_seller1.add_message("buyer", buyer_action, self.current_round)
-                buyer_price = self._extract_price(buyer_action)
+                buyer_contract = self._extract_contract(buyer_action) if self.use_contract_mode else None
+                if buyer_contract and self._validate_contract(buyer_contract, 1):
+                    self.state_seller1.metadata["buyer_contract"] = buyer_contract
+                    buyer_price = float(buyer_contract["price"])
+                else:
+                    buyer_price = self._extract_price(buyer_action)
                 if buyer_price is not None:
                     self.state_seller1.update(buyer_price=buyer_price)
             else:  # selected_seller == 2
                 self.memory_seller2.add_message("buyer", buyer_action, self.current_round)
-                buyer_price = self._extract_price(buyer_action)
+                buyer_contract = self._extract_contract(buyer_action) if self.use_contract_mode else None
+                if buyer_contract and self._validate_contract(buyer_contract, 2):
+                    self.state_seller2.metadata["buyer_contract"] = buyer_contract
+                    buyer_price = float(buyer_contract["price"])
+                else:
+                    buyer_price = self._extract_price(buyer_action)
                 if buyer_price is not None:
                     self.state_seller2.update(buyer_price=buyer_price)
         
@@ -310,19 +594,35 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         if seller_action is not None:
             if selected_seller == 1:
                 self.memory_seller1.add_message("seller", seller_action, self.current_round)
-                seller_price = self._extract_price(seller_action)
+                seller_contract = self._extract_contract(seller_action) if self.use_contract_mode else None
+                if seller_contract and self._validate_contract(seller_contract, 1):
+                    self.state_seller1.metadata["seller_contract"] = seller_contract
+                    seller_price = float(seller_contract["price"])
+                else:
+                    seller_price = self._extract_price(seller_action)
                 if seller_price is not None:
                     self.state_seller1.update(seller_price=seller_price)
             else:  # selected_seller == 2
                 self.memory_seller2.add_message("seller", seller_action, self.current_round)
-                seller_price = self._extract_price(seller_action)
+                seller_contract = self._extract_contract(seller_action) if self.use_contract_mode else None
+                if seller_contract and self._validate_contract(seller_contract, 2):
+                    self.state_seller2.metadata["seller_contract"] = seller_contract
+                    seller_price = float(seller_contract["price"])
+                else:
+                    seller_price = self._extract_price(seller_action)
                 if seller_price is not None:
                     self.state_seller2.update(seller_price=seller_price)
         
         # Check if deal can be made with the selected seller
         # Deal is made when: (1) price difference <= tolerance, or (2) seller's offer <= buyer's offer
         if selected_seller == 1:
-            if (buyer_action is not None and 
+            if self.use_contract_mode:
+                agreed_contract = self._resolve_agreed_contract(1)
+                if agreed_contract:
+                    self.final_selected_seller = 1
+                    self.final_deal_price = float(agreed_contract["price"])
+                    self.state_seller1.metadata["agreed_contract"] = agreed_contract
+            elif (buyer_action is not None and 
                 self.state_seller1.buyer_price is not None and 
                 self.state_seller1.seller_price is not None):
                 price_diff = abs(self.state_seller1.buyer_price - self.state_seller1.seller_price)
@@ -333,7 +633,13 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
                     self.final_selected_seller = 1
                     self.final_deal_price = self.state_seller1.seller_price
         else:  # selected_seller == 2
-            if (buyer_action is not None and 
+            if self.use_contract_mode:
+                agreed_contract = self._resolve_agreed_contract(2)
+                if agreed_contract:
+                    self.final_selected_seller = 2
+                    self.final_deal_price = float(agreed_contract["price"])
+                    self.state_seller2.metadata["agreed_contract"] = agreed_contract
+            elif (buyer_action is not None and 
                 self.state_seller2.buyer_price is not None and 
                 self.state_seller2.seller_price is not None):
                 price_diff = abs(self.state_seller2.buyer_price - self.state_seller2.seller_price)
@@ -509,25 +815,43 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         
         # Display Seller1 prices
         output_lines.append(f"\nSeller 1:")
-        if self.state_seller1.buyer_price is not None:
-            output_lines.append(f"  Buyer Price: ${self.state_seller1.buyer_price:.2f}")
+        if self.use_contract_mode:
+            buyer_contract = self.state_seller1.metadata.get("buyer_contract")
+            seller_contract = self.state_seller1.metadata.get("seller_contract")
+            agreed_contract = self.state_seller1.metadata.get("agreed_contract")
+            output_lines.append(f"  Buyer Contract: {buyer_contract if buyer_contract else 'Not specified'}")
+            output_lines.append(f"  Seller Contract: {seller_contract if seller_contract else 'Not specified'}")
+            if agreed_contract:
+                output_lines.append(f"  Agreed Contract: {agreed_contract}")
         else:
-            output_lines.append(f"  Buyer Price: Not specified")
-        if self.state_seller1.seller_price is not None:
-            output_lines.append(f"  Seller Price: ${self.state_seller1.seller_price:.2f}")
-        else:
-            output_lines.append(f"  Seller Price: Not specified")
+            if self.state_seller1.buyer_price is not None:
+                output_lines.append(f"  Buyer Price: ${self.state_seller1.buyer_price:.2f}")
+            else:
+                output_lines.append(f"  Buyer Price: Not specified")
+            if self.state_seller1.seller_price is not None:
+                output_lines.append(f"  Seller Price: ${self.state_seller1.seller_price:.2f}")
+            else:
+                output_lines.append(f"  Seller Price: Not specified")
         
         # Display Seller2 prices
         output_lines.append(f"\nSeller 2:")
-        if self.state_seller2.buyer_price is not None:
-            output_lines.append(f"  Buyer Price: ${self.state_seller2.buyer_price:.2f}")
+        if self.use_contract_mode:
+            buyer_contract = self.state_seller2.metadata.get("buyer_contract")
+            seller_contract = self.state_seller2.metadata.get("seller_contract")
+            agreed_contract = self.state_seller2.metadata.get("agreed_contract")
+            output_lines.append(f"  Buyer Contract: {buyer_contract if buyer_contract else 'Not specified'}")
+            output_lines.append(f"  Seller Contract: {seller_contract if seller_contract else 'Not specified'}")
+            if agreed_contract:
+                output_lines.append(f"  Agreed Contract: {agreed_contract}")
         else:
-            output_lines.append(f"  Buyer Price: Not specified")
-        if self.state_seller2.seller_price is not None:
-            output_lines.append(f"  Seller Price: ${self.state_seller2.seller_price:.2f}")
-        else:
-            output_lines.append(f"  Seller Price: Not specified")
+            if self.state_seller2.buyer_price is not None:
+                output_lines.append(f"  Buyer Price: ${self.state_seller2.buyer_price:.2f}")
+            else:
+                output_lines.append(f"  Buyer Price: Not specified")
+            if self.state_seller2.seller_price is not None:
+                output_lines.append(f"  Seller Price: ${self.state_seller2.seller_price:.2f}")
+            else:
+                output_lines.append(f"  Seller Price: Not specified")
         
         # Display deal status
         if self.final_selected_seller is not None:
@@ -641,6 +965,21 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "seller2_product_info": self.seller2_product_info,
             "initial_seller1_price": self.initial_seller1_price,
             "initial_seller2_price": self.initial_seller2_price,
+            "contract_configs": {
+                seller_id: self._build_public_contract_config(seller_id)
+                for seller_id in (1, 2)
+            } if self.use_contract_mode else None,
+            "contract_config": (
+                self._build_public_contract_config(self.current_selected_seller)
+                if self.use_contract_mode and self.current_selected_seller in (1, 2)
+                else None
+            ),
+            "buyer_contract_seller1": self.state_seller1.metadata.get("buyer_contract"),
+            "seller_contract_seller1": self.state_seller1.metadata.get("seller_contract"),
+            "agreed_contract_seller1": self.state_seller1.metadata.get("agreed_contract"),
+            "buyer_contract_seller2": self.state_seller2.metadata.get("buyer_contract"),
+            "seller_contract_seller2": self.state_seller2.metadata.get("seller_contract"),
+            "agreed_contract_seller2": self.state_seller2.metadata.get("agreed_contract"),
         }
         # Include product_images for VLM (agent passes img to model when is_vlm)
         if getattr(self, "product_images", None) is not None:
@@ -664,6 +1003,19 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
             "seller2_product_info": self.seller2_product_info,
             "initial_seller1_price": self.initial_seller1_price,
             "initial_seller2_price": self.initial_seller2_price,
+            "buyer_contract_seller1": self.state_seller1.metadata.get("buyer_contract"),
+            "seller_contract_seller1": self.state_seller1.metadata.get("seller_contract"),
+            "agreed_contract_seller1": self.state_seller1.metadata.get("agreed_contract"),
+            "buyer_utility_seller1": self.state_seller1.metadata.get("buyer_utility"),
+            "seller_utility_seller1": self.state_seller1.metadata.get("seller_utility"),
+            "z_max_seller1": self.z_max_by_seller.get(1),
+            "buyer_contract_seller2": self.state_seller2.metadata.get("buyer_contract"),
+            "seller_contract_seller2": self.state_seller2.metadata.get("seller_contract"),
+            "agreed_contract_seller2": self.state_seller2.metadata.get("agreed_contract"),
+            "buyer_utility_seller2": self.state_seller2.metadata.get("buyer_utility"),
+            "seller_utility_seller2": self.state_seller2.metadata.get("seller_utility"),
+            "z_max_seller2": self.z_max_by_seller.get(2),
+            "contract_configs": self.contract_configs if self.use_contract_mode else None,
         }
     
     def _extract_price(self, text: str) -> Optional[float]:
@@ -1062,6 +1414,48 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         else:
             Z = self.buyer_max_price - winner_min
         return Z, winner_min
+
+    def _get_contract_score_terms(self) -> Optional[Dict[str, float]]:
+        """Return normalized utility terms using the market-best seller utility space."""
+        if not self.use_contract_mode or self.final_selected_seller not in (1, 2):
+            return None
+
+        market_best_seller = self._get_market_best_contract_seller()
+        if market_best_seller is None:
+            return None
+        z_market = self.z_max_by_seller.get(market_best_seller)
+        if not z_market or z_market <= 0:
+            return None
+
+        selected_state = self._get_seller_state(self.final_selected_seller)
+        final_contract = selected_state.metadata.get("agreed_contract")
+        if not final_contract:
+            final_contract = self._resolve_agreed_contract(self.final_selected_seller)
+            if final_contract:
+                selected_state.metadata["agreed_contract"] = final_contract
+
+        if not final_contract or not self._validate_contract(final_contract, self.final_selected_seller):
+            return None
+
+        u_b, u_s = self._calculate_contract_utilities(final_contract, self.final_selected_seller)
+        selected_state.metadata["buyer_utility"] = u_b
+        selected_state.metadata["seller_utility"] = u_s
+        if u_b < 0 or u_s < 0:
+            return None
+
+        r_b = u_b / z_market
+        r_s = u_s / z_market
+        return {
+            "u_b": u_b,
+            "u_s": u_s,
+            "r_b": r_b,
+            "r_s": r_s,
+            "q": 4.0 * r_b * r_s,
+            "z_market": z_market,
+            "market_best_seller": float(market_best_seller),
+            "selected_seller": float(self.final_selected_seller),
+            "selected_z_max": self.z_max_by_seller.get(self.final_selected_seller) or 0.0,
+        }
     
     def _calculate_global_score(self, print_details: bool = True) -> float:
         """Calculate GlobalScore based on the optimized formula
@@ -1107,6 +1501,38 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         Returns:
             GlobalScore value (only calculated at final result)
         """
+        round_index = max(0, self.current_round - 1)
+        discount = self.gamma ** round_index
+
+        if self.use_contract_mode:
+            score_terms = self._get_contract_score_terms()
+            feasible_deal = (self.negotiation_info.status == NegotiationStatus.AGREED) or (self.final_deal_price is not None)
+            if feasible_deal and score_terms is not None:
+                deal_score = self.deal_score_weight * discount
+                quality_score = self.quality_score_weight * score_terms["q"] * discount
+                efficiency_score = self.efficiency_score_weight * discount
+                global_score = deal_score + quality_score + efficiency_score
+                if print_details:
+                    print(f"\n[GlobalScore Calculation - Contract Mode]")
+                    print(f"  market_best_seller = Seller {int(score_terms['market_best_seller'])}")
+                    print(f"  z_market = {score_terms['z_market']:.4f}, selected_seller_z_max = {score_terms['selected_z_max']:.4f}")
+                    print(f"  final_selected_seller = Seller {int(score_terms['selected_seller'])}")
+                    print(f"  u_b = {score_terms['u_b']:.4f}, u_s = {score_terms['u_s']:.4f}")
+                    print(f"  r_b = {score_terms['r_b']:.4f}, r_s = {score_terms['r_s']:.4f}")
+                    print(f"  Q = 4 * r_b * r_s = {score_terms['q']:.4f}")
+                    print(f"  round_index = {round_index}, discount = γ^{round_index} = {discount:.6f}")
+                    print(f"  DealScore = {deal_score:.3f}, QualityScore = {quality_score:.3f}, EfficiencyScore = {efficiency_score:.3f}")
+                    print(f"  GlobalScore = {global_score:.3f}")
+                return global_score
+
+            failure_penalty = -self.failure_penalty_weight * (1.0 - discount)
+            if print_details:
+                print(f"\n[GlobalScore Calculation - Contract Mode]")
+                print(f"  Failed to produce a feasible valid contract")
+                print(f"  round_index = {round_index}, discount = γ^{round_index} = {discount:.6f}")
+                print(f"  FailurePenalty = {failure_penalty:.3f}")
+            return failure_penalty
+
         # Get final selected seller's min_price
         selected_seller_min_price = self._get_selected_seller_min_price()
         
@@ -1244,6 +1670,33 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         Returns:
             BuyerScore value (only calculated at final result)
         """
+        round_index = max(0, self.current_round - 1)
+        discount = self.gamma ** round_index
+
+        if self.use_contract_mode:
+            score_terms = self._get_contract_score_terms()
+            feasible_deal = (self.negotiation_info.status == NegotiationStatus.AGREED) or (self.final_deal_price is not None)
+            if feasible_deal and score_terms is not None:
+                buyer_score = discount * (
+                    self.buyer_deal_weight
+                    + self.buyer_utility_weight * score_terms["r_b"]
+                    + self.buyer_efficiency_weight
+                )
+                if print_details:
+                    print(f"\n[BuyerScore Calculation - Contract Mode]")
+                    print(f"  market_best_seller = Seller {int(score_terms['market_best_seller'])}")
+                    print(f"  z_market = {score_terms['z_market']:.4f}, r_b = {score_terms['r_b']:.4f}")
+                    print(f"  round_index = {round_index}, discount = γ^{round_index} = {discount:.6f}")
+                    print(f"  BuyerScore = {buyer_score:.3f}")
+                return buyer_score
+
+            buyer_score = -self.buyer_failure_penalty_weight * (1.0 - discount)
+            if print_details:
+                print(f"\n[BuyerScore Calculation - Contract Mode]")
+                print(f"  Failed to produce a feasible valid contract")
+                print(f"  BuyerScore = {buyer_score:.3f}")
+            return buyer_score
+
         # Get final selected seller's min_price
         selected_seller_min_price = self._get_selected_seller_min_price()
         
@@ -1366,6 +1819,33 @@ class Task3SequentialTwoSellerPerOneProductNegotiation(BaseEnv):
         Returns:
             SellerScore value (only calculated at final result)
         """
+        round_index = max(0, self.current_round - 1)
+        discount = self.gamma ** round_index
+
+        if self.use_contract_mode:
+            score_terms = self._get_contract_score_terms()
+            feasible_deal = (self.negotiation_info.status == NegotiationStatus.AGREED) or (self.final_deal_price is not None)
+            if feasible_deal and score_terms is not None:
+                seller_score = discount * (
+                    self.seller_deal_weight
+                    + self.seller_utility_weight * score_terms["r_s"]
+                    + self.seller_efficiency_weight
+                )
+                if print_details:
+                    print(f"\n[SellerScore Calculation - Contract Mode]")
+                    print(f"  market_best_seller = Seller {int(score_terms['market_best_seller'])}")
+                    print(f"  z_market = {score_terms['z_market']:.4f}, r_s = {score_terms['r_s']:.4f}")
+                    print(f"  round_index = {round_index}, discount = γ^{round_index} = {discount:.6f}")
+                    print(f"  SellerScore = {seller_score:.3f}")
+                return seller_score
+
+            seller_score = -self.seller_failure_penalty_weight * (1.0 - discount)
+            if print_details:
+                print(f"\n[SellerScore Calculation - Contract Mode]")
+                print(f"  Failed to produce a feasible valid contract")
+                print(f"  SellerScore = {seller_score:.3f}")
+            return seller_score
+
         # Get final selected seller's min_price
         selected_seller_min_price = self._get_selected_seller_min_price()
         
