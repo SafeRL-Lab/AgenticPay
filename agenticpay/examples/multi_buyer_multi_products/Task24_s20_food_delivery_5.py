@@ -203,7 +203,6 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        initial_seller_price=22.45,
         buyer1_max_price=buyer1_max_price,
         buyer2_max_price=buyer2_max_price,
         seller_min_price=seller_min_price,

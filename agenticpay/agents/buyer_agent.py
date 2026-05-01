@@ -168,7 +168,7 @@ class BuyerAgent(BaseAgent):
 - You MUST choose exactly one seller for this turn and output it in a dedicated `<selected_seller>` block.
 - `<selected_seller>` must contain exactly one integer from `1` to `{num_sellers}`.
 - If there is only one seller in the task, you MUST output `1`.
-- Base your choice on the conversation history, current offers, and your strategy.
+- Base your choice on the conversation history and current offers.
 - Do NOT put any extra text inside `<selected_seller>`.
 """
         selected_seller_format = f"""<selected_seller>
@@ -306,16 +306,16 @@ IMPORTANT:
 {preference_guidance}
 
 MENTAL MODELING INSTRUCTION:
-Before replying, briefly think about:
-1. [Contract Situation]: What is the current state of the deal?
-2. [Opponent Position]: What does the other party seem to want?
-3. [My Next Move]: What should you propose or say next?
+Before replying, briefly state your internal assessment for evaluation:
+1. [Opponent Reservation Price]: Output exactly `price=<number>; confidence=<0-100>` for your estimate of the opponent's reservation price and confidence score.
+2. [Opponent Strategy]: Your inference about the opponent's tactic.
+3. [My Strategy]: Your chosen tactic and reasoning.
 
 You MUST format your entire output exactly as follows:
 <mental_model>
-[Contract Situation]: <current state of the deal>
-[Opponent Position]: <what the other party seems to want>
-[My Next Move]: <what you should propose or say next>
+[Opponent Reservation Price]: price=<number>; confidence=<0-100>
+[Opponent Strategy]: <your inference about the opponent's tactic>
+[My Strategy]: <your chosen tactic and reasoning>
 </mental_model>
 {selected_seller_format}<message>
 {message_instruction}

@@ -85,7 +85,7 @@ class BaseAgent(ABC):
 # Conversation History:
 # {self._format_history(conversation_history)}
 
-# Please respond naturally as {self.name} would. Be strategic but realistic in your negotiation.
+# Please respond naturally as {self.name} would.
 # """
         prompt = f"""You are {self.name}, {self.role_description}
 
@@ -95,7 +95,7 @@ Context Information:
 Conversation History:
 {self._format_history(conversation_history)}
 
-Please respond naturally as {self.name} would. Be strategic but realistic in your negotiation.
+Please respond naturally as {self.name} would.
 """
         return prompt
     

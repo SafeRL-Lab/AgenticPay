@@ -174,7 +174,6 @@ def main(model_name=None):
         buyer_agent=buyer,
         seller_agent=seller,
         max_rounds=max_rounds,
-        initial_seller_price=3180.0,  # Opening combined monthly rent ask ($1,395 studio + $1,785 one-bedroom)
         buyer_max_price=buyer_max_price,  # Buyer total max price (confidential, for both products)
         seller_min_price=seller_min_price,  # Seller total min price (confidential, for both products)
         environment_info={

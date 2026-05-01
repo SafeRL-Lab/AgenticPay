@@ -134,7 +134,7 @@ class SellerAgent(BaseAgent):
 - MULTI-BUYER ROUTING: You are negotiating with multiple potential buyers.
 - You MUST choose exactly one buyer for this turn and output it in a dedicated `<selected_buyer>` block.
 - `<selected_buyer>` must contain exactly one integer from `1` to `{num_buyers}`.
-- Base your choice on the conversation history, current offers, and your strategy.
+- Base your choice on the conversation history and current offers.
 - Do NOT put any extra text inside `<selected_buyer>`.
 """
         selected_buyer_format = f"""<selected_buyer>
@@ -212,9 +212,9 @@ class SellerAgent(BaseAgent):
 {selected_buyer_rules}
 You MUST format your entire output as follows (do NOT skip any block):
 <mental_model>
-[Contract Situation]: <current state of the deal>
-[Opponent Position]: <what the other party seems to want>
-[My Next Move]: <what you should propose or say next>
+[Opponent Reservation Price]: price=<number>; confidence=<0-100>
+[Opponent Strategy]: <your inference about the opponent's tactic>
+[My Strategy]: <your chosen tactic and reasoning>
 </mental_model>
 {selected_buyer_format}<message>
 {structure_message_line}
@@ -224,9 +224,9 @@ You MUST format your entire output as follows (do NOT skip any block):
             structure_tail = f"""{task_instruction_section}
 You MUST format your entire output as follows (do NOT skip either block):
 <mental_model>
-[Contract Situation]: <current state of the deal>
-[Opponent Position]: <what the other party seems to want>
-[My Next Move]: <what you should propose or say next>
+[Opponent Reservation Price]: price=<number>; confidence=<0-100>
+[Opponent Strategy]: <your inference about the opponent's tactic>
+[My Strategy]: <your chosen tactic and reasoning>
 </mental_model>
 <message>
 {structure_message_line}
@@ -244,10 +244,10 @@ IMPORTANT REMINDERS:
 - NEVER reveal your minimum acceptable price to the buyer.
 
 MENTAL MODELING INSTRUCTION:
-Before replying, briefly think about:
-1. [Contract Situation]: What is the current state of the deal?
-2. [Opponent Position]: What does the other party seem to want?
-3. [My Next Move]: What should you propose or say next?
+Before replying, briefly state your internal assessment for evaluation:
+1. [Opponent Reservation Price]: Output exactly `price=<number>; confidence=<0-100>` for your estimate of the opponent's reservation price and confidence score.
+2. [Opponent Strategy]: Your inference about the opponent's tactic.
+3. [My Strategy]: Your chosen tactic and reasoning.
 
 {structure_tail}
 """

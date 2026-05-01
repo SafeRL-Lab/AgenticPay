@@ -234,7 +234,6 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        initial_seller_price=34.0,  # Initial total price offered by seller for jeans + shirt package
         buyer1_max_price=buyer1_max_price,  # Buyer1 total max price (confidential, for package)
         buyer2_max_price=buyer2_max_price,  # Buyer2 total max price (confidential, for package)
         seller_min_price=seller_min_price,  # Seller total min price (confidential, for package)
