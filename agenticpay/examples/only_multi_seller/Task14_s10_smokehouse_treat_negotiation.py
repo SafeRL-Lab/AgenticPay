@@ -179,7 +179,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 48.05,
+            "v_base": 48.11,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum willingness to pay for the gift pack before delivery/terms "
@@ -205,7 +205,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 43.28,
+            "c_base": 43.15,
             "weight_descriptions": {
                 "c_base": (
                     "Your baseline fulfillment floor for the gourmet gift shipment before speed, returns, "
@@ -231,7 +231,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 38.56,
+            "c_base": 38.44,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"delivery_days": 0.25},
             "discrete_weights": {

@@ -112,7 +112,7 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
-    # Public reference: sum of SKU original prices ~$29.93 (line-item list total ~$29.45). Negotiation bounds below that reference (confidential).
+    # Public anchor: listing/reference total stays in product facts (~$29.93 sum of SKU original prices below). Confidential negotiated band is materially lower (seller floor ≈62–67% · buyer ceilings ≈75–82% · gap ≈ quoted×0.09–0.14).
     print("Creating agents...")
     product_request = "I want Maybelline Turquoise Glass eyeshadow and NOU Oliban EDT together."
     buyer1_contract_config = {
@@ -149,11 +149,11 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 24.8,
+            "v_base": 22.39,
             "weight_descriptions": {
                 "v_base": (
-                    "Your private maximum value for the complete beauty bundle before delivery, return, and packaging terms, "
-                    "measured in dollars. A lower total price is better for you because every dollar paid reduces your utility by 1 dollar."
+                    "Maximum acceptable reservation value for the complete beauty bundle before delivery, return, and packaging terms "
+                    "(confidential reservation cap; materially below listing/reference totals). Lower total dollar price yields higher surplus."
                 ),
                 "continuous_weights.delivery_days": (
                     "How much each additional delivery day changes your utility, measured in dollars per day. "
@@ -175,11 +175,11 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 18.6,
+            "c_base": 21.31,
             "weight_descriptions": {
                 "c_base": (
-                    "Your private minimum cost for fulfilling the complete beauty bundle before delivery, return, and packaging terms, "
-                    "measured in dollars. A higher total price is better for you because every dollar received increases your utility by 1 dollar."
+                    "Minimum acceptable all-in fulfilment/reservation revenue for the complete beauty bundle before delivery, return, "
+                    "and packaging terms (confidential floor; materially below sticker/list reference). Higher total dollar price yields higher surplus."
                 ),
                 "continuous_weights.delivery_days": (
                     "How much each additional delivery day changes your utility, measured in dollars per day. "
@@ -202,11 +202,11 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 26.2
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 24.48
     buyer2_contract_config["buyer_preferences"]["continuous_weights"]["delivery_days"] = -0.45
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["return_policy"] = {"30_days": 1.5, "none": -1.6}
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["packaging"] = {"protective": 1.1, "standard": -0.4}
-    buyer2_contract_config["seller_preferences"]["c_base"] = 18.9
+    buyer2_contract_config["seller_preferences"]["c_base"] = 18.68
     buyer2_contract_config["seller_preferences"]["continuous_weights"]["delivery_days"] = 0.40
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["return_policy"] = {"30_days": -2.0, "none": 1.4}
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["packaging"] = {"protective": -1.1, "standard": 0.4}

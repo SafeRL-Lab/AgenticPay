@@ -102,7 +102,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    # Same ride (route): multi-dimensional contract follows score_design.md taxi scenario; v_base / c_base match reservation prices.
+    # Same ride (route): v_base / c_base are confidential reservation prices; product_info reference_total_amount is a higher public anchor.
     user_requirement = "I want a yellow cab from West Village to Sutton Place, all-in fare."
     product_request = user_requirement
     shared_contract_fields = {
@@ -132,7 +132,7 @@ def main(model_name=None):
         "continuous_bounds": {"wait_time_mins": {"min": 0, "max": 30}},
         "discrete_options": {"route_preference": ["tunnel", "local_streets"]},
         "buyer_preferences": {
-            "v_base": 29.45,
+            "v_base": 25.84,
             "weight_descriptions": {
                 "v_base": (
                     "Private max willingness to pay for this ride before wait/route terms (USD); each $1 fare lowers utility by $1."
@@ -153,7 +153,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 26.52,
+            "c_base": 22.33,
             "weight_descriptions": {
                 "c_base": (
                     "Private minimum acceptable all-in payout before wait/route terms (USD); each $1 fare increases utility by $1."
@@ -174,7 +174,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 23.64,
+            "c_base": 19.78,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"wait_time_mins": -1.35},
             "discrete_weights": {

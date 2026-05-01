@@ -119,7 +119,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total price for both products (Bookshelf + Wall Sconce)
+    # buyer_max_price and seller_min_price: bundle totals for both products (Bookshelf + Wall Sconce); confidential ZOPA sits below summed public list prices in product_info.
     # Reference list total is derived from product_info; reservation prices are confidential (typically below reference).
     print("Creating agents...")
     product_request = (
@@ -159,7 +159,7 @@ def main(model_name=None):
         },
     }
     buyer1_preferences = {
-        "v_base": 114.0,
+        "v_base": 117.0,
         "weight_descriptions": {
             "v_base": (
                 "Your private maximum value for the two-product home bundle before delivery, return, and gift-wrap terms, measured in dollars. "

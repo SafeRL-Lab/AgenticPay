@@ -121,13 +121,13 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Create Agents (confidential reservation prices: buyer ceilings and seller floor; unknown across parties)
     print("Creating agents...")
     product_request = "I want Gramercy → Murray Hill taxi—all-in flat fare."
-    buyer1_max_price = 13.50  # Maximum acceptable total fare for buyer1 (confidential; tighter budget than buyer2)
-    buyer2_max_price = 14.76  # Maximum acceptable total fare for buyer2 (confidential; higher ceiling than buyer1)
-    seller_c_buyer1 = 12.06  # Seller floor for Buyer1 thread (confidential)
-    seller_c_buyer2 = 12.09  # Slightly higher floor when closing with Buyer2 (confidential)
+    buyer1_max_price = 9.74  # Maximum acceptable total fare for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 10.59  # Maximum acceptable total fare for buyer2 (confidential; higher ceiling than buyer1)
+    seller_c_buyer1 = 9.04  # Higher seller floor on Buyer1 thread (confidential)
+    seller_c_buyer2 = 8.09  # Lower floor when closing with Buyer2 (confidential)
     seller_min_price = min(seller_c_buyer1, seller_c_buyer2)
 
     buyer1_contract_config = {
@@ -230,9 +230,9 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller_min_price=seller_min_price,  # Seller bottom price (confidential)
+        buyer1_max_price=buyer1_max_price,  # Buyer1 maximum acceptable price (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 maximum acceptable price (confidential)
+        seller_min_price=seller_min_price,  # Seller minimum acceptable price (confidential)
         environment_info={
             "platform": "NYC Street Hail",
             "market_type": "Service Negotiation (Ride Fare)",

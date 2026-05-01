@@ -130,7 +130,7 @@ def main(model_name=None):
             "glass_finish_confirmation": ["confirmed", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 47.50,
+            "v_base": 47.35,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this wall lantern before delivery, return, and glass/finish terms, measured in dollars. "
@@ -156,7 +156,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 38.50,
+            "c_base": 39.40,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this wall-lantern order before delivery, return, and glass/finish terms, measured in dollars. "

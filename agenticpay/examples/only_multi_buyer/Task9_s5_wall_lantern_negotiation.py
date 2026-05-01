@@ -122,7 +122,7 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Create Agents (confidential reservation prices: buyer ceilings and seller floor; unknown across parties)
     print("Creating agents...")
     product_request = "I want the Sea Gull Wynfield black one-light outdoor wall lantern (85200-12)."
     buyer1_contract_config = {
@@ -159,7 +159,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 45.88,
+            "v_base": 46.0,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this wall-lantern order before delivery, return, and packaging terms, measured in dollars. "
@@ -185,7 +185,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 39.76,
+            "c_base": 42.7,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this wall-lantern order before delivery, return, and packaging terms, measured in dollars. "
@@ -212,11 +212,11 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 49.54
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 50.04
     buyer2_contract_config["buyer_preferences"]["continuous_weights"]["delivery_days"] = -0.20
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["return_policy"] = {"30_days": 0.9, "none": -1.0}
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["packaging"] = {"protective": 0.8, "standard": -0.2}
-    buyer2_contract_config["seller_preferences"]["c_base"] = 40.15
+    buyer2_contract_config["seller_preferences"]["c_base"] = 38.23
     buyer2_contract_config["seller_preferences"]["continuous_weights"]["delivery_days"] = 0.25
     buyer_contract_configs = {
         1: buyer1_contract_config,
@@ -239,9 +239,9 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller_min_price=seller_min_price,  # Seller bottom price (confidential)
+        buyer1_max_price=buyer1_max_price,  # Buyer1 maximum acceptable price (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 maximum acceptable price (confidential)
+        seller_min_price=seller_min_price,  # Seller minimum acceptable price (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",

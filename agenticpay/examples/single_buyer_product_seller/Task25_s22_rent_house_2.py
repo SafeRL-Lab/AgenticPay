@@ -128,7 +128,7 @@ def main(model_name=None):
             "include_utilities": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 1216.60,
+            "v_base": 1245,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this monthly rental before lease length and utilities terms, measured in dollars per month. "
@@ -149,7 +149,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 1027.00,
+            "c_base": 1030,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum acceptable monthly rent before lease length and utilities terms, measured in dollars per month. "

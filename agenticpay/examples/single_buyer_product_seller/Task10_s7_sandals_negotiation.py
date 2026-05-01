@@ -130,7 +130,7 @@ def main(model_name=None):
             "size_color_confirmation": ["confirmed", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 14.00,
+            "v_base": 13.85,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for these flip-flops before delivery, return, and size/color terms, measured in dollars. "
@@ -156,7 +156,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 11.20,
+            "c_base": 11.45,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this flip-flops order before delivery, return, and size/color terms, measured in dollars. "

@@ -130,7 +130,7 @@ def main(model_name=None):
             "accessory_guarantee": ["scope_caps_lens_cloth", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 168,
+            "v_base": 171,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this riflescope before delivery, return, and accessory-guarantee terms, measured in dollars. "
@@ -156,7 +156,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 137,
+            "c_base": 142,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this riflescope order before delivery, return, and accessory-guarantee terms, measured in dollars. "

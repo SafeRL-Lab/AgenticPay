@@ -85,7 +85,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total expected cost for both products
+    # buyer_max_price and seller_min_price are confidential reservation totals below product_info quoted_total_price / item reference sum.
     print("Creating agents...")
     product_request = "I want Hibachi chicken and Hibachi shrimp from Benihana."
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
@@ -117,7 +117,7 @@ def main(model_name=None):
             "extra_condiments": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 36.45,
+            "v_base": 36.72,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this delivered two-item food order before delivery speed and "
@@ -138,7 +138,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 29.79,
+            "c_base": 31.36,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this delivered two-item food order before delivery "

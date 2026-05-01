@@ -85,7 +85,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total expected cost for bundled fare components
+    # buyer_max_price and seller_min_price are confidential fare-bundle reservation bounds below component list prices.
     print("Creating agents...")
     product_request = "I want a yellow cab from Seaport to Battery Park City, all-in fare."
     # Multi-dimensional taxi contract setup for MAUT scoring in env.
@@ -118,7 +118,7 @@ def main(model_name=None):
             "route_preference": ["tunnel", "local_streets"],
         },
         "buyer_preferences": {
-            "v_base": 22.68,
+            "v_base": 17.36,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this taxi ride before wait-time and route terms, measured in dollars. "
@@ -139,7 +139,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 18.76,
+            "c_base": 14.69,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for providing this taxi ride before wait-time and route terms, measured in dollars. "

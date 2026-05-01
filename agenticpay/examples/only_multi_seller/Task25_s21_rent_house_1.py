@@ -132,7 +132,7 @@ def main(model_name=None):
             "include_utilities": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 1070.0,
+            "v_base": 1085.0,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum monthly rent before lease-length and utility terms, measured in dollars. "
@@ -155,7 +155,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 894.0,
+            "c_base": 973.0,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum acceptable monthly rent before lease-length and utility terms, measured in dollars. "
@@ -178,7 +178,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 958.0,
+            "c_base": 865.0,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"lease_months": 18.0},
             "discrete_weights": {
@@ -204,9 +204,9 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=1395.0,  # Opening ask — same unit, different channel
         initial_seller2_price=1425.0,  # Opening ask — same unit, different channel
-        buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer_max_price=buyer_max_price,  # Buyer max willing to pay (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable rent (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable rent (confidential)
         environment_info={
             "platform": "Rental marketplace",
             "market_type": "B2C",

@@ -118,9 +118,9 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # Combined monthly rent for beach house + Santa Teresa apartment (confidential)
     print("Creating agents...")
-    buyer1_max_price = 9240.0  # Maximum acceptable combined monthly rent for buyer1 (confidential; below listing-sum anchor)
-    buyer2_max_price = 9840.0  # Maximum acceptable combined monthly rent for buyer2 (confidential; below listing-sum anchor)
-    seller1_min_price = 8280.0  # Minimum acceptable combined monthly rent for seller1 bundle (confidential)
+    buyer1_max_price = 9276.0  # Maximum acceptable combined monthly rent for buyer1 (confidential; below summed listing components)
+    buyer2_max_price = 9804.0  # Maximum acceptable combined monthly rent for buyer2 (confidential; below summed listing components)
+    seller1_min_price = 8340.0  # Minimum acceptable combined monthly rent for seller1 bundle (confidential)
     seller2_min_price = 7440.0  # Minimum acceptable combined monthly rent for seller2 bundle (confidential)
     
     buyer1 = BuyerAgent(model=model, name="Buyer1", buyer_max_price=buyer1_max_price)

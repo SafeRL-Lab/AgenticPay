@@ -139,7 +139,7 @@ def main(model_name=None):
             "freshness_packing_guarantee": ["fresh_protective_case", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 25.00,
+            "v_base": 24.70,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this 24-bottle beverage case before delivery, return, and freshness/packing terms, measured in dollars. "
@@ -165,7 +165,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 20.20,
+            "c_base": 20.35,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this 24-bottle beverage case before delivery, return, and freshness/packing terms, measured in dollars. "

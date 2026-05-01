@@ -105,7 +105,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total expected cost for both products
+    # buyer_max_price and seller_min_price are confidential bundle reservation bounds below the public listing reference total.
     # Scenario: Beauty bundle - Maybelline Eyeshadow + NOU Oliban Eau de Toilette
     print("Creating agents...")
     product_request = "I want the Maybelline Turquoise Glass eyeshadow and NOU Oliban men's EDT."
@@ -170,7 +170,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 19.45,
+            "c_base": 19.16,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this two-product beauty bundle before delivery, return, and packaging terms, measured in dollars. "

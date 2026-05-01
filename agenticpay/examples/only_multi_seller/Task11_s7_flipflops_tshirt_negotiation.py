@@ -160,7 +160,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 17.82,
+            "v_base": 17.75,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum willingness to pay for this tee before delivery, returns, or "
@@ -186,7 +186,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 16.05,
+            "c_base": 15.91,
             "weight_descriptions": {
                 "c_base": (
                     "Your baseline fulfillment cost floor for this shirt before speed, returns burden, or "
@@ -212,7 +212,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 14.30,
+            "c_base": 14.26,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"delivery_days": 0.25},
             "discrete_weights": {

@@ -180,7 +180,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 15.46,
+            "v_base": 15.96,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum willingness to pay for these air plants before terms (US dollars)."
@@ -205,7 +205,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 13.93,
+            "c_base": 13.96,
             "weight_descriptions": {
                 "c_base": (
                     "Your baseline cost floor fulfilling the 6-pack before ship speed or packaging tiers "
@@ -231,7 +231,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 12.41,
+            "c_base": 12.37,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"delivery_days": 0.25},
             "discrete_weights": {

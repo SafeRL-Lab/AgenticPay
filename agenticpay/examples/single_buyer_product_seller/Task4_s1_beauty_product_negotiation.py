@@ -129,7 +129,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 9.0,
+            "v_base": 6.24,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this eyeshadow order before delivery, return, and packaging terms, measured in dollars. "
@@ -155,7 +155,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 4.5,
+            "c_base": 5.11,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this eyeshadow order before delivery, return, and packaging terms, measured in dollars. "

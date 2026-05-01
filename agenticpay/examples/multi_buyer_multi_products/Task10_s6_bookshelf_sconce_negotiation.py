@@ -119,7 +119,7 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
-    # MAUT contract dims (scenario 4, score_design): bundle total price + delivery + return + packaging.
+    # Public anchor: listing line-sum ~$150.93 ($36.94 + $113.99); confidential negotiated band is materially lower.
     print("Creating agents...")
     product_request = "I want the black ladder bookshelf and Fanyate wall sconce 2-pack together."
     buyer1_contract_config = {
@@ -156,11 +156,10 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 113.20,
+            "v_base": 112.90,
             "weight_descriptions": {
                 "v_base": (
-                    "Your private maximum value for the complete two-item bundle before delivery, returns, "
-                    "and packing terms (USD). Each dollar paid reduces utility by one dollar."
+                    "Maximum acceptable reservation total for the bundle before delivery, returns, and packing (USD; confidential)."
                 ),
                 "continuous_weights.delivery_days": (
                     "Utility change per extra delivery day ($/day). Negative means slower shipping hurts you."
@@ -179,10 +178,10 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 98.12,
+            "c_base": 107.46,
             "weight_descriptions": {
                 "c_base": (
-                    "Your private minimum cost to fulfill the bundle before shipping, returns, and packing (USD)."
+                    "Minimum acceptable fulfilment/reservation revenue for the bundle before shipping and terms (USD; confidential)."
                 ),
                 "continuous_weights.delivery_days": (
                     "Utility change per extra delivery day ($/day); positive favors more slack."
@@ -202,7 +201,7 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 122.26
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 123.46
     buyer2_contract_config["buyer_preferences"]["continuous_weights"]["delivery_days"] = -0.45
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["return_policy"] = {
         "30_days": 1.5,
@@ -212,7 +211,7 @@ def main(model_name=None):
         "protective": 1.1,
         "standard": -0.4,
     }
-    buyer2_contract_config["seller_preferences"]["c_base"] = 98.45
+    buyer2_contract_config["seller_preferences"]["c_base"] = 94.18
     buyer2_contract_config["seller_preferences"]["continuous_weights"]["delivery_days"] = 0.40
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["return_policy"] = {
         "30_days": -2.0,

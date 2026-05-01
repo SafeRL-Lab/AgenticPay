@@ -124,10 +124,10 @@ def main(model_name=None):
     user_requirement = "I want furnished monthly Sydney rent—CBD studio vs. near Bondi."
     product_request = user_requirement
 
-    buyer1_max_price = 2535.0  # Maximum acceptable monthly rent for buyer1 (confidential); lower ceiling than buyer2
-    buyer2_max_price = 2665.0  # Maximum acceptable monthly rent for buyer2 (confidential)
-    seller1_min_price = 2275.0  # Minimum acceptable monthly rent for landlord1 (confidential); higher floor than seller2
-    seller2_min_price = 2015.0  # Minimum acceptable monthly rent for landlord2 (confidential)
+    buyer1_max_price = 2554.0  # Maximum acceptable monthly rent for buyer1 (confidential); lower ceiling than buyer2; below listing anchor
+    buyer2_max_price = 2649.0  # Maximum acceptable monthly rent for buyer2 (confidential); below listing anchor
+    seller1_min_price = 2262.0  # Minimum acceptable monthly rent for landlord1 (confidential); higher floor than seller2; below listing anchor
+    seller2_min_price = 2034.0  # Minimum acceptable monthly rent for landlord2 (confidential); below listing anchor
 
     _scale = (buyer1_max_price + buyer2_max_price) / (2.0 * 1300.0)
     shared_contract_fields = {

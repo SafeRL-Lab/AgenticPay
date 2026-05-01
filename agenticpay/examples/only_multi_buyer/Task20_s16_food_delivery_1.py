@@ -121,7 +121,7 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Create Agents (confidential reservation prices: buyer ceilings and seller floor; unknown across parties)
     print("Creating agents...")
     product_request = "I want Izakaya karaage chicken—all-in with delivery & service fees."
     buyer1_contract_config = {
@@ -155,7 +155,7 @@ def main(model_name=None):
             "extra_condiments": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 9.59,
+            "v_base": 9.61,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this all-in food delivery order before delivery speed "
@@ -177,7 +177,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 8.56,
+            "c_base": 8.92,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this all-in food delivery order before delivery "
@@ -200,12 +200,12 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 10.47
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 10.45
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["delivery_speed"] = {
         "rush": 2.7, "standard": 0.0, "batched": -1.7
     }
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["extra_condiments"] = {True: 1.3, False: 0.0}
-    buyer2_contract_config["seller_preferences"]["c_base"] = 8.58
+    buyer2_contract_config["seller_preferences"]["c_base"] = 7.99
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["delivery_speed"] = {
         "rush": -3.8, "standard": 0.0, "batched": 3.4
     }
@@ -226,9 +226,9 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller_min_price=seller_min_price,  # Seller bottom price (confidential)
+        buyer1_max_price=buyer1_max_price,  # Buyer1 maximum acceptable price (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 maximum acceptable price (confidential)
+        seller_min_price=seller_min_price,  # Seller minimum acceptable price (confidential)
         environment_info={
             "platform": "DoorDash",
             "market_type": "Food Delivery",

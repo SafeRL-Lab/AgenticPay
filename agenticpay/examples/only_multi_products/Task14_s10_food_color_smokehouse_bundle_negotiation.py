@@ -85,7 +85,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total expected cost for both products
+    # buyer_max_price and seller_min_price are confidential bundle reservation bounds below the public listing reference total.
     print("Creating agents...")
     product_request = "I want AmeriColor AmeriMist lemon yellow airbrush color and The Smokehouse Treat pack."
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
@@ -123,7 +123,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 51.87,
+            "v_base": 53.24,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this two-product grocery bundle before delivery, return, and packaging terms, measured in dollars. "

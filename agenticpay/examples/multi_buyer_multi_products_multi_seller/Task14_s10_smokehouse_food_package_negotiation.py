@@ -157,7 +157,7 @@ def main(model_name=None):
         },
     }
     buyer1_preferences = {
-        "v_base": 51.32,
+        "v_base": 52.75,
         "weight_descriptions": {
             "v_base": (
                 "Your private maximum value for the two-product grocery bundle before delivery, return, and gift-wrap terms, measured in dollars. "
@@ -183,12 +183,12 @@ def main(model_name=None):
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
-    buyer2_preferences["v_base"] = 55.62
+    buyer2_preferences["v_base"] = 55.76
     buyer2_preferences["continuous_weights"]["delivery_days"] = -0.35
     buyer2_preferences["discrete_weights"]["return_policy"] = {"30_days": 1.45, "none": -1.6}
     buyer2_preferences["discrete_weights"]["gift_wrap"] = {"yes": 1.0, "no": -0.22}
     seller1_preferences = {
-        "c_base": 47.64,
+        "c_base": 47.43,
         "weight_descriptions": {
             "c_base": (
                 "Your private minimum cost for fulfilling the two-product grocery bundle before delivery, return, and gift-wrap terms, measured in dollars. "
@@ -214,7 +214,7 @@ def main(model_name=None):
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))
-    seller2_preferences["c_base"] = 42.66
+    seller2_preferences["c_base"] = 42.32
     seller2_preferences["continuous_weights"]["delivery_days"] = 0.38
     seller2_preferences["discrete_weights"]["return_policy"] = {"30_days": -1.75, "none": 1.05}
     seller2_preferences["discrete_weights"]["gift_wrap"] = {"yes": -1.0, "no": 0.18}

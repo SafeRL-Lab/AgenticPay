@@ -163,7 +163,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 28.63,
+            "v_base": 29.37,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum willingness to pay for this bookshelf order before counting "
@@ -189,7 +189,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 25.78,
+            "c_base": 25.85,
             "weight_descriptions": {
                 "c_base": (
                     "Your baseline fulfillment cost floor for shipping this bookcase before shipment speed, "
@@ -215,7 +215,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 22.98,
+            "c_base": 22.91,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"delivery_days": 0.25},
             "discrete_weights": {

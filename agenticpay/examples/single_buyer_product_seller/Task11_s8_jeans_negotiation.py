@@ -143,7 +143,7 @@ def main(model_name=None):
             "size_color_flexibility": ["exact_match", "flexible"],
         },
         "buyer_preferences": {
-            "v_base": 17.50,
+            "v_base": 17.75,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for these jeans before delivery, return, and size/color terms, measured in dollars. "
@@ -169,7 +169,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 14.50,
+            "c_base": 14.75,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this jeans order before delivery, return, and size/color terms, measured in dollars. "

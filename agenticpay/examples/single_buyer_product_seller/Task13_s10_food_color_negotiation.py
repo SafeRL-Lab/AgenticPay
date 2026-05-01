@@ -140,7 +140,7 @@ def main(model_name=None):
             "color_seal_guarantee": ["sealed_lemon_yellow", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 4.90,
+            "v_base": 4.88,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this food-color bottle before delivery, return, and color/seal terms, measured in dollars. "
@@ -166,7 +166,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 3.95,
+            "c_base": 4.02,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this food-color bottle before delivery, return, and color/seal terms, measured in dollars. "

@@ -156,7 +156,7 @@ def main(model_name=None):
             "include_utilities": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 1465.0,
+            "v_base": 1466.0,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum monthly rent before lease-length and utility terms, measured in dollars. "
@@ -176,7 +176,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 1264.0,
+            "c_base": 1361.0,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum acceptable monthly rent before lease-length and utility terms, measured in dollars. "
@@ -197,13 +197,13 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = deepcopy(buyer1_contract_config)
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 1575.0
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 1595.0
     buyer2_contract_config["buyer_preferences"]["continuous_weights"]["lease_months"] = -8.0
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["include_utilities"] = {
         True: 88.0,
         False: 0.0,
     }
-    buyer2_contract_config["seller_preferences"]["c_base"] = 1268.0
+    buyer2_contract_config["seller_preferences"]["c_base"] = 1219.0
     buyer2_contract_config["seller_preferences"]["continuous_weights"]["lease_months"] = 18.0
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["include_utilities"] = {
         True: -55.0,
@@ -228,9 +228,9 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller_min_price=seller_min_price,  # Seller bottom price (confidential)
+        buyer1_max_price=buyer1_max_price,  # Buyer1 maximum acceptable price (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 maximum acceptable price (confidential)
+        seller_min_price=seller_min_price,  # Seller minimum acceptable price (confidential)
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",

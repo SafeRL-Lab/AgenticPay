@@ -127,7 +127,7 @@ def main(model_name=None):
         "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
         "discrete_options": {"include_utilities": [True, False]},
         "buyer_preferences": {
-            "v_base": 1520.0,
+            "v_base": 1505.0,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum monthly rent before lease-length and utility terms, measured in dollars. "
@@ -146,7 +146,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 1218.0,
+            "c_base": 1349.0,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum acceptable monthly rent before lease-length and utility terms, measured in dollars. "
@@ -165,7 +165,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 1308.0,
+            "c_base": 1209.0,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"lease_months": 18.0},
             "discrete_weights": {"include_utilities": {True: -55.0, False: 0.0}},
@@ -189,9 +189,9 @@ def main(model_name=None):
         max_rounds=max_rounds,
         initial_seller1_price=1990.0,  # Opening ask — same unit, different channel
         initial_seller2_price=2020.0,  # Opening ask — same unit, different channel
-        buyer_max_price=buyer_max_price,  # Buyer bottom price (confidential)
-        seller1_min_price=seller1_min_price,  # Seller1 bottom price (confidential)
-        seller2_min_price=seller2_min_price,  # Seller2 bottom price (confidential)
+        buyer_max_price=buyer_max_price,  # Buyer max willing to pay (confidential)
+        seller1_min_price=seller1_min_price,  # Seller1 minimum acceptable rent (confidential)
+        seller2_min_price=seller2_min_price,  # Seller2 minimum acceptable rent (confidential)
         environment_info={
             "platform": "Airbnb (listing-style; negotiation framed as monthly lease)",
             "market_type": "Residential Rental",

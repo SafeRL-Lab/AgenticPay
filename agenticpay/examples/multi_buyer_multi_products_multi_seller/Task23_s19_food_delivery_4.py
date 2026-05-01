@@ -147,7 +147,7 @@ def main(model_name=None):
         },
     }
     buyer1_preferences = {
-        "v_base": 28.76,
+        "v_base": 29.76,
         "weight_descriptions": {
             "v_base": (
                 "Your private maximum all-in willingness to pay for this cart before delivery-speed and "
@@ -167,11 +167,11 @@ def main(model_name=None):
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
-    buyer2_preferences["v_base"] = 31.17
+    buyer2_preferences["v_base"] = 31.29
     buyer2_preferences["discrete_weights"]["delivery_speed"] = {"rush": 2.68, "standard": 0.0, "batched": -1.72}
     buyer2_preferences["discrete_weights"]["extra_condiments"] = {True: 1.12, False: 0.0}
     seller1_preferences = {
-        "c_base": 26.7,
+        "c_base": 26.78,
         "weight_descriptions": {
             "c_base": (
                 "Your private minimum all-in fulfillment cost for this cart before speed and add-on terms, in dollars. "
@@ -191,7 +191,7 @@ def main(model_name=None):
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))
-    seller2_preferences["c_base"] = 23.91
+    seller2_preferences["c_base"] = 24.67
     seller2_preferences["discrete_weights"]["delivery_speed"] = {"rush": -3.48, "standard": 0.0, "batched": 2.98}
     seller2_preferences["discrete_weights"]["extra_condiments"] = {True: -0.42, False: 0.0}
     buyer_seller_contract_configs = {

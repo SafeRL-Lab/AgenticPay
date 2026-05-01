@@ -152,7 +152,7 @@ def main(model_name=None):
         },
     }
     buyer1_preferences = {
-        "v_base": 12.06,
+        "v_base": 12.58,
         "weight_descriptions": {
             "v_base": (
                 "Your private maximum value for this toothpaste order before delivery, return, and packaging terms, measured in dollars."
@@ -174,12 +174,12 @@ def main(model_name=None):
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
-    buyer2_preferences["v_base"] = 13.06
+    buyer2_preferences["v_base"] = 13.09
     buyer2_preferences["continuous_weights"]["delivery_days"] = -0.22
     buyer2_preferences["discrete_weights"]["return_policy"] = {"30_days": 0.85, "none": -1.05}
     buyer2_preferences["discrete_weights"]["packaging"] = {"protective": 0.78, "standard": -0.22}
     seller1_preferences = {
-        "c_base": 11.18,
+        "c_base": 11.14,
         "weight_descriptions": {
             "c_base": (
                 "Your private minimum cost for fulfilling this order before delivery, return, and packaging terms ($)."
@@ -201,7 +201,7 @@ def main(model_name=None):
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))
-    seller2_preferences["c_base"] = 10.00
+    seller2_preferences["c_base"] = 9.98
     seller2_preferences["continuous_weights"]["delivery_days"] = 0.23
     seller2_preferences["discrete_weights"]["return_policy"] = {"30_days": -1.15, "none": 0.82}
     seller2_preferences["discrete_weights"]["packaging"] = {"protective": -0.88, "standard": 0.32}

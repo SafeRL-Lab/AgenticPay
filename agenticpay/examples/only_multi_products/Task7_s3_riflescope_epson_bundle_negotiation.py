@@ -106,7 +106,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total expected cost for both products
+    # buyer_max_price and seller_min_price are confidential bundle reservation bounds below the public listing reference total.
     print("Creating agents...")
     product_request = "I want a Crimson Trace Brushline Pro riflescope and an Epson TM-T20 receipt printer."
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
@@ -144,7 +144,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 426.0,
+            "v_base": 425.64,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this two-product bundle before delivery, return, and packaging terms, measured in dollars. "
@@ -170,7 +170,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 356.0,
+            "c_base": 350.21,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this two-product bundle before delivery, return, and packaging terms, measured in dollars. "

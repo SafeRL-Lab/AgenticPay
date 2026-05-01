@@ -124,7 +124,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 229.0,
+            "v_base": 222.5,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this two-item bundle before delivery, return, and packaging terms, measured in dollars. "
@@ -153,7 +153,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 204.0,
+            "c_base": 201.15,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this two-item bundle before delivery, return, and packaging terms, measured in dollars. "
@@ -182,7 +182,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 182.0,
+            "c_base": 178.17,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"delivery_days": round(0.35 * _k, 4)},
             "discrete_weights": {

@@ -126,7 +126,7 @@ def main(model_name=None):
             "extra_condiments": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 4.50,
+            "v_base": 4.52,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this all-in food delivery order before delivery speed "

@@ -121,13 +121,13 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
     
-    # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
+    # Create Agents (confidential reservation prices: buyer ceilings and seller floor; unknown across parties)
     print("Creating agents...")
     product_request = "I want Seaport → Battery Park City taxi—all-in fare."
-    buyer1_max_price = 21.00  # Maximum acceptable total fare for buyer1 (confidential; tighter budget than buyer2)
-    buyer2_max_price = 22.96  # Maximum acceptable total fare for buyer2 (confidential; higher ceiling than buyer1)
-    seller_c_buyer1 = 18.48
-    seller_c_buyer2 = 18.52
+    buyer1_max_price = 16.73  # Maximum acceptable total fare for buyer1 (confidential; tighter budget than buyer2)
+    buyer2_max_price = 18.20  # Maximum acceptable total fare for buyer2 (confidential; higher ceiling than buyer1)
+    seller_c_buyer1 = 15.53
+    seller_c_buyer2 = 13.91
     seller_min_price = min(seller_c_buyer1, seller_c_buyer2)
 
     buyer1_contract_config = {
@@ -230,9 +230,9 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller_min_price=seller_min_price,  # Seller bottom price (confidential)
+        buyer1_max_price=buyer1_max_price,  # Buyer1 maximum acceptable price (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 maximum acceptable price (confidential)
+        seller_min_price=seller_min_price,  # Seller minimum acceptable price (confidential)
         environment_info={
             "platform": "NYC Street Hail",
             "market_type": "Service Negotiation (Ride Fare)",

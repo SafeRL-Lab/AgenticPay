@@ -130,7 +130,7 @@ def main(model_name=None):
             "volume_limit_guarantee": ["included", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 11.60,
+            "v_base": 11.63,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for these kids headphones before delivery, return, and volume-limit terms, measured in dollars. "
@@ -156,7 +156,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 9.60,
+            "c_base": 9.57,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this kids-headphones order before delivery, return, and volume-limit terms, measured in dollars. "

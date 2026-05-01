@@ -131,10 +131,10 @@ def main(model_name=None):
     product_request = "I want Fanyate 2-pack oil-rubbed bronze wall sconces with clear glass shades."
     # Scale MAUT weights vs Task5 beauty baseline (v_ref=8.7, c_ref=4.5) using this listing's surplus scale.
     v_ref, c_ref = 8.7, 4.5
-    buyer1_max_price = 85.50
-    buyer2_max_price = 90.03
+    buyer1_max_price = 85.72
+    buyer2_max_price = 93.24
     sb1, sb2 = buyer1_max_price / v_ref, buyer2_max_price / v_ref
-    c_b1_seller, c_b2_seller = 71.81, 73.05
+    c_b1_seller, c_b2_seller = 79.57, 71.24
     ss1, ss2 = c_b1_seller / c_ref, c_b2_seller / c_ref
 
     def _beauty_buyer_prefs(scale: float):
@@ -277,9 +277,9 @@ def main(model_name=None):
         buyer2_agent=buyer2,
         seller_agent=seller,
         max_rounds=max_rounds,
-        buyer1_max_price=buyer1_max_price,  # Buyer1 bottom price (confidential)
-        buyer2_max_price=buyer2_max_price,  # Buyer2 bottom price (confidential)
-        seller_min_price=seller_min_price,  # Seller bottom price (confidential)
+        buyer1_max_price=buyer1_max_price,  # Buyer1 maximum acceptable price (confidential)
+        buyer2_max_price=buyer2_max_price,  # Buyer2 maximum acceptable price (confidential)
+        seller_min_price=seller_min_price,  # Seller minimum acceptable price (confidential)
         environment_info={
             "platform": "Amazon",
             "market_type": "B2C",

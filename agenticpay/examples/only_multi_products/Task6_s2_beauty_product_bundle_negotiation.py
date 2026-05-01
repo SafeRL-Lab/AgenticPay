@@ -105,7 +105,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total expected cost for both products
+    # buyer_max_price and seller_min_price are confidential bundle reservation bounds below the public listing reference total.
     print("Creating agents...")
     product_request = "I want NOU Oliban men's EDT and the BFWood paddle hair brush."
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
@@ -169,7 +169,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 18.20,
+            "c_base": 17.91,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this two-product beauty bundle before delivery, return, and packaging terms, measured in dollars. "

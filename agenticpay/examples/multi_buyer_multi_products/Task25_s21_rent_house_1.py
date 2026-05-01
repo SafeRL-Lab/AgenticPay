@@ -117,7 +117,7 @@ def main(model_name=None):
     product_request = (
         "I want East Village Living and Cozy one-bedroom in E Village—one monthly rent."
     )
-    # Reference listing sum ~$3115; ceilings/floor below public reference (same band as pre-contract version).
+    # Public anchor stays the sum of listed monthly components (~$3115); confidential negotiated band is materially lower (≈63–66% landlord floor · ~77–79% tenant cap vs anchor).
     buyer1_contract_config = {
         "contrainfo": {
             "product_request": product_request,
@@ -145,11 +145,10 @@ def main(model_name=None):
         "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
         "discrete_options": {"include_utilities": [True, False]},
         "buyer_preferences": {
-            "v_base": 2100.0,
+            "v_base": 2330.0,
             "weight_descriptions": {
                 "v_base": (
-                    "Your reservation value for the bundle before price and non-price terms, in $/month; "
-                    "paying more reduces utility one-for-one."
+                    "Maximum acceptable bundled rent reservation before lease/utilities splits ($/month; confidential; materially below summed listing anchors)."
                 ),
                 "continuous_weights.lease_months": (
                     "$/month change per extra committed month; negative means you dislike long leases."
@@ -162,11 +161,10 @@ def main(model_name=None):
             "discrete_weights": {"include_utilities": {True: 75.0, False: 0.0}},
         },
         "seller_preferences": {
-            "c_base": 1932.0,
+            "c_base": 2218.0,
             "weight_descriptions": {
                 "c_base": (
-                    "Your reservation floor for the bundle before price and terms, in $/month; "
-                    "receiving more rent increases utility one-for-one."
+                    "Minimum acceptable bundled landlord reservation revenue before lease/utilities ($/month; confidential; below summed listing anchors)."
                 ),
                 "continuous_weights.lease_months": (
                     "$/month per extra committed month; positive means you value reduced vacancy risk."
@@ -180,13 +178,13 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 2430.0
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 2548.0
     buyer2_contract_config["buyer_preferences"]["continuous_weights"]["lease_months"] = -5.0
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["include_utilities"] = {
         True: 95.0,
         False: 0.0,
     }
-    buyer2_contract_config["seller_preferences"]["c_base"] = 1977.0
+    buyer2_contract_config["seller_preferences"]["c_base"] = 1944.0
     buyer2_contract_config["seller_preferences"]["continuous_weights"]["lease_months"] = 13.5
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["include_utilities"] = {
         True: -58.0,

@@ -85,7 +85,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price = combined acceptable monthly rent for both listings (confidential)
+    # buyer_max_price and seller_min_price: confidential combined-reservation rents, below sum of listing reference monthly rents.
     print("Creating agents...")
     product_request = (
         "I want the Barcelona center room with balcony and the Santa Teresa apartment, one combined rent."
@@ -121,7 +121,7 @@ def main(model_name=None):
             "include_utilities": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 1375.0,
+            "v_base": 1322.0,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum combined monthly rent for both units before lease-length and utility terms, "
@@ -141,7 +141,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 1134.0,
+            "c_base": 1079.0,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum acceptable combined monthly rent for both units before lease-length and utility terms, "

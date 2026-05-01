@@ -127,7 +127,7 @@ def main(model_name=None):
             "route_preference": ["tunnel", "local_streets"],
         },
         "buyer_preferences": {
-            "v_base": 30.00,
+            "v_base": 25.75,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this all-in taxi ride before wait time and route terms, measured in dollars. "
@@ -148,7 +148,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 25.20,
+            "c_base": 21.45,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for providing this all-in taxi ride before wait time and route terms, measured in dollars. "
@@ -255,6 +255,8 @@ def main(model_name=None):
             "Passenger Count": 0,
             "Historical Fare Amount": 19.8,
             "Historical Total Amount": 31.9,
+            "original_price": 19.8,
+            "quoted_total_price": 31.9,
             "Mandatory Surcharges (Driver MUST pay to city)": [
                 "$2.50 (Congestion Surcharge for driving below 96th St in Manhattan)",
                 "$0.75 (CBD Congestion Fee)",
@@ -441,6 +443,8 @@ def main(model_name=None):
                     "Passenger Count": 0,
                     "Historical Fare Amount": 19.8,
                     "Historical Total Amount": 31.9,
+                    "original_price": 19.8,
+                    "quoted_total_price": 31.9,
                     "Mandatory Surcharges (Driver MUST pay to city)": [
                         "$2.50 (Congestion Surcharge for driving below 96th St in Manhattan)",
                         "$0.75 (CBD Congestion Fee)",

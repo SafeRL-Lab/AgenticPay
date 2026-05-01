@@ -119,10 +119,10 @@ def main(model_name=None):
     
     # Agents + MAUT contract configs (short-hop taxi; aligned with score_design Task14 NYC Taxi Ride)
     print("Creating agents...")
-    buyer1_max_price = 9.74  # Maximum acceptable total fare for buyer1 (confidential)
-    buyer2_max_price = 10.55  # Maximum acceptable total fare for buyer2 (confidential)
-    seller1_min_price = 9.04  # Minimum acceptable total fare for seller1 (confidential; higher than seller 2)
-    seller2_min_price = 8.09  # Minimum acceptable total fare for seller2 (confidential)
+    buyer1_max_price = 10.08  # Maximum acceptable all-in bundle fare for buyer1 (confidential; below summed quote components)
+    buyer2_max_price = 10.59  # Maximum acceptable all-in bundle fare for buyer2 (confidential; below summed quote components)
+    seller1_min_price = 9.07  # Minimum acceptable all-in bundle fare for seller1 (confidential; higher floor than Seller 2)
+    seller2_min_price = 8.35  # Minimum acceptable all-in bundle fare for seller2 (confidential)
 
     product_request = (
         "I want Gramercy to Murray Hill—metered base plus mandatory fees, one price."

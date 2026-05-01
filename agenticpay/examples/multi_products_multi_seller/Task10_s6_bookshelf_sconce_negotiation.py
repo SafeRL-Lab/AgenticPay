@@ -151,7 +151,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 105.0,
+            "c_base": 105.65,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this two-item home bundle before delivery, "
@@ -181,7 +181,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 94.0,
+            "c_base": 93.86,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"delivery_days": 0.35},
             "discrete_weights": {

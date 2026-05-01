@@ -129,7 +129,7 @@ def main(model_name=None):
             "seal_guarantee": ["factory_sealed", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 12.32,
+            "v_base": 12.40,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this toothpaste 6-pack before delivery, return, and seal-guarantee terms, measured in dollars. "
@@ -155,7 +155,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 10.40,
+            "c_base": 10.15,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this toothpaste 6-pack before delivery, return, and seal-guarantee terms, measured in dollars. "

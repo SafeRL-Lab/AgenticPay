@@ -126,7 +126,7 @@ def main(model_name=None):
             "extra_condiments": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 10.50,
+            "v_base": 10.90,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this all-in food delivery order before delivery speed "
@@ -148,7 +148,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 9.10,
+            "c_base": 9.06,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this all-in food delivery order before delivery "

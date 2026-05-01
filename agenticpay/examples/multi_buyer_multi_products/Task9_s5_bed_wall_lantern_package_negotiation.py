@@ -112,11 +112,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
-    # Public reference: sum of SKU original prices ~$287.37. Negotiation bounds below that reference (confidential).
+    # Public anchor: SKU sum ~$287.37; confidential band is materially lower (~64–66% seller floors · ~78–80% buyer caps · ~quoted×0.14 window).
     print("Creating agents...")
     product_request = "I want the Wynfield wall lantern and Hillsdale Cole queen bed together."
-    _k1 = 215.53 / 24.8
-    _k2 = 233.85 / 26.2
+    _k1 = 214.95 / 24.8
+    _k2 = 235.07 / 26.2
     buyer1_contract_config = {
         "contrainfo": {
             "product_request": product_request,
@@ -149,7 +149,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 215.53,
+            "v_base": 214.95,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for the complete bundle before delivery, return, and packaging terms, "
@@ -175,7 +175,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 187.88,
+            "c_base": 204,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling the complete bundle before delivery, return, and packaging terms, "
@@ -202,7 +202,7 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 233.85
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 235.07
     buyer2_contract_config["buyer_preferences"]["continuous_weights"]["delivery_days"] = -0.45 * _k2
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["return_policy"] = {
         "30_days": 1.5 * _k2,
@@ -212,7 +212,7 @@ def main(model_name=None):
         "protective": 1.1 * _k2,
         "standard": -0.4 * _k2,
     }
-    buyer2_contract_config["seller_preferences"]["c_base"] = 192.45
+    buyer2_contract_config["seller_preferences"]["c_base"] = 179
     buyer2_contract_config["seller_preferences"]["continuous_weights"]["delivery_days"] = 0.40 * _k2
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["return_policy"] = {
         "30_days": -2.0 * _k2,

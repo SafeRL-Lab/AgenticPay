@@ -98,7 +98,7 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
-    # Public menu-original subtotal ~$17.00; delivered line references sum to ~$22.78. Negotiation bounds below original subtotal (confidential).
+    # Public anchor: sum of menu-line `original_price` (~$17.00); negotiated band stays below original subtotal; list `price` remains higher fee-inclusive references.
     print("Creating agents...")
     product_request = "I want Dripped Nachos and Cinnamon Toast Crunch Milkshake delivered—one total."
     buyer1_contract_config = {
@@ -130,11 +130,10 @@ def main(model_name=None):
             "extra_condiments": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 12.75,
+            "v_base": 12.72,
             "weight_descriptions": {
                 "v_base": (
-                    "Your private maximum value for the delivered two-item bundle before speed and condiment terms, in dollars. "
-                    "A lower total price is better because each dollar paid reduces your utility by one dollar."
+                    "Maximum acceptable willingness-to-pay for the delivered bundle before speed/condiments (USD; confidential; below menu original subtotal anchor)."
                 ),
                 "discrete_weights.delivery_speed": (
                     "Dollar utility impact of each delivery-speed option; positive is good for you, negative is bad."
@@ -150,11 +149,10 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 11.24,
+            "c_base": 12.10,
             "weight_descriptions": {
                 "c_base": (
-                    "Your private minimum acceptable revenue for the bundle before speed and condiment terms, in dollars. "
-                    "A higher total price is better because each dollar received increases your utility by one dollar."
+                    "Minimum acceptable bundle revenue before speed/condiments (USD; confidential; below sticker original subtotal)."
                 ),
                 "discrete_weights.delivery_speed": (
                     "Dollar impact of each delivery-speed option on your side; positive is good, negative is costly."
@@ -171,14 +169,14 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 13.94
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 13.91
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["delivery_speed"] = {
         "rush": 3.38,
         "standard": 0.0,
         "batched": -1.58,
     }
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["extra_condiments"] = {True: 1.48, False: 0.0}
-    buyer2_contract_config["seller_preferences"]["c_base"] = 11.46
+    buyer2_contract_config["seller_preferences"]["c_base"] = 10.61
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["delivery_speed"] = {
         "rush": -3.68,
         "standard": 0.0,

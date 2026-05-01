@@ -118,7 +118,7 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
-    # buyer_max_price and seller_min_price represent total expected cost for both products (Beverage + Air Plants)
+    # buyer_max_price and seller_min_price are bundle totals below the summed public list prices shown in product_info (confidential ZOPA).
     print("Creating agents...")
     product_request = (
         "I want Belvoir Sparkling Elderflower Rose case and tillandsia 6-pack together."
@@ -157,7 +157,7 @@ def main(model_name=None):
         },
     }
     buyer1_preferences = {
-        "v_base": 39.07,
+        "v_base": 40.16,
         "weight_descriptions": {
             "v_base": (
                 "Your private maximum value for the two-product bundle before delivery, return, and gift-wrap terms, measured in dollars. "
@@ -183,12 +183,12 @@ def main(model_name=None):
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
-    buyer2_preferences["v_base"] = 42.34
+    buyer2_preferences["v_base"] = 42.44
     buyer2_preferences["continuous_weights"]["delivery_days"] = -0.33
     buyer2_preferences["discrete_weights"]["return_policy"] = {"30_days": 1.2, "none": -1.35}
     buyer2_preferences["discrete_weights"]["gift_wrap"] = {"yes": 0.85, "no": -0.18}
     seller1_preferences = {
-        "c_base": 36.26,
+        "c_base": 36.11,
         "weight_descriptions": {
             "c_base": (
                 "Your private minimum cost for fulfilling the two-product bundle before delivery, return, and gift-wrap terms, measured in dollars. "
@@ -214,7 +214,7 @@ def main(model_name=None):
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))
-    seller2_preferences["c_base"] = 32.47
+    seller2_preferences["c_base"] = 32.21
     seller2_preferences["continuous_weights"]["delivery_days"] = 0.37
     seller2_preferences["discrete_weights"]["return_policy"] = {"30_days": -1.6, "none": 0.95}
     seller2_preferences["discrete_weights"]["gift_wrap"] = {"yes": -0.92, "no": 0.16}

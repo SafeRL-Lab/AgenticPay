@@ -81,11 +81,11 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
-    # List-reference bundle total (quoted_price) = 1050 + 2190 = 3240. True reservation band below anchor: Seller1_min > Seller2_min; buyer_max/quoted highest in Task29/s25 (~82%), strictly above Task28/s24; ZOPA vs Seller1 ~13% of quoted.
+    # Listing line-item rents sum to 1050 + 2190 = 3240 USD/mo (public bundle reference). Private floors sit below that summed anchor (Seller1_min > Seller2_min; buyer_max below reference).
     print("Creating agents...")
-    _bundle_buyer_max = 2650.0
-    _bundle_seller1_min = 2240.0
-    _bundle_seller2_min = 2010.0
+    _bundle_buyer_max = 2520.0
+    _bundle_seller1_min = 2268.0
+    _bundle_seller2_min = 2009.0
     product_request = "I want Rio private suite plus East Village 1BR—best total monthly rent."
     shared_contract_fields = {
         "contrainfo": {

@@ -121,7 +121,7 @@ def main(model_name=None):
             "extra_condiments": [True, False],
         },
         "buyer_preferences": {
-            "v_base": 21.93,
+            "v_base": 21.65,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this two-item delivered food bundle before delivery-speed and "
@@ -145,7 +145,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 19.50,
+            "c_base": 19.55,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this two-item delivered food bundle before "
@@ -170,7 +170,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 17.37,
+            "c_base": 17.32,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {},
             "discrete_weights": {

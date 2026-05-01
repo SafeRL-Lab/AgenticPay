@@ -185,7 +185,7 @@ def main(model_name=None):
             "ethernet_cable": ["included", "not_included"],
         },
         "buyer_preferences": {
-            "v_base": 248.0,
+            "v_base": 248.96,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this receipt-printer order before delivery, return, and cable terms, measured in dollars. "
@@ -214,7 +214,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 223.5,
+            "c_base": 223.36,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this receipt-printer order before delivery, return, and cable terms, measured in dollars. "
@@ -243,7 +243,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 199.0,
+            "c_base": 198.4,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"delivery_days": 1.8},
             "discrete_weights": {

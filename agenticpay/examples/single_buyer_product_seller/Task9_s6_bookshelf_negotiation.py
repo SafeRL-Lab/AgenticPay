@@ -130,7 +130,7 @@ def main(model_name=None):
             "assembly_hardware_confirmation": ["complete_kit", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 28.00,
+            "v_base": 28.78,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this bookshelf before delivery, return, and assembly-hardware terms, measured in dollars. "
@@ -156,7 +156,7 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 23.20,
+            "c_base": 23.75,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this bookshelf order before delivery, return, and assembly-hardware terms, measured in dollars. "

@@ -74,9 +74,9 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    buyer_max_price = 25.04
-    seller1_min_price = 22.27
-    seller2_min_price = 19.84
+    buyer_max_price = 25.77
+    seller1_min_price = 22.33
+    seller2_min_price = 20.67
 
     product_request = "I want West Village → Sutton Place—all-in fare with fees."
     shared_contract_fields = {

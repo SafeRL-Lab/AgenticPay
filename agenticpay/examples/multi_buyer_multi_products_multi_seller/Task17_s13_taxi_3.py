@@ -118,10 +118,10 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    buyer1_max_price = 50.99  # Maximum acceptable total fare for buyer1 (confidential)
-    buyer2_max_price = 55.27  # Maximum acceptable total fare for buyer2 (confidential)
-    seller1_min_price = 47.33  # Minimum acceptable total fare for seller1 (confidential; higher than seller 2)
-    seller2_min_price = 42.38  # Minimum acceptable total fare for seller2 (confidential)
+    buyer1_max_price = 52.76  # Maximum acceptable all-in bundle fare for buyer1 (confidential; below summed quote components)
+    buyer2_max_price = 55.47  # Maximum acceptable all-in bundle fare for buyer2 (confidential; below summed quote components)
+    seller1_min_price = 47.47  # Minimum acceptable all-in bundle fare for seller1 (confidential; higher floor than Seller 2)
+    seller2_min_price = 43.74  # Minimum acceptable all-in bundle fare for seller2 (confidential)
 
     product_request = (
         "I want LaGuardia to East Chelsea—base fare plus surcharges, all-in."

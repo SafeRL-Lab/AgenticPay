@@ -90,7 +90,7 @@ def main(model_name=None):
     print("Creating agents...")
     product_request = "I want ARM & HAMMER Peroxicare toothpaste and the BFWood paddle brush—lowest total."
     # MAUT weights scaled from Task5 reference (v_ref=23.50); structure follows score_design.md scenario 4 (beauty/e‑commerce bundle).
-    _k = 17.65 / 23.50
+    _k = 17.46 / 23.50
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
@@ -124,7 +124,7 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 17.65,
+            "v_base": 17.46,
             "weight_descriptions": {
                 "v_base": (
                     "Your private maximum value for this two-item bundle before delivery, return, and packaging terms, measured in dollars. "
@@ -153,7 +153,7 @@ def main(model_name=None):
     seller1_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 15.69,
+            "c_base": 15.73,
             "weight_descriptions": {
                 "c_base": (
                     "Your private minimum cost for fulfilling this two-item bundle before delivery, return, and packaging terms, measured in dollars. "
@@ -182,7 +182,7 @@ def main(model_name=None):
     seller2_contract_config = {
         **shared_contract_fields,
         "seller_preferences": {
-            "c_base": 13.98,
+            "c_base": 13.94,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"delivery_days": round(0.35 * _k, 4)},
             "discrete_weights": {

@@ -109,10 +109,10 @@ def main(model_name=None):
     user_requirement = "I want LaGuardia → East Chelsea yellow cab—all-in fare."
     product_request = user_requirement
 
-    buyer1_max_price = 51.13  # Maximum acceptable all-in total for Buyer 1 (confidential; below reference-total anchor)
-    buyer2_max_price = 55.33  # Maximum acceptable all-in total for Buyer 2 (confidential; below reference-total anchor)
-    seller1_min_price = 47.40  # Minimum acceptable all-in total for Seller 1 (confidential; below reference-total anchor)
-    seller2_min_price = 42.38  # Minimum acceptable all-in total for Seller 2 (confidential; below reference-total anchor)
+    buyer1_max_price = 53.43  # Maximum acceptable all-in total for Buyer 1 (confidential; below listing reference total)
+    buyer2_max_price = 55.27  # Maximum acceptable all-in total for Buyer 2 (confidential; below listing reference total)
+    seller1_min_price = 47.33  # Minimum acceptable all-in total for Seller 1 (confidential; below listing reference total)
+    seller2_min_price = 42.18  # Minimum acceptable all-in total for Seller 2 (confidential; below listing reference total)
 
     shared_contract_fields = {
         "contrainfo": {

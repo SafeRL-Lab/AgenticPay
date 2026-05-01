@@ -101,6 +101,7 @@ def main(model_name=None):
 
     print(f"✓ Successfully initialized: {model}")
 
+    # Anchor ~$5130/month from listings; negotiated band materially lower (~64–65% floor vs anchor · ~77–79% tenant cap).
     print("Creating agents...")
     product_request = (
         "I want Home sweat home and Alugo suíte individual—one monthly rent."
@@ -132,11 +133,10 @@ def main(model_name=None):
         "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
         "discrete_options": {"include_utilities": [True, False]},
         "buyer_preferences": {
-            "v_base": 3780.0,
+            "v_base": 3837.0,
             "weight_descriptions": {
                 "v_base": (
-                    "Your reservation value for the bundle before price and non-price terms, in $/month; "
-                    "paying more reduces utility one-for-one."
+                    "Maximum acceptable bundled rent reservation before lease/utilities splits ($/month; confidential; materially below summed listing anchors)."
                 ),
                 "continuous_weights.lease_months": (
                     "$/month change per extra committed month; negative means you dislike long leases."
@@ -149,11 +149,10 @@ def main(model_name=None):
             "discrete_weights": {"include_utilities": {True: 108.0, False: 0.0}},
         },
         "seller_preferences": {
-            "c_base": 3591.0,
+            "c_base": 3653.0,
             "weight_descriptions": {
                 "c_base": (
-                    "Your reservation floor for the bundle before price and terms, in $/month; "
-                    "receiving more rent increases utility one-for-one."
+                    "Minimum acceptable bundled landlord reservation revenue before lease/utilities ($/month; confidential; below summed listing anchors)."
                 ),
                 "continuous_weights.lease_months": (
                     "$/month per extra committed month; positive means you value reduced vacancy risk."
@@ -167,13 +166,13 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 4206.0
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 4196.0
     buyer2_contract_config["buyer_preferences"]["continuous_weights"]["lease_months"] = -7.0
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["include_utilities"] = {
         True: 132.0,
         False: 0.0,
     }
-    buyer2_contract_config["seller_preferences"]["c_base"] = 3650.0
+    buyer2_contract_config["seller_preferences"]["c_base"] = 3201.0
     buyer2_contract_config["seller_preferences"]["continuous_weights"]["lease_months"] = 20.5
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["include_utilities"] = {
         True: -72.0,

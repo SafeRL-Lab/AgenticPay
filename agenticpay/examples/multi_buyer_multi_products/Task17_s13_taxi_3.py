@@ -113,7 +113,7 @@ def main(model_name=None):
     model = OpenAIVLM(model=model_name, api_key=api_key)
     print(f"✓ Successfully initialized: {model}")
 
-    # Public reference fare total ~$67.81 (sum of advertised line-item components). Negotiation bounds below that reference (confidential).
+    # Public fare anchor ~$67.81; confidential negotiated band is lower (~67–69% floor · ~79–81% cap).
     print("Creating agents...")
     product_request = "I want LaGuardia to East Chelsea—base fare plus surcharges, all-in."
     buyer1_contract_config = {
@@ -147,11 +147,10 @@ def main(model_name=None):
             "route_preference": ["tunnel", "local_streets"],
         },
         "buyer_preferences": {
-            "v_base": 52.35,
+            "v_base": 50.72,
             "weight_descriptions": {
                 "v_base": (
-                    "Your private maximum value for the ride before wait and route terms, in dollars. "
-                    "A lower total price is better because each dollar paid reduces your utility by one dollar."
+                    "Maximum acceptable all-in willingness-to-pay before wait/route terms (USD; confidential; below tariff anchor)."
                 ),
                 "continuous_weights.wait_time_mins": (
                     "How much each extra minute of driver wait changes your utility, in dollars per minute. "
@@ -167,11 +166,10 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 46.92,
+            "c_base": 48.28,
             "weight_descriptions": {
                 "c_base": (
-                    "Your private minimum acceptable all-in revenue for the ride before wait and route terms, in dollars. "
-                    "A higher total price is better because each dollar received increases your utility by one dollar."
+                    "Minimum acceptable all-in reservation revenue before wait/route terms (USD; confidential; below tariff anchor)."
                 ),
                 "continuous_weights.wait_time_mins": (
                     "How much each extra minute of waiting changes your utility, in dollars per minute. "
@@ -188,13 +186,13 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 55.60
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 55.47
     buyer2_contract_config["buyer_preferences"]["continuous_weights"]["wait_time_mins"] = 0.9
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["route_preference"] = {
         "tunnel": 3.6,
         "local_streets": -1.8,
     }
-    buyer2_contract_config["seller_preferences"]["c_base"] = 47.10
+    buyer2_contract_config["seller_preferences"]["c_base"] = 42.31
     buyer2_contract_config["seller_preferences"]["continuous_weights"]["wait_time_mins"] = -1.45
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["route_preference"] = {
         "tunnel": -2.85,

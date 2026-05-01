@@ -124,10 +124,10 @@ def main(model_name=None):
     user_requirement = "I want a furnished whole-home NYC East Village lease—same area, compare two monthly rents."
     product_request = user_requirement
 
-    buyer1_max_price = 1089.0  # Maximum acceptable monthly rent for buyer1 (confidential); lower ceiling than buyer2
-    buyer2_max_price = 1143.0  # Maximum acceptable monthly rent for buyer2 (confidential)
-    seller1_min_price = 977.0  # Minimum acceptable monthly rent for landlord1 (confidential); higher floor than seller2
-    seller2_min_price = 865.0  # Minimum acceptable monthly rent for landlord2 (confidential)
+    buyer1_max_price = 1094.0  # Maximum acceptable monthly rent for buyer1 (confidential); lower ceiling than buyer2; below listing anchor
+    buyer2_max_price = 1137.0  # Maximum acceptable monthly rent for buyer2 (confidential); below listing anchor
+    seller1_min_price = 968.0  # Minimum acceptable monthly rent for landlord1 (confidential); higher floor than seller2; below listing anchor
+    seller2_min_price = 868.0  # Minimum acceptable monthly rent for landlord2 (confidential); below listing anchor
 
     _scale = (buyer1_max_price + buyer2_max_price) / (2.0 * 1300.0)  # scale score_design.md example (1300/900) to this market
     shared_contract_fields = {

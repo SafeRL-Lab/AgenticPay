@@ -119,7 +119,7 @@ def main(model_name=None):
     
     print(f"✓ Successfully initialized: {model}")
 
-    # MAUT contract (score_design scenario 4): bundle price + delivery_days + return_policy + packaging.
+    # Public anchor: SKU total ~$68.25 ($6.25 + $62); confidential negotiated band is materially lower.
     print("Creating agents...")
     product_request = "I want AmeriMist lemon yellow and the Smokehouse sausage & cheese pack."
     buyer1_contract_config = {
@@ -153,10 +153,10 @@ def main(model_name=None):
             "packaging": ["protective", "standard"],
         },
         "buyer_preferences": {
-            "v_base": 51.19,
+            "v_base": 51.05,
             "weight_descriptions": {
                 "v_base": (
-                    "Private max bundle value before shipping, returns, and packing (USD)."
+                    "Maximum acceptable reservation total before shipping, returns, and packing (USD; confidential)."
                 ),
                 "continuous_weights.delivery_days": (
                     "Utility ($/day) for slower delivery; negative favors earlier arrival."
@@ -175,10 +175,10 @@ def main(model_name=None):
             },
         },
         "seller_preferences": {
-            "c_base": 44.55,
+            "c_base": 48.59,
             "weight_descriptions": {
                 "c_base": (
-                    "Private minimum fulfillment cost before shipping, returns, and packaging (USD)."
+                    "Minimum acceptable fulfilment/reservation revenue before shipping and terms (USD; confidential)."
                 ),
                 "continuous_weights.delivery_days": (
                     "Utility ($/day) for fulfillment slack."
@@ -198,7 +198,7 @@ def main(model_name=None):
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))
-    buyer2_contract_config["buyer_preferences"]["v_base"] = 55.47
+    buyer2_contract_config["buyer_preferences"]["v_base"] = 55.83
     buyer2_contract_config["buyer_preferences"]["continuous_weights"]["delivery_days"] = -0.45
     buyer2_contract_config["buyer_preferences"]["discrete_weights"]["return_policy"] = {
         "30_days": 1.5,
@@ -208,7 +208,7 @@ def main(model_name=None):
         "protective": 1.1,
         "standard": -0.4,
     }
-    buyer2_contract_config["seller_preferences"]["c_base"] = 44.85
+    buyer2_contract_config["seller_preferences"]["c_base"] = 42.59
     buyer2_contract_config["seller_preferences"]["continuous_weights"]["delivery_days"] = 0.40
     buyer2_contract_config["seller_preferences"]["discrete_weights"]["return_policy"] = {
         "30_days": -2.0,
