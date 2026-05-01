@@ -97,14 +97,18 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want kids cat-design Bluetooth/wired headphones with volume limit.",
+            "product_request": (
+                "I want kids cat-design Bluetooth/wired headphones with volume limit. "
+                "I also prefer ear cushions that look gray or charcoal rather than bright pink or red."
+            ),
             "initial_contract_status": (
-                "No price, delivery time, return policy, or volume-limit guarantee has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, volume-limit guarantee, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.volume_limit_guarantee."
+                "discrete_terms.return_policy, discrete_terms.volume_limit_guarantee, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -121,6 +125,12 @@ def main(model_name=None):
                 "guarantees a working volume limit as described; `standard` means normal product fulfillment without "
                 "an extra volume-limit guarantee."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the product matches the buyer's stated preference for gray- or charcoal-toned ear cushions "
+                "rather than bright pink or red. Use `strong_match` when cushion color clearly fits the preference, "
+                "`partial_match` when it is only partly clear, and `mismatch_or_uncertain` when bright pink/red "
+                "appears likely or it cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 7}
@@ -128,6 +138,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "volume_limit_guarantee": ["included", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 11.63,
@@ -148,11 +159,20 @@ def main(model_name=None):
                     "How much each volume-limit guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.20},
             "discrete_weights": {
                 "return_policy": {"30_days": 0.9, "none": -1.0},
                 "volume_limit_guarantee": {"included": 1.0, "standard": -0.5},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -174,11 +194,20 @@ def main(model_name=None):
                     "How much each volume-limit guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.14},
             "discrete_weights": {
                 "return_policy": {"30_days": -0.8, "none": 0.6},
                 "volume_limit_guarantee": {"included": -0.4, "standard": 0.2},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

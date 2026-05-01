@@ -86,17 +86,20 @@ def main(model_name=None):
     _bundle_buyer_max = 2466.0
     _bundle_seller1_min = 2219.0
     _bundle_seller2_min = 1966.0
-    product_request = "I want Sydney CBD studio plus Bondi 2BR—best total monthly rent."
+    product_request = (
+        "I want Sydney CBD studio plus Bondi 2BR—best total monthly rent. "
+        "I also prefer kitchen listing photos that leave a clear open stretch of counter for prep instead of clutter wall-to-wall."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle monthly rent, lease length, or utility-inclusion term has been selected or agreed "
-                "before negotiation starts."
+                "No total bundle monthly rent, lease length, utility-inclusion term, or user product preference match has been "
+                "selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
-                "A valid offer must explicitly fill price, continuous_terms.lease_months, "
-                "and discrete_terms.include_utilities. The price is the TOTAL monthly rent for both rental units together."
+                "A valid offer must explicitly fill price, continuous_terms.lease_months, discrete_terms.include_utilities, "
+                "and discrete_terms.user_product_preference. The price is the TOTAL monthly rent for both rental units together."
             ),
         },
         "field_descriptions": {
@@ -110,12 +113,19 @@ def main(model_name=None):
                 "Whether standard utilities are included in the total monthly rent. true means utilities are included; "
                 "false means the tenant pays utilities separately."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well kitchen listing photos match the buyer's stated preference for a clearly open counter stretch usable for "
+                "prep rather than clutter packed wall-to-wall across the worktop. "
+                "Use `strong_match` when clearly satisfied, `partial_match` when only partly satisfied, "
+                "and `mismatch_or_uncertain` when not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "lease_months": {"min": 1, "max": 24},
         },
         "discrete_options": {
             "include_utilities": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": _bundle_buyer_max,
@@ -132,10 +142,19 @@ def main(model_name=None):
                     "How much utility inclusion changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each alignment level between the listing depiction and your stated kitchen-photo preference "
+                    "changes your utility, measured in dollars."
+                ),
             },
             "continuous_weights": {"lease_months": -10.0},
             "discrete_weights": {
                 "include_utilities": {True: 100.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 42.0,
+                    "partial_match": 17.0,
+                    "mismatch_or_uncertain": -35.0,
+                },
             },
         },
     }
@@ -157,10 +176,19 @@ def main(model_name=None):
                     "How much including utilities in the bundle rent changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each commitment tier on marketing depiction accuracy shifts your utility; "
+                    "strong tiers carry modest extra disclosure friction."
+                ),
             },
             "continuous_weights": {"lease_months": 20.0},
             "discrete_weights": {
                 "include_utilities": {True: -60.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -14.0,
+                    "partial_match": -7.0,
+                    "mismatch_or_uncertain": 2.0,
+                },
             },
         },
     }
@@ -172,6 +200,11 @@ def main(model_name=None):
             "continuous_weights": {"lease_months": 18.0},
             "discrete_weights": {
                 "include_utilities": {True: -55.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -14.0,
+                    "partial_match": -7.0,
+                    "mismatch_or_uncertain": 2.0,
+                },
             },
         },
     }

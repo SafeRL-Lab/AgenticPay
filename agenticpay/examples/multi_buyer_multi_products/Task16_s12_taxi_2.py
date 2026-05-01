@@ -115,17 +115,20 @@ def main(model_name=None):
 
     # Public fare anchor ~$20.58; confidential negotiated band is lower (~67–69% floor · ~79–81% cap).
     print("Creating agents...")
-    product_request = "I want Union Sq to Lenox Hill West—base fare plus surcharges, all-in."
+    product_request = (
+        "I want Union Sq to Lenox Hill West—base fare plus surcharges, all-in. "
+        "I also prefer taxi doors that stay plain yellow paint without large vinyl advertisement wraps covering most of each panel."
+    )
     buyer1_contract_config = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No all-in fare total, pickup wait time after driver arrival, or route preference has been selected "
-                "or agreed before negotiation starts."
+                "No all-in fare total, pickup wait time after driver arrival, route preference, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
-                "and discrete_terms.route_preference for this ride bundle."
+                "discrete_terms.route_preference, and discrete_terms.user_product_preference for this ride bundle."
             ),
         },
         "field_descriptions": {
@@ -139,12 +142,19 @@ def main(model_name=None):
                 "`tunnel` means using tolled tunnels/river crossings when faster; `local_streets` means congested surface "
                 "routes without tolls."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the ride bundle matches the buyer's stated preference for taxi doors that stay plain yellow paint "
+                "without large vinyl advertisement wraps covering most of each panel. Use `strong_match` when that preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is not satisfied or "
+                "cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "wait_time_mins": {"min": 0, "max": 30},
         },
         "discrete_options": {
             "route_preference": ["tunnel", "local_streets"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 15.39,
@@ -159,10 +169,19 @@ def main(model_name=None):
                 "discrete_weights.route_preference": (
                     "How much each route option changes your utility, in dollars (positive is good for you)."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"wait_time_mins": 1.0},
             "discrete_weights": {
                 "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -178,10 +197,19 @@ def main(model_name=None):
                 "discrete_weights.route_preference": (
                     "How much each route option changes your utility, in dollars (positive is good for you)."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your utility, measured in dollars. "
+                    "Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"wait_time_mins": -1.5},
             "discrete_weights": {
                 "route_preference": {"tunnel": -3.0, "local_streets": 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

@@ -97,14 +97,18 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want men's black flip-flops, size 44, cloth upper.",
+            "product_request": (
+                "I want men's black flip-flops, size 44, cloth upper. I also prefer molded left/right markings on "
+                "the footbed so I can tell which shoe is which."
+            ),
             "initial_contract_status": (
-                "No price, delivery time, return policy, or size/color confirmation has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, size/color confirmation, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.size_color_confirmation."
+                "discrete_terms.return_policy, discrete_terms.size_color_confirmation, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -121,6 +125,12 @@ def main(model_name=None):
                 "`confirmed` means the size and color are guaranteed; `standard` means normal product fulfillment "
                 "without an extra attribute confirmation."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listing matches the buyer's stated preference for molded left/right markings on the "
+                "footbed for telling the shoes apart. Use `strong_match` when this is clearly satisfied, "
+                "`partial_match` when only partly satisfied, and `mismatch_or_uncertain` when it is not satisfied "
+                "or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 10}
@@ -128,6 +138,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "size_color_confirmation": ["confirmed", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 13.85,
@@ -148,11 +159,20 @@ def main(model_name=None):
                     "How much each size/color confirmation option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.18},
             "discrete_weights": {
                 "return_policy": {"30_days": 1.4, "none": -1.6},
                 "size_color_confirmation": {"confirmed": 1.6, "standard": -0.8},
+                "user_product_preference": {
+                    "strong_match": 0.22,
+                    "partial_match": 0.09,
+                    "mismatch_or_uncertain": -0.18,
+                },
             },
         },
         "seller_preferences": {
@@ -174,11 +194,20 @@ def main(model_name=None):
                     "How much each size/color confirmation option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.14},
             "discrete_weights": {
                 "return_policy": {"30_days": -1.5, "none": 1.0},
                 "size_color_confirmation": {"confirmed": -0.5, "standard": 0.2},
+                "user_product_preference": {
+                    "strong_match": -0.06,
+                    "partial_match": -0.03,
+                    "mismatch_or_uncertain": 0.012,
+                },
             },
         },
     }

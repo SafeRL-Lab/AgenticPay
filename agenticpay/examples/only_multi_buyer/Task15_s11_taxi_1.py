@@ -123,7 +123,11 @@ def main(model_name=None):
     
     # Create Agents (confidential reservation prices: buyer ceilings and seller floor; unknown across parties)
     print("Creating agents...")
-    product_request = "I want Gramercy → Murray Hill taxi—all-in flat fare."
+    product_request = (
+        "I want Gramercy → Murray Hill taxi—all-in flat fare. "
+        "I also prefer pickup and destination pins on this trip graphic to hug visible streets "
+        "rather than sitting in open-water pixels."
+    )
     buyer1_max_price = 9.74  # Maximum acceptable total fare for buyer1 (confidential; tighter budget than buyer2)
     buyer2_max_price = 10.59  # Maximum acceptable total fare for buyer2 (confidential; higher ceiling than buyer1)
     seller_c_buyer1 = 9.04  # Higher seller floor on Buyer1 thread (confidential)
@@ -134,12 +138,13 @@ def main(model_name=None):
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No all-in total fare, passenger pickup wait buffer, or route preference has been "
-                "agreed before negotiation starts."
+                "No all-in total fare, passenger pickup wait buffer, route preference, or assessed "
+                "user product preference has been agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
-                "and discrete_terms.route_preference. The price is the TOTAL amount the passenger pays "
+                "discrete_terms.route_preference, and discrete_terms.user_product_preference. "
+                "The price is the TOTAL amount the passenger pays "
                 "(base fare plus mandatory surcharges/fees per listing), nothing added later."
             ),
         },
@@ -155,12 +160,18 @@ def main(model_name=None):
                 "`tunnel` favors tolled / faster crossings where relevant; "
                 "`local_streets` avoids tunnel toll borne by driver but often slower surface routing."
             ),
+            "discrete_terms.user_product_preference": (
+                "Whether the OD pins on this route artwork sit on roadway pixels versus drifting into open-water "
+                "areas, matching the rider's preference. Assign `strong_match`, `partial_match`, or "
+                "`mismatch_or_uncertain` when judgment is ambiguous."
+            ),
         },
         "continuous_bounds": {
             "wait_time_mins": {"min": 0, "max": 30},
         },
         "discrete_options": {
             "route_preference": ["tunnel", "local_streets"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": buyer1_max_price,
@@ -175,10 +186,18 @@ def main(model_name=None):
                 "discrete_weights.route_preference": (
                     "Dollar-equivalent preference for routing options (time vs congestion vs toll exposure)."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "Utility shift for honoring the rider's OD plotting preference versus reality on the artwork."
+                ),
             },
             "continuous_weights": {"wait_time_mins": 1.0},
             "discrete_weights": {
                 "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -193,10 +212,19 @@ def main(model_name=None):
                 "discrete_weights.route_preference": (
                     "Dollar-equivalent routing impact (tunnel tolls vs local delays)."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "Cost or risk exposure from certifying tighter alignment between map artwork pin placement "
+                    "and the rider expectation."
+                ),
             },
             "continuous_weights": {"wait_time_mins": -1.5},
             "discrete_weights": {
                 "route_preference": {"tunnel": -3.0, "local_streets": 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

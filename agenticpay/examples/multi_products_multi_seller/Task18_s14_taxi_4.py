@@ -78,17 +78,20 @@ def main(model_name=None):
     seller1_min_price = 15.57
     seller2_min_price = 14.25
 
-    product_request = "I want Seaport → Battery Park—all-in ride plus fees."
+    product_request = (
+        "I want Seaport → Battery Park—all-in ride plus fees. "
+        "I also prefer side windows that look fully raised with an even seal line, not left partly dropped on one side."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No all-in bundle price, pickup wait time, or route preference has been "
+                "No all-in bundle price, pickup wait time, route preference, or user product preference match has been "
                 "agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
-                "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
-                "and discrete_terms.route_preference. The price is the all-in total for the main trip "
+                "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, discrete_terms.route_preference, "
+                "and discrete_terms.user_product_preference. The price is the all-in total for the main trip "
                 "plus mandatory fees line items together."
             ),
         },
@@ -105,12 +108,19 @@ def main(model_name=None):
                 "Routing: `tunnel` uses tolled crossings / faster links where applicable; "
                 "`local_streets` stays on congested surface streets without tunnel toll to the driver."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the taxi matches the buyer's stated preference that side windows look fully raised with an even seal line, "
+                "not partly dropped on one side. "
+                "Use `strong_match` when clearly satisfied, `partial_match` when only partly satisfied, "
+                "and `mismatch_or_uncertain` when not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "wait_time_mins": {"min": 0, "max": 30},
         },
         "discrete_options": {
             "route_preference": ["tunnel", "local_streets"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": buyer_max_price,
@@ -126,10 +136,18 @@ def main(model_name=None):
                 "discrete_weights.route_preference": (
                     "Dollar utility for each route choice (time vs congestion vs toll exposure)."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "Dollar utility for each match level versus your stated window-seal preference; positive is better for you."
+                ),
             },
             "continuous_weights": {"wait_time_mins": 1.0},
             "discrete_weights": {
                 "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+                "user_product_preference": {
+                    "strong_match": 0.14,
+                    "partial_match": 0.055,
+                    "mismatch_or_uncertain": -0.11,
+                },
             },
         },
     }
@@ -148,10 +166,18 @@ def main(model_name=None):
                 "discrete_weights.route_preference": (
                     "Dollar utility per route; tunnel often implies tolls and different trip cost."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "Dollar utility for commitment to the buyer's stated vehicle-condition preference; small nonzero sourcing risk."
+                ),
             },
             "continuous_weights": {"wait_time_mins": -1.5},
             "discrete_weights": {
                 "route_preference": {"tunnel": -3.0, "local_streets": 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.045,
+                    "partial_match": -0.022,
+                    "mismatch_or_uncertain": 0.006,
+                },
             },
         },
     }
@@ -163,6 +189,11 @@ def main(model_name=None):
             "continuous_weights": {"wait_time_mins": -1.35},
             "discrete_weights": {
                 "route_preference": {"tunnel": -2.55, "local_streets": -0.1},
+                "user_product_preference": {
+                    "strong_match": -0.045,
+                    "partial_match": -0.022,
+                    "mismatch_or_uncertain": 0.006,
+                },
             },
         },
     }

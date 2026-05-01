@@ -120,18 +120,21 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price: bundle totals (Flip Flops + T-Shirt); confidential ZOPA sits below summed public list prices in product_info.
     print("Creating agents...")
-    product_request = "I want black flip-flops size 44 and the Captain America tee together."
+    product_request = (
+        "I want black flip-flops size 44 and the Captain America tee together. "
+        "I also prefer the flip-flop sole sidewall to show a clean molded edge without obvious glue lines."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle price, delivery time, return policy, or gift-wrap option has been selected "
-                "or agreed before negotiation starts."
+                "No total bundle price, delivery time, return policy, gift-wrap option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.gift_wrap. The price is the total "
-                "bundle price for both products (flip-flops + t-shirt)."
+                "discrete_terms.return_policy, discrete_terms.gift_wrap, and discrete_terms.user_product_preference. "
+                "The price is the total bundle price for both products (flip-flops + t-shirt)."
             ),
         },
         "field_descriptions": {
@@ -147,11 +150,17 @@ def main(model_name=None):
                 "`yes` means the seller uses gift-style or retail packaging suitable for apparel; "
                 "`no` means normal poly-mailer shipping."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listings match the buyer's stated preference that the flip-flop sole sidewall show a clean "
+                "molded edge without obvious glue lines. `strong_match` when clearly satisfied; `partial_match` when "
+                "ambiguous or partly satisfied; `mismatch_or_uncertain` when not satisfied or unconfirmable."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "gift_wrap": ["yes", "no"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -173,11 +182,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much each match level for your stated sole-edge preference changes your utility, measured in dollars. "
+                "Positive numbers are good for you; negative numbers are bad for you."
+            ),
         },
         "continuous_weights": {"delivery_days": -0.42},
         "discrete_weights": {
             "return_policy": {"30_days": 1.3, "none": -1.5},
             "gift_wrap": {"yes": 1.0, "no": -0.25},
+            "user_product_preference": {
+                "strong_match": 0.24,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -204,11 +222,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much committing to each match level on the buyer's sole molding preference changes your utility, measured in dollars. "
+                "Stronger commitments carry a small nonzero risk or handling cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.32},
         "discrete_weights": {
             "return_policy": {"30_days": -1.7, "none": 1.05},
             "gift_wrap": {"yes": -0.95, "no": 0.18},
+            "user_product_preference": {
+                "strong_match": -0.065,
+                "partial_match": -0.032,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

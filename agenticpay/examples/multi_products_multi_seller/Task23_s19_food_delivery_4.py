@@ -88,17 +88,20 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    product_request = "I want Dripped Nachos plus a Cinnamon Toast Crunch milkshake—best all-in."
+    product_request = (
+        "I want Dripped Nachos plus a Cinnamon Toast Crunch milkshake—best all-in. "
+        "I also prefer the cereal garnish on the milkshake to scatter across most of the domed surface, not bunched over one quadrant only."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle price, delivery speed, or condiment option has been selected or agreed "
-                "before negotiation starts."
+                "No total bundle price, delivery speed, condiment option, or user product preference match has been selected "
+                "or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
-                "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
-                "and discrete_terms.extra_condiments."
+                "A valid offer must explicitly fill price, discrete_terms.delivery_speed, discrete_terms.extra_condiments, "
+                "and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -113,11 +116,18 @@ def main(model_name=None):
             "discrete_terms.extra_condiments": (
                 "Whether extra sauce, pickles, napkins, or small side condiments are included with the bundle."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the milkshake garnish matches the buyer's stated preference that cereal bits scatter across most "
+                "of the domed surface instead of bunching over one quadrant only. "
+                "Use `strong_match` when clearly satisfied, `partial_match` when only partly satisfied, "
+                "and `mismatch_or_uncertain` when not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {},
         "discrete_options": {
             "delivery_speed": ["rush", "standard", "batched"],
             "extra_condiments": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 13.26,
@@ -133,11 +143,19 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much receiving extra condiments changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each match level versus your stated garnish layout preference changes your utility, measured in dollars."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": 3.1, "standard": 0.0, "batched": -2.0},
                 "extra_condiments": {True: 1.5, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 0.22,
+                    "partial_match": 0.09,
+                    "mismatch_or_uncertain": -0.17,
+                },
             },
         },
     }
@@ -158,11 +176,20 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much including extra condiments changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much committing to the buyer's stated garnish preference changes your utility; stronger commitments "
+                    "carry small nonzero QA cost."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": -4.0, "standard": 0.0, "batched": 3.5},
                 "extra_condiments": {True: -0.5, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.055,
+                    "partial_match": -0.028,
+                    "mismatch_or_uncertain": 0.009,
+                },
             },
         },
     }
@@ -175,6 +202,11 @@ def main(model_name=None):
             "discrete_weights": {
                 "delivery_speed": {"rush": -3.5, "standard": 0.0, "batched": 3.0},
                 "extra_condiments": {True: -0.35, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.055,
+                    "partial_match": -0.028,
+                    "mismatch_or_uncertain": 0.009,
+                },
             },
         },
     }

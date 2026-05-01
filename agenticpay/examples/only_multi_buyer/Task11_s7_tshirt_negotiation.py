@@ -122,7 +122,11 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
     
     print("Creating agents...")
-    product_request = "I want the Marvel Endgame Captain America tee (men's)—as listed."
+    product_request = (
+        "I want the Marvel Endgame Captain America tee (men's)—as listed. "
+        "I also prefer the front chest print to look centered side-to-side on the tee in flat-lay photos, "
+        "not visibly shifted toward one sleeve."
+    )
     v_ref, c_ref = 8.7, 4.5
     buyer1_max_price = 17.29
     buyer2_max_price = 18.81
@@ -136,6 +140,11 @@ def main(model_name=None):
             "discrete_weights": {
                 "return_policy": {"30_days": 1.1 * scale, "none": -1.3 * scale},
                 "packaging": {"protective": 1.0 * scale, "standard": -0.4 * scale},
+                "user_product_preference": {
+                    "strong_match": 0.30 * scale,
+                    "partial_match": 0.12 * scale,
+                    "mismatch_or_uncertain": -0.25 * scale,
+                },
             },
         }
 
@@ -145,6 +154,11 @@ def main(model_name=None):
             "discrete_weights": {
                 "return_policy": {"30_days": 0.9 * scale, "none": -1.0 * scale},
                 "packaging": {"protective": 0.8 * scale, "standard": -0.2 * scale},
+                "user_product_preference": {
+                    "strong_match": 0.30 * scale,
+                    "partial_match": 0.12 * scale,
+                    "mismatch_or_uncertain": -0.25 * scale,
+                },
             },
         }
 
@@ -154,6 +168,11 @@ def main(model_name=None):
             "discrete_weights": {
                 "return_policy": {"30_days": -1.4 * scale, "none": 1.0 * scale},
                 "packaging": {"protective": -0.8 * scale, "standard": 0.3 * scale},
+                "user_product_preference": {
+                    "strong_match": -0.08 * scale,
+                    "partial_match": -0.04 * scale,
+                    "mismatch_or_uncertain": 0.01 * scale,
+                },
             },
         }
 
@@ -163,6 +182,11 @@ def main(model_name=None):
             "discrete_weights": {
                 "return_policy": {"30_days": -1.4 * scale, "none": 1.0 * scale},
                 "packaging": {"protective": -0.85 * scale, "standard": 0.32 * scale},
+                "user_product_preference": {
+                    "strong_match": -0.08 * scale,
+                    "partial_match": -0.04 * scale,
+                    "mismatch_or_uncertain": 0.01 * scale,
+                },
             },
         }
 
@@ -170,12 +194,13 @@ def main(model_name=None):
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -191,11 +216,17 @@ def main(model_name=None):
                 "Shipment packaging. `protective` means extra protection for prints and fabric; "
                 "`standard` means normal packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listing matches the buyer's preference for a front chest print centered left-to-right "
+                "without obvious sideways shift toward a sleeve in flat-lay shots. Use `strong_match`, `partial_match`, "
+                "or `mismatch_or_uncertain` accordingly."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": buyer1_max_price,
@@ -212,6 +243,9 @@ def main(model_name=None):
                 ),
                 "discrete_weights.packaging": (
                     "How much each packaging option changes your utility ($). Positive is good for you."
+                ),
+                "discrete_weights.user_product_preference": (
+                    "How each match level on your stated product preference changes your utility ($). Positive helps you."
                 ),
             },
             **_beauty_buyer_prefs(sb1),
@@ -231,6 +265,10 @@ def main(model_name=None):
                 ),
                 "discrete_weights.packaging": (
                     "How much each packaging option changes your utility ($)."
+                ),
+                "discrete_weights.user_product_preference": (
+                    "How each commitment level on the buyer's print-centering preference shifts your utility ($); "
+                    "firmer commitments carry a small nonzero risk cost."
                 ),
             },
             **_beauty_seller_prefs(ss1),

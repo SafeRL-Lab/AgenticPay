@@ -128,20 +128,24 @@ def main(model_name=None):
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
     seller2 = SellerAgent(model=model, name="Seller2", seller_min_price=seller2_min_price)
 
-    user_requirement = "I want Mezzos Studio in Sydney CBD and Whole sunny apartment near Bondi Beach—one monthly rent."
+    user_requirement = (
+        "I want Mezzos Studio in Sydney CBD and Whole sunny apartment near Bondi Beach—one monthly rent. "
+        "I also prefer each unit's photo set to include a glass door or slider leading outside, not every frame stopped at interior walls only."
+    )
     product_request = user_requirement
 
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total combined monthly rent, bundled lease length, or utilities-included policy "
-                "has been selected before negotiation starts."
+                "No total combined monthly rent, bundled lease length, utilities-included policy, "
+                "or user product preference match has been selected before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must set price (total USD monthly rent for both listings together), "
-                "continuous_terms.lease_months (integer months within bounds), and "
-                "discrete_terms.include_utilities (boolean true/false)."
+                "continuous_terms.lease_months (integer months within bounds), "
+                "discrete_terms.include_utilities (boolean true/false), and discrete_terms.user_product_preference "
+                "(strong_match|partial_match|mismatch_or_uncertain)."
             ),
         },
         "field_descriptions": {
@@ -154,9 +158,18 @@ def main(model_name=None):
             "discrete_terms.include_utilities": (
                 "If true, quoted rent includes bundled utilities where applicable; if false, tenant pays utilities separately."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well listing photos align with the buyer's stated preference that each unit show a glass door or slider "
+                "leading outside somewhere in the set, not every frame bounded by interior walls only. "
+                "`strong_match` when clearly satisfied for both listings; `partial_match` when mixed or ambiguous; "
+                "`mismatch_or_uncertain` when not satisfied or unconfirmable."
+            ),
         },
         "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
-        "discrete_options": {"include_utilities": [True, False]},
+        "discrete_options": {
+            "include_utilities": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
+        },
     }
     buyer1_preferences = {
         "v_base": buyer1_max_price,
@@ -170,14 +183,29 @@ def main(model_name=None):
             "discrete_weights.include_utilities": (
                 "Utility change for each utilities-included option (USD); higher is better for you when included."
             ),
+            "discrete_weights.user_product_preference": (
+                "USD change for photo alignment with your stated exterior-access preference."
+            ),
         },
         "continuous_weights": {"lease_months": -12.0},
-        "discrete_weights": {"include_utilities": {True: 240.0, False: 0.0}},
+        "discrete_weights": {
+            "include_utilities": {True: 240.0, False: 0.0},
+            "user_product_preference": {
+                "strong_match": 24.0,
+                "partial_match": 9.7,
+                "mismatch_or_uncertain": -18.8,
+            },
+        },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
     buyer2_preferences["v_base"] = buyer2_max_price
     buyer2_preferences["continuous_weights"]["lease_months"] = -10.0
     buyer2_preferences["discrete_weights"]["include_utilities"] = {True: 260.0, False: 0.0}
+    buyer2_preferences["discrete_weights"]["user_product_preference"] = {
+        "strong_match": 26.0,
+        "partial_match": 10.5,
+        "mismatch_or_uncertain": -20.4,
+    }
     seller1_preferences = {
         "c_base": seller1_min_price,
         "weight_descriptions": {
@@ -190,14 +218,29 @@ def main(model_name=None):
             "discrete_weights.include_utilities": (
                 "Utility/cost impact when utilities are bundled into the rent (USD); negative values are costs to you."
             ),
+            "discrete_weights.user_product_preference": (
+                "Small USD carrying cost when you commit to strong photo alignment with the buyer's glass-door preference."
+            ),
         },
         "continuous_weights": {"lease_months": 22.0},
-        "discrete_weights": {"include_utilities": {True: -110.0, False: 0.0}},
+        "discrete_weights": {
+            "include_utilities": {True: -110.0, False: 0.0},
+            "user_product_preference": {
+                "strong_match": -6.1,
+                "partial_match": -3.0,
+                "mismatch_or_uncertain": 0.78,
+            },
+        },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))
     seller2_preferences["c_base"] = seller2_min_price
     seller2_preferences["continuous_weights"]["lease_months"] = 24.0
     seller2_preferences["discrete_weights"]["include_utilities"] = {True: -100.0, False: 0.0}
+    seller2_preferences["discrete_weights"]["user_product_preference"] = {
+        "strong_match": -5.55,
+        "partial_match": -2.72,
+        "mismatch_or_uncertain": 0.71,
+    }
     buyer_seller_contract_configs = {
         "b1s1": {
             **shared_contract_fields,

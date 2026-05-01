@@ -117,17 +117,21 @@ def main(model_name=None):
     
     # Same riflescope SKU from two listings; per-pair MAUT contract (score_design.md scenario 4 style).
     print("Creating agents...")
-    product_request = "I want a new Crimson Trace Brushline Pro 2.5–10x42 rifle scope."
+    product_request = (
+        "I want a new Crimson Trace Brushline Pro 2.5–10x42 rifle scope. "
+        "I also prefer the main tube finish looks even with no obvious scratches or bright buff marks."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -141,11 +145,16 @@ def main(model_name=None):
             "discrete_terms.packaging": (
                 "`protective` uses reinforced packing for glass and optics; `standard` is normal parcel packing."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's stated cosmetic finish check (even coating, no obvious scratches or bright "
+                "buff marks on the main tube). `strong_match` / `partial_match` / `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -159,11 +168,19 @@ def main(model_name=None):
             ),
             "discrete_weights.return_policy": ("Utility ($) per return-policy option; positive is good for you."),
             "discrete_weights.packaging": ("Utility ($) per packaging option; positive is good for you."),
+            "discrete_weights.user_product_preference": (
+                "Utility ($) per preference match tier; positive is good for you."
+            ),
         },
         "continuous_weights": {"delivery_days": -0.35},
         "discrete_weights": {
             "return_policy": {"30_days": 2.2, "none": -2.6},
             "packaging": {"protective": 2.0, "standard": -0.85},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -180,11 +197,19 @@ def main(model_name=None):
             ),
             "discrete_weights.return_policy": ("Utility ($) per return-policy option for you."),
             "discrete_weights.packaging": ("Utility ($) per packaging option for you."),
+            "discrete_weights.user_product_preference": (
+                "Utility ($) per match tier; stronger match implies small nonzero assurance cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.22},
         "discrete_weights": {
             "return_policy": {"30_days": -2.5, "none": 1.8},
             "packaging": {"protective": -1.55, "standard": 0.55},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

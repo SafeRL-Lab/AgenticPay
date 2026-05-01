@@ -121,19 +121,20 @@ def main(model_name=None):
     # Reference totals come from product_info list prices; reservation prices are confidential (below reference).
     print("Creating agents...")
     product_request = (
-        "I want AmeriMist lemon yellow and Smokehouse sausage & cheese pack together."
+        "I want AmeriMist lemon yellow and Smokehouse sausage & cheese pack together. "
+        "I also prefer the gourmet pack's outer retail carton to show full printed branding, not only a plain brown shipper."
     )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle price, delivery time, return policy, or gift-wrap option has been selected "
-                "or agreed before negotiation starts."
+                "No total bundle price, delivery time, return policy, gift-wrap option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.gift_wrap. The price is the total "
-                "bundle price for both products (food color + smokehouse gift pack)."
+                "discrete_terms.return_policy, discrete_terms.gift_wrap, and discrete_terms.user_product_preference. "
+                "The price is the total bundle price for both products (food color + smokehouse gift pack)."
             ),
         },
         "field_descriptions": {
@@ -149,11 +150,17 @@ def main(model_name=None):
                 "`yes` means the seller uses gift-style packaging suitable for a gourmet food bundle; "
                 "`no` means standard shipping packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listings match the buyer's stated preference that the gourmet pack's outer retail carton "
+                "show full printed branding rather than only a plain brown shipper. `strong_match` when clearly satisfied; "
+                "`partial_match` when ambiguous or partly satisfied; `mismatch_or_uncertain` when not satisfied or unconfirmable."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "gift_wrap": ["yes", "no"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -175,11 +182,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much each match level for your stated gourmet-carton branding preference changes your utility, measured in dollars. "
+                "Positive numbers are good for you; negative numbers are bad for you."
+            ),
         },
         "continuous_weights": {"delivery_days": -0.50},
         "discrete_weights": {
             "return_policy": {"30_days": 1.8, "none": -2.0},
             "gift_wrap": {"yes": 1.35, "no": -0.35},
+            "user_product_preference": {
+                "strong_match": 0.24,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -206,11 +222,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much committing to each match level on the buyer's retail-carton branding preference changes your utility, "
+                "measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.32},
         "discrete_weights": {
             "return_policy": {"30_days": -2.0, "none": 1.25},
             "gift_wrap": {"yes": -1.15, "no": 0.22},
+            "user_product_preference": {
+                "strong_match": -0.065,
+                "partial_match": -0.032,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

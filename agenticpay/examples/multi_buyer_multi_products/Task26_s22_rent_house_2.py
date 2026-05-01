@@ -104,18 +104,19 @@ def main(model_name=None):
     # Anchor sum ~$3450/month from listing components; negotiated band intentionally lower (~64–66% floor vs anchor · ~77–79% cap).
     print("Creating agents...")
     product_request = (
-        "I want the Ramblas terrace apartment and Double room in Barcelona Center—one monthly rent."
+        "I want the Ramblas terrace apartment and Double room in Barcelona Center—one monthly rent. "
+        "I also prefer terrace photos that show outdoor lounge seating with slim metal framing rather than chunky all-wood picnic benches."
     )
     buyer1_contract_config = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No combined monthly bundle rent, lease length in months, or utilities-included boolean "
+                "No combined monthly bundle rent, lease length in months, utilities-included boolean, or user product preference match "
                 "has been fixed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must set price (total USD/month for both units), "
-                "continuous_terms.lease_months, and discrete_terms.include_utilities."
+                "continuous_terms.lease_months, discrete_terms.include_utilities, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -129,9 +130,18 @@ def main(model_name=None):
             "discrete_terms.include_utilities": (
                 "If true, quoted rent includes major utilities as bundled; if false, tenant pays utilities separately."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the bundle matches the buyer's stated preference for terrace photos that show outdoor lounge seating with slim "
+                "metal framing rather than chunky all-wood picnic benches. Use `strong_match` when that preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is not satisfied or "
+                "cannot be confirmed."
+            ),
         },
         "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
-        "discrete_options": {"include_utilities": [True, False]},
+        "discrete_options": {
+            "include_utilities": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
+        },
         "buyer_preferences": {
             "v_base": 2581.0,
             "weight_descriptions": {
@@ -144,9 +154,20 @@ def main(model_name=None):
                 "discrete_weights.include_utilities": (
                     "One-time $/month-style utility bump for bundled vs separate utility bills."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"lease_months": -7.0},
-            "discrete_weights": {"include_utilities": {True: 82.0, False: 0.0}},
+            "discrete_weights": {
+                "include_utilities": {True: 82.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
+            },
         },
         "seller_preferences": {
             "c_base": 2456.0,
@@ -160,9 +181,20 @@ def main(model_name=None):
                 "discrete_weights.include_utilities": (
                     "Cost/annoyance of bundling utilities into rent (negative for include_utilities true)."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your utility, measured in dollars. "
+                    "Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"lease_months": 12.5},
-            "discrete_weights": {"include_utilities": {True: -52.0, False: 0.0}},
+            "discrete_weights": {
+                "include_utilities": {True: -52.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
+            },
         },
     }
     buyer2_contract_config = json.loads(json.dumps(buyer1_contract_config))

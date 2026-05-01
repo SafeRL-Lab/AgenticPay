@@ -97,14 +97,17 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want a yellow cab from Seaport to Battery Park City, all-in fare.",
+            "product_request": (
+                "I want a yellow cab from Seaport to Battery Park City, all-in fare. "
+                "I also prefer a highlighted route that stays east of Broadway for most of the downtown segment."
+            ),
             "initial_contract_status": (
-                "No total fare, passenger wait time, or route preference has been selected or agreed "
-                "before negotiation starts."
+                "No total fare, passenger wait time, route preference, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
-                "and discrete_terms.route_preference."
+                "discrete_terms.route_preference, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -119,12 +122,19 @@ def main(model_name=None):
                 "The route choice for the ride. `tunnel` means the driver uses a faster toll tunnel or equivalent "
                 "paid route when useful; `local_streets` means the driver avoids tolls and uses surface streets."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the map aligns with the buyer's stated preference for a highlighted route that stays east of "
+                "Broadway for most of the downtown segment. Use `strong_match` when the path clearly follows that "
+                "pattern, `partial_match` when it is mixed or partly east, and `mismatch_or_uncertain` when it mostly "
+                "runs west of Broadway or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "wait_time_mins": {"min": 0, "max": 30}
         },
         "discrete_options": {
             "route_preference": ["tunnel", "local_streets"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 17.90,
@@ -141,10 +151,19 @@ def main(model_name=None):
                     "How much each route option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated route-shape preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"wait_time_mins": 1.0},
             "discrete_weights": {
                 "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -162,10 +181,19 @@ def main(model_name=None):
                     "How much each route option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated route-shape preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"wait_time_mins": -1.5},
             "discrete_weights": {
                 "route_preference": {"tunnel": -3.0, "local_streets": 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

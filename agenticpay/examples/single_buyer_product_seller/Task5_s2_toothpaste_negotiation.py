@@ -97,14 +97,18 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want ARM & HAMMER Peroxicare toothpaste, Clean Mint, 6-pack.",
+            "product_request": (
+                "I want ARM & HAMMER Peroxicare toothpaste, Clean Mint, 6-pack. "
+                "I also prefer flip-top caps on the tubes rather than screw-off caps."
+            ),
             "initial_contract_status": (
-                "No price, delivery time, return policy, or seal/packaging guarantee has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, seal/packaging guarantee, or user product preference "
+                "match has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.seal_guarantee."
+                "discrete_terms.return_policy, discrete_terms.seal_guarantee, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -120,6 +124,12 @@ def main(model_name=None):
                 "The hygiene and package-seal guarantee for the toothpaste. `factory_sealed` means all tubes arrive "
                 "new and sealed in retail packaging; `standard` means normal new-item handling without an extra seal guarantee."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the product matches the buyer's stated preference for flip-top tube caps rather than "
+                "screw-off caps. Use `strong_match` when flip-top caps are clearly shown or confirmed, "
+                "`partial_match` when it is only partly clear, and `mismatch_or_uncertain` when screw-off caps "
+                "appear likely or it cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 7}
@@ -127,6 +137,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "seal_guarantee": ["factory_sealed", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 12.40,
@@ -147,11 +158,20 @@ def main(model_name=None):
                     "How much each seal-guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.18},
             "discrete_weights": {
                 "return_policy": {"30_days": 0.8, "none": -0.9},
                 "seal_guarantee": {"factory_sealed": 1.1, "standard": -0.4},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -173,11 +193,20 @@ def main(model_name=None):
                     "How much each seal-guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.16},
             "discrete_weights": {
                 "return_policy": {"30_days": -1.0, "none": 0.7},
                 "seal_guarantee": {"factory_sealed": -0.7, "standard": 0.2},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

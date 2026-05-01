@@ -117,17 +117,21 @@ def main(model_name=None):
     
     # Same headphones SKU from two listings; per-pair MAUT contract (score_design.md).
     print("Creating agents...")
-    product_request = "I want NVRADCHUA kids Bluetooth over-ear headphones (foldable, with volume)."
+    product_request = (
+        "I want NVRADCHUA kids Bluetooth over-ear headphones (foldable, with volume). "
+        "I also prefer both ear cushions look evenly puffed, not lopsided or flattened on one side."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -141,11 +145,16 @@ def main(model_name=None):
             "discrete_terms.packaging": (
                 "`protective` adds padding for the headset and hinges; `standard` is normal packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's stated cushion symmetry check (both ear cushions evenly puffed, not "
+                "lopsided or flattened on one side). `strong_match` / `partial_match` / `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -159,11 +168,19 @@ def main(model_name=None):
             ),
             "discrete_weights.return_policy": ("Utility ($) per return-policy option; positive is good for you."),
             "discrete_weights.packaging": ("Utility ($) per packaging option; positive is good for you."),
+            "discrete_weights.user_product_preference": (
+                "Utility ($) per preference match tier; positive is good for you."
+            ),
         },
         "continuous_weights": {"delivery_days": -0.26},
         "discrete_weights": {
             "return_policy": {"30_days": 1.0, "none": -1.15},
             "packaging": {"protective": 0.88, "standard": -0.32},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -180,11 +197,19 @@ def main(model_name=None):
             ),
             "discrete_weights.return_policy": ("Utility ($) per return-policy option for you."),
             "discrete_weights.packaging": ("Utility ($) per packaging option for you."),
+            "discrete_weights.user_product_preference": (
+                "Utility ($) per match tier; stronger match implies small nonzero handling cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.17},
         "discrete_weights": {
             "return_policy": {"30_days": -1.22, "none": 0.88},
             "packaging": {"protective": -0.68, "standard": 0.26},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

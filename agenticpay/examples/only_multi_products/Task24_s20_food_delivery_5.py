@@ -87,18 +87,21 @@ def main(model_name=None):
     # Create Agents (set their respective bottom prices, this information is confidential, unknown to each other)
     # buyer_max_price and seller_min_price are confidential reservation totals below product_info quoted_total_price / item reference sum.
     print("Creating agents...")
-    product_request = "I want Hibachi chicken and Hibachi shrimp from Benihana."
+    product_request = (
+        "I want Hibachi chicken and Hibachi shrimp from Benihana. "
+        "I also prefer the hibachi shrimp to show neat curled shells rather than mushy shapeless clumps."
+    )
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No delivered total price, delivery speed, or extra condiments option has been selected or agreed "
+                "No delivered total price, delivery speed, extra condiments option, or user product preference match has been selected or agreed "
                 "before negotiation starts."
             ),
             "contract_completion_requirement": (
-                "A valid offer must explicitly fill price, discrete_terms.delivery_speed, and "
-                "discrete_terms.extra_condiments."
+                "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
+                "discrete_terms.extra_condiments, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -110,11 +113,18 @@ def main(model_name=None):
             "discrete_terms.extra_condiments": (
                 "Whether the restaurant includes extra condiments, sauces, or small sides with the order."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the menu imagery matches the buyer's stated preference for hibachi shrimp that show neat curled shells "
+                "rather than mushy shapeless clumps. Use `strong_match` when the preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is not "
+                "satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {},
         "discrete_options": {
             "delivery_speed": ["rush", "standard", "batched"],
             "extra_condiments": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 36.72,
@@ -130,11 +140,20 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much the extra-condiments option changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": 3.0, "standard": 0.0, "batched": -2.0},
                 "extra_condiments": {True: 1.5, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -151,11 +170,20 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much the extra-condiments option changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": -4.0, "standard": 0.0, "batched": 3.5},
                 "extra_condiments": {True: -0.5, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

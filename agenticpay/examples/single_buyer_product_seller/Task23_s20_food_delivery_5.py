@@ -97,14 +97,18 @@ def main(model_name=None):
     # Scenario 20: Sprite — public all-in reference (quoted_total_price $5.58); confidential walk-aways sit well below that anchor.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want a Sprite from Dripped Birria, delivered.",
+            "product_request": (
+                "I want a Sprite from Dripped Birria, delivered. "
+                "I also prefer the drink to be shown on a fairly clean, simple background without messy food clutter "
+                "around it."
+            ),
             "initial_contract_status": (
-                "No all-in price, delivery speed, or extra condiments option has been selected or agreed "
-                "before negotiation starts."
+                "No all-in price, delivery speed, extra condiments option, or user product preference match has been "
+                "selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
-                "and discrete_terms.extra_condiments."
+                "discrete_terms.extra_condiments, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -119,11 +123,18 @@ def main(model_name=None):
             "discrete_terms.extra_condiments": (
                 "Whether the order includes extra condiments, sauces, or small sides requested by the buyer."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listing photo matches the buyer's stated preference for the drink on a fairly clean, "
+                "simple background without messy food clutter around it. Use `strong_match` when the frame looks "
+                "uncluttered, `partial_match` when minor clutter appears, and `mismatch_or_uncertain` when the drink "
+                "is crowded by food props or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {},
         "discrete_options": {
             "delivery_speed": ["rush", "standard", "batched"],
             "extra_condiments": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 4.52,
@@ -140,11 +151,20 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much receiving extra condiments changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated listing-photo cleanliness preference changes your "
+                    "utility, measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": 3.0, "standard": 0.0, "batched": -2.0},
                 "extra_condiments": {True: 1.5, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -162,11 +182,21 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much including extra condiments changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated listing-photo framing preference changes "
+                    "your utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling "
+                    "cost."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": -4.0, "standard": 0.0, "batched": 3.5},
                 "extra_condiments": {True: -0.5, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }
@@ -224,7 +254,7 @@ def main(model_name=None):
     user_profile = None
     print(f"User Profile: {user_profile}")
     
-    user_requirement = "I want a Sprite from Dripped Birria, delivered."
+    user_requirement = contract_config["contrainfo"]["product_request"]
     print(f"Using default requirement: {user_requirement}")
     
     # Reset environment

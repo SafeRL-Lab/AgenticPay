@@ -100,16 +100,20 @@ def main(model_name=None):
 
     # Public anchor: sum of menu-line `original_price` (~$16.50); negotiated band stays below; list `price` keeps higher delivered references.
     print("Creating agents...")
-    product_request = "I want Karaage Chicken and Cinnamon Toast Crunch Milkshake—one delivered total."
+    product_request = (
+        "I want Karaage Chicken and Cinnamon Toast Crunch Milkshake—one delivered total. "
+        "I also prefer whipped cream on the shake to mound visibly above the cup rim rather than staying flush under a flat lid."
+    )
     buyer1_contract_config = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total delivered bundle price, delivery_speed, or extra_condiments terms have been agreed before negotiation starts."
+                "No total delivered bundle price, delivery_speed, extra_condiments terms, or user product preference match "
+                "have been agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly set price, continuous_terms (use {}), discrete_terms.delivery_speed, "
-                "and discrete_terms.extra_condiments for the two-line delivered bundle total."
+                "discrete_terms.extra_condiments, and discrete_terms.user_product_preference for the two-line delivered bundle total."
             ),
         },
         "field_descriptions": {
@@ -123,11 +127,18 @@ def main(model_name=None):
             "discrete_terms.extra_condiments": (
                 "Whether the bundle includes extra sides of sauce and small add-ons (`true`) or only the default (`false`)."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the bundle matches the buyer's stated preference for whipped cream on the shake to mound visibly above "
+                "the cup rim rather than staying flush under a flat lid. Use `strong_match` when that preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is not satisfied or "
+                "cannot be confirmed."
+            ),
         },
         "continuous_bounds": {},
         "discrete_options": {
             "delivery_speed": ["rush", "standard", "batched"],
             "extra_condiments": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 12.34,
@@ -141,11 +152,20 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "Dollar utility impact of including extra condiments; positive is good for you, negative is bad."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": 2.62, "standard": 0.0, "batched": -2.12},
                 "extra_condiments": {True: 1.18, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -160,11 +180,20 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "Dollar impact of supplying extra condiments; usually a small cost."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your utility, measured in dollars. "
+                    "Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": -3.92, "standard": 0.0, "batched": 3.38},
                 "extra_condiments": {True: -0.35, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

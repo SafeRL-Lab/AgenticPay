@@ -97,14 +97,17 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want a yellow cab from Union Square to Lenox Hill West, all-in fare.",
+            "product_request": (
+                "I want a yellow cab from Union Square to Lenox Hill West, all-in fare. "
+                "I also prefer a route that sticks to the inland avenue grid rather than tracing the waterfront edge for long straight stretches."
+            ),
             "initial_contract_status": (
-                "No total fare, passenger wait time, or route preference has been selected or agreed "
-                "before negotiation starts."
+                "No total fare, passenger wait time, route preference, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
-                "and discrete_terms.route_preference."
+                "discrete_terms.route_preference, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -119,12 +122,19 @@ def main(model_name=None):
                 "The route choice for the ride. `tunnel` means the driver uses a faster toll tunnel or equivalent "
                 "paid route when useful; `local_streets` means the driver avoids tolls and uses surface streets."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the route aligns with the passenger's stated preference to keep to the inland avenue grid "
+                "rather than tracing the waterfront edge for long straight stretches. Use `strong_match` when the "
+                "preference is clearly satisfied, `partial_match` when it is only partly satisfied, and "
+                "`mismatch_or_uncertain` when it is not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "wait_time_mins": {"min": 0, "max": 30}
         },
         "discrete_options": {
             "route_preference": ["tunnel", "local_streets"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 16.65,
@@ -141,10 +151,19 @@ def main(model_name=None):
                     "How much each route option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated route-corridor preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"wait_time_mins": 1.0},
             "discrete_weights": {
                 "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+                "user_product_preference": {
+                    "strong_match": 0.28,
+                    "partial_match": 0.10,
+                    "mismatch_or_uncertain": -0.22,
+                },
             },
         },
         "seller_preferences": {
@@ -162,10 +181,20 @@ def main(model_name=None):
                     "How much each route option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the passenger's stated inland-grid versus waterfront-edge "
+                    "route preference changes your utility, measured in dollars. Stronger commitments carry a small "
+                    "nonzero routing or liability risk."
+                ),
             },
             "continuous_weights": {"wait_time_mins": -1.5},
             "discrete_weights": {
                 "route_preference": {"tunnel": -3.0, "local_streets": 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.07,
+                    "partial_match": -0.035,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

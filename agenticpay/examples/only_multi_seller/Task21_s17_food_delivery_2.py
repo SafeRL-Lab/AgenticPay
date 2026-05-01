@@ -102,17 +102,20 @@ def main(model_name=None):
     
     # Same dish from two offers: each seller can differ in private contract utility values.
     print("Creating agents...")
-    product_request = "I want Karaage Sliders & Fries from Sticky's Chicken, delivered."
+    product_request = (
+        "I want Karaage Sliders & Fries from Sticky's Chicken, delivered. "
+        "I also prefer the slider buns to look softly toasted golden with faint grill-stripes rather than pale and steamed-smooth across the crown."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No all-in price, delivery speed, or condiment option has been selected or agreed "
+                "No all-in price, delivery speed, condiment option, or user product preference match has been selected or agreed "
                 "before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
-                "and discrete_terms.extra_condiments."
+                "discrete_terms.extra_condiments, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -124,11 +127,18 @@ def main(model_name=None):
             "discrete_terms.extra_condiments": (
                 "Whether extra sauce, pickles, napkins, or small side condiments are included with the order."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the meal matches the buyer's stated preference for toasted golden buns with faint grill-stripes versus "
+                "pale steamed-smooth crowns. Use `strong_match` when the preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is "
+                "not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {},
         "discrete_options": {
             "delivery_speed": ["rush", "standard", "batched"],
             "extra_condiments": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 9.33,
@@ -143,11 +153,19 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much receiving extra condiments changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, measured in dollars."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": 3.2, "standard": 0.0, "batched": -2.1},
                 "extra_condiments": {True: 1.4, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
     }
@@ -166,11 +184,20 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much including extra condiments changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated plating preference changes your "
+                    "utility (USD). Stronger commitments imply a small nonzero representation risk."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": -4.2, "standard": 0.0, "batched": 3.6},
                 "extra_condiments": {True: -0.6, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }
@@ -183,6 +210,11 @@ def main(model_name=None):
             "discrete_weights": {
                 "delivery_speed": {"rush": -3.8, "standard": 0.0, "batched": 3.2},
                 "extra_condiments": {True: -0.45, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

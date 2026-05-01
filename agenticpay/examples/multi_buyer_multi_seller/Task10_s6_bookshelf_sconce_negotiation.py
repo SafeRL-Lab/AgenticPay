@@ -113,17 +113,21 @@ def main(model_name=None):
 
     print("Creating agents...")
     # Same SKU, two listings: per-pair MAUT contract (scenario 4 in score_design) with aligned fields.
-    product_request = "I want the Kcelarec 4-tier black ladder bookshelf—new."
+    product_request = (
+        "I want the Kcelarec 4-tier black ladder bookshelf—new. "
+        "I also prefer the ladder frame looks square with each shelf sitting level, not visibly bowed."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -139,11 +143,16 @@ def main(model_name=None):
             "discrete_terms.packaging": (
                 "`protective` uses extra reinforcement for shipment; `standard` is normal packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's stated alignment check (frame looks square; shelves appear level and not "
+                "visibly bowed). `strong_match` / `partial_match` / `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -162,11 +171,19 @@ def main(model_name=None):
             "discrete_weights.packaging": (
                 "Dollar utility of each packaging option for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "Dollar utility of each preference match tier for you."
+            ),
         },
         "continuous_weights": {"delivery_days": -0.32},
         "discrete_weights": {
             "return_policy": {"30_days": 1.15, "none": -1.25},
             "packaging": {"protective": 1.05, "standard": -0.45},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -190,11 +207,19 @@ def main(model_name=None):
             "discrete_weights.packaging": (
                 "Dollar utility of each packaging option for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "Dollar utility of each preference match tier; stronger match implies small nonzero cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.21},
         "discrete_weights": {
             "return_policy": {"30_days": -1.35, "none": 0.98},
             "packaging": {"protective": -0.82, "standard": 0.28},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

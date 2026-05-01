@@ -126,17 +126,21 @@ def main(model_name=None):
     
     # Create Agents — reservation prices / MAUT come from per-buyer contract configs (score_design § 租房)
     print("Creating agents...")
-    product_request = "I want Rio 'Alugo suíte individual' private suite—monthly rent vs. another bidder."
+    product_request = (
+        "I want Rio 'Alugo suíte individual' private suite—monthly rent vs. another bidder. "
+        "I also prefer entryway photos where the door slab meets the floor in a reasonably even threshold line "
+        "without a glaring tall light gap stretching along the sill."
+    )
     buyer1_contract_config = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No monthly rent, lease length, or utility-inclusion term has been selected or agreed "
-                "before negotiation starts."
+                "No monthly rent, lease length, utility-inclusion term, or assessed user product preference "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.lease_months, "
-                "and discrete_terms.include_utilities."
+                "discrete_terms.include_utilities, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -148,12 +152,17 @@ def main(model_name=None):
                 "Whether standard utilities are included in the monthly rent. true means utilities are included; "
                 "false means the tenant pays utilities separately."
             ),
+            "discrete_terms.user_product_preference": (
+                "Alignment of listing visuals with the buyer's stated threshold uniformity preference under suite doors. "
+                "Respond `strong_match`, `partial_match`, or `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {
             "lease_months": {"min": 1, "max": 24},
         },
         "discrete_options": {
             "include_utilities": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 1466.0,
@@ -169,10 +178,18 @@ def main(model_name=None):
                 "discrete_weights.include_utilities": (
                     "How much utility inclusion changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "Incremental dollars from matching levels on your stated door-threshold preference."
+                ),
             },
             "continuous_weights": {"lease_months": -10.0},
             "discrete_weights": {
                 "include_utilities": {True: 100.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -189,10 +206,18 @@ def main(model_name=None):
                 "discrete_weights.include_utilities": (
                     "How much including utilities changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "Minor liability cost for certifying narrower visual claims about facade details in marketing photos."
+                ),
             },
             "continuous_weights": {"lease_months": 20.0},
             "discrete_weights": {
                 "include_utilities": {True: -60.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

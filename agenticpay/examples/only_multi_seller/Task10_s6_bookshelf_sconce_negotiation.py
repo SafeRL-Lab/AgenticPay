@@ -129,17 +129,20 @@ def main(model_name=None):
     
     # Same product (SKU) from two listings: multidimensional contract; floors from seller c_base (MAUT).
     print("Creating agents...")
-    product_request = "I want a 4-tier black iron ladder bookshelf, new."
+    product_request = (
+        "I want a 4-tier black iron ladder bookshelf, new. "
+        "I also prefer the ladder side rails to lean visibly backward toward the top shelf rather than tracking straight up vertically."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -156,11 +159,18 @@ def main(model_name=None):
                 "`protective`: corner guards/heavier wrap for metal furniture edges; "
                 "`standard`: normal retail packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the product matches the buyer's stated preference for ladder rails that visibly lean backward "
+                "toward the top versus standing straight vertically. Use `strong_match` when the preference is clearly "
+                "satisfied, `partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is "
+                "not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 29.37,
@@ -178,11 +188,20 @@ def main(model_name=None):
                 "discrete_weights.packaging": (
                     "Dollar utility change per packaging tier."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.25},
             "discrete_weights": {
                 "return_policy": {"30_days": 1.0, "none": -1.2},
                 "packaging": {"protective": 0.9, "standard": -0.3},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
     }
@@ -204,11 +223,20 @@ def main(model_name=None):
                 "discrete_weights.packaging": (
                     "Dollar utility change from packaging choice for your side."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.15},
             "discrete_weights": {
                 "return_policy": {"30_days": -1.6, "none": 1.1},
                 "packaging": {"protective": -0.6, "standard": 0.25},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }
@@ -221,6 +249,11 @@ def main(model_name=None):
             "discrete_weights": {
                 "return_policy": {"30_days": -1.2, "none": 0.8},
                 "packaging": {"protective": -0.95, "standard": 0.35},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

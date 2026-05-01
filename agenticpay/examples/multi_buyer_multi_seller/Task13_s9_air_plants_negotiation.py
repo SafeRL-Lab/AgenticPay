@@ -115,17 +115,21 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    product_request = "I want a CTS Tillandsia air plants 6-pack (medium)—new."
+    product_request = (
+        "I want a CTS Tillandsia air plants 6-pack (medium)—new. "
+        "I also prefer most leaves look green and firm with at most tiny brown tips showing."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -137,11 +141,16 @@ def main(model_name=None):
             "discrete_terms.packaging": (
                 "`protective`: insulation/cushioning for live plants; `standard`: normal parcel."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's stated plant condition check (mostly green firm foliage; brown tips minor at "
+                "most). `strong_match` / `partial_match` / `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -151,11 +160,17 @@ def main(model_name=None):
             "continuous_weights.delivery_days": "$/day; negative if slower delivery hurts.",
             "discrete_weights.return_policy": "$ per return-policy option.",
             "discrete_weights.packaging": "$ per packaging option.",
+            "discrete_weights.user_product_preference": "$ per preference match tier.",
         },
         "continuous_weights": {"delivery_days": -0.34},
         "discrete_weights": {
             "return_policy": {"30_days": 1.18, "none": -1.28},
             "packaging": {"protective": 1.12, "standard": -0.48},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -170,11 +185,19 @@ def main(model_name=None):
             "continuous_weights.delivery_days": "$/day for your fulfillment costs/flexibility.",
             "discrete_weights.return_policy": "$ per return-policy option.",
             "discrete_weights.packaging": "$ per packaging option.",
+            "discrete_weights.user_product_preference": (
+                "$ per preference match tier; stronger match implies small nonzero handling cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.22},
         "discrete_weights": {
             "return_policy": {"30_days": -1.38, "none": 1.0},
             "packaging": {"protective": -0.8, "standard": 0.3},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

@@ -119,18 +119,21 @@ def main(model_name=None):
     
     # Same two-SKU bundle from two offers: each buyer-seller pair has private contract utility values (MAUT; score_design §3–5).
     print("Creating agents...")
-    product_request = "I want Brushline Pro scope and Epson TM-T20 together."
+    product_request = (
+        "I want Brushline Pro scope and Epson TM-T20 together. "
+        "I also prefer the thermal printer listing to show a visible paper exit slot or throat, not only a sealed solid top."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle price, delivery time, return policy, or gift-wrap option has been selected "
-                "or agreed before negotiation starts."
+                "No total bundle price, delivery time, return policy, gift-wrap option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.gift_wrap. The price is the total "
-                "bundle price for both products."
+                "discrete_terms.return_policy, discrete_terms.gift_wrap, and discrete_terms.user_product_preference. "
+                "The price is the total bundle price for both products."
             ),
         },
         "field_descriptions": {
@@ -146,11 +149,18 @@ def main(model_name=None):
                 "`yes` means consolidated retail kitting with extra padding and inner cartons for optics + electronics; "
                 "`no` means standard parcel packing."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listings match the buyer's stated preference that the receipt printer listing show a "
+                "visible paper exit slot or throat rather than looking like a sealed solid top only. "
+                "`strong_match` when clearly satisfied; `partial_match` when ambiguous or partly satisfied; "
+                "`mismatch_or_uncertain` when not satisfied or unconfirmable."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 10}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "gift_wrap": ["yes", "no"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -172,11 +182,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much each match level for your stated printer paper-exit preference changes your utility, measured in dollars. "
+                "Positive numbers are good for you; negative numbers are bad for you."
+            ),
         },
         "continuous_weights": {"delivery_days": -1.9},
         "discrete_weights": {
             "return_policy": {"30_days": 22.0, "none": -24.0},
             "gift_wrap": {"yes": 16.0, "no": -4.0},
+            "user_product_preference": {
+                "strong_match": 0.24,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -203,11 +222,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much committing to each match level on the buyer's stated printer throat preference changes your utility, "
+                "measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 1.35},
         "discrete_weights": {
             "return_policy": {"30_days": -20.0, "none": 13.0},
             "gift_wrap": {"yes": -14.0, "no": 2.5},
+            "user_product_preference": {
+                "strong_match": -0.065,
+                "partial_match": -0.032,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

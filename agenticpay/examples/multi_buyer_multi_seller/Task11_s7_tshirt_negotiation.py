@@ -115,17 +115,21 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    product_request = "I want the Marvel Endgame Captain America tee—new."
+    product_request = (
+        "I want the Marvel Endgame Captain America tee—new. "
+        "I also prefer the chest print looks centered left-to-right on the shirt lay-flat."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -137,11 +141,16 @@ def main(model_name=None):
             "discrete_terms.packaging": (
                 "`protective` adds padding for apparel shipment; `standard` is ordinary packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's stated print centering check on the chest in a typical lay-flat view. "
+                "`strong_match` / `partial_match` / `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -153,11 +162,17 @@ def main(model_name=None):
             "continuous_weights.delivery_days": "Utility change per delivery day ($/day); negative if slower hurts.",
             "discrete_weights.return_policy": "Utility ($) per return-policy option.",
             "discrete_weights.packaging": "Utility ($) per packaging option.",
+            "discrete_weights.user_product_preference": "Utility ($) per preference match tier.",
         },
         "continuous_weights": {"delivery_days": -0.33},
         "discrete_weights": {
             "return_policy": {"30_days": 1.12, "none": -1.22},
             "packaging": {"protective": 1.02, "standard": -0.38},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -172,11 +187,19 @@ def main(model_name=None):
             "continuous_weights.delivery_days": "Utility change per delivery day ($/day).",
             "discrete_weights.return_policy": "Utility ($) per return-policy option.",
             "discrete_weights.packaging": "Utility ($) per packaging option.",
+            "discrete_weights.user_product_preference": (
+                "Utility ($) per preference match tier; stronger match implies small nonzero cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.19},
         "discrete_weights": {
             "return_policy": {"30_days": -1.32, "none": 0.96},
             "packaging": {"protective": -0.76, "standard": 0.26},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

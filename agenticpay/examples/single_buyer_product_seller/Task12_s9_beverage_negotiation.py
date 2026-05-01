@@ -107,14 +107,18 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want Belvoir Sparkling Elderflower Rose, case of 24.",
+            "product_request": (
+                "I want Belvoir Sparkling Elderflower Rose, case of 24. I also prefer bottles that look like glass "
+                "rather than plastic."
+            ),
             "initial_contract_status": (
-                "No price, delivery time, return policy, or case freshness/packing guarantee has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, case freshness/packing guarantee, or user product preference "
+                "match has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.freshness_packing_guarantee."
+                "discrete_terms.return_policy, discrete_terms.freshness_packing_guarantee, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -130,6 +134,11 @@ def main(model_name=None):
                 "The guarantee for freshness and safe case packing. `fresh_protective_case` means the seller guarantees "
                 "fresh stock and protective packing for the bottles; `standard` means normal grocery fulfillment."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listing matches the buyer's stated preference for bottles that appear to be glass "
+                "rather than plastic. Use `strong_match` when this is clearly satisfied, `partial_match` when only "
+                "partly satisfied, and `mismatch_or_uncertain` when it is not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 7}
@@ -137,6 +146,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "freshness_packing_guarantee": ["fresh_protective_case", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 24.70,
@@ -157,11 +167,20 @@ def main(model_name=None):
                     "How much each freshness/packing guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.30},
             "discrete_weights": {
                 "return_policy": {"30_days": 2.0, "none": -2.2},
                 "freshness_packing_guarantee": {"fresh_protective_case": 2.5, "standard": -1.0},
+                "user_product_preference": {
+                    "strong_match": 0.23,
+                    "partial_match": 0.09,
+                    "mismatch_or_uncertain": -0.19,
+                },
             },
         },
         "seller_preferences": {
@@ -183,11 +202,20 @@ def main(model_name=None):
                     "How much each freshness/packing guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.22},
             "discrete_weights": {
                 "return_policy": {"30_days": -2.5, "none": 1.7},
                 "freshness_packing_guarantee": {"fresh_protective_case": -1.4, "standard": 0.5},
+                "user_product_preference": {
+                    "strong_match": -0.068,
+                    "partial_match": -0.034,
+                    "mismatch_or_uncertain": 0.016,
+                },
             },
         },
     }

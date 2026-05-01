@@ -118,17 +118,20 @@ def main(model_name=None):
     
     # Same menu item, two all-in quotes: per buyer–seller pair MAUT (delivery_speed + extra_condiments); Z_market from best pair.
     print("Creating agents...")
-    product_request = "I want Izakaya karaage chicken with yuzu marmalade—delivered all-in."
+    product_request = (
+        "I want Izakaya karaage chicken with yuzu marmalade—delivered all-in. "
+        "I also prefer the plated bite-size pieces look similar in size with fairly even browning, not one piece much darker than the rest."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery speed tier, or extra condiments option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery speed tier, extra condiments option, or user product preference match has been "
+                "selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
-                "and discrete_terms.extra_condiments (boolean true or false)."
+                "discrete_terms.extra_condiments (boolean true or false), and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -144,11 +147,16 @@ def main(model_name=None):
                 "Whether complimentary extra sauces or small sides are included when applicable. "
                 "`true` adds extras; `false` is the base-only configuration."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's plated-item check (similar bite sizes with even browning, no single chunk "
+                "much darker than the others). `strong_match` / `partial_match` / `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {},
         "discrete_options": {
             "delivery_speed": ["rush", "standard", "batched"],
             "extra_condiments": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -164,11 +172,19 @@ def main(model_name=None):
             "discrete_weights.extra_condiments": (
                 "Utility impact of including extra condiments (true vs false) in dollars."
             ),
+            "discrete_weights.user_product_preference": (
+                "Utility impact ($) per match level versus your stated item appearance preference."
+            ),
         },
         "continuous_weights": {},
         "discrete_weights": {
             "delivery_speed": {"rush": 2.85, "standard": 0.0, "batched": -1.95},
             "extra_condiments": {True: 1.45, False: 0.0},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -192,11 +208,19 @@ def main(model_name=None):
             "discrete_weights.extra_condiments": (
                 "Cost impact of bundling extra condiments for the customer."
             ),
+            "discrete_weights.user_product_preference": (
+                "Utility impact ($) per match tier; stronger match carries small nonzero confirmation cost."
+            ),
         },
         "continuous_weights": {},
         "discrete_weights": {
             "delivery_speed": {"rush": -3.92, "standard": 0.0, "batched": 3.48},
             "extra_condiments": {True: -0.46, False: 0.0},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

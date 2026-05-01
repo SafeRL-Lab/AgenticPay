@@ -117,17 +117,21 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    product_request = "I want AmeriColor AmeriMist lemon yellow food color—new."
+    product_request = (
+        "I want AmeriColor AmeriMist lemon yellow food color—new. "
+        "I also prefer the spray pump and collar ring look intact with no cracked plastic around the nozzle base."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -139,11 +143,16 @@ def main(model_name=None):
             "discrete_terms.packaging": (
                 "`protective`: extra padding against leaks/crush; `standard`: normal pouch/box."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's stated sprayer-condition check (pump/collar intact; no obvious cracked plastic "
+                "around the nozzle base). `strong_match` / `partial_match` / `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -153,11 +162,17 @@ def main(model_name=None):
             "continuous_weights.delivery_days": "$/day; negative if slower hurts.",
             "discrete_weights.return_policy": "$ utility per option.",
             "discrete_weights.packaging": "$ utility per option.",
+            "discrete_weights.user_product_preference": "$ utility per preference match tier.",
         },
         "continuous_weights": {"delivery_days": -0.29},
         "discrete_weights": {
             "return_policy": {"30_days": 1.05, "none": -1.22},
             "packaging": {"protective": 0.95, "standard": -0.35},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -172,11 +187,19 @@ def main(model_name=None):
             "continuous_weights.delivery_days": "$/day; positive if slower shipping saves you hassle/cost.",
             "discrete_weights.return_policy": "$ utility per option.",
             "discrete_weights.packaging": "$ utility per option.",
+            "discrete_weights.user_product_preference": (
+                "$ utility per preference match tier; stronger match implies small nonzero cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.19},
         "discrete_weights": {
             "return_policy": {"30_days": -1.38, "none": 0.96},
             "packaging": {"protective": -0.76, "standard": 0.29},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

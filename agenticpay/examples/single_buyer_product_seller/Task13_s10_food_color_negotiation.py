@@ -107,14 +107,18 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want AmeriColor AmeriMist lemon yellow airbrush food color.",
+            "product_request": (
+                "I want AmeriColor AmeriMist lemon yellow airbrush food color. I also prefer a narrow, fine nozzle "
+                "opening on the spray head."
+            ),
             "initial_contract_status": (
-                "No price, delivery time, return policy, or color/seal guarantee has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, color/seal guarantee, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.color_seal_guarantee."
+                "discrete_terms.return_policy, discrete_terms.color_seal_guarantee, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -131,6 +135,11 @@ def main(model_name=None):
                 "means the requested color and factory seal are guaranteed; `standard` means normal new-item fulfillment "
                 "without an extra color/seal guarantee."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listing matches the buyer's stated preference for a narrow, fine nozzle opening on the "
+                "spray head. Use `strong_match` when this is clearly satisfied, `partial_match` when only partly "
+                "satisfied, and `mismatch_or_uncertain` when it is not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 7}
@@ -138,6 +147,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "color_seal_guarantee": ["sealed_lemon_yellow", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 4.88,
@@ -158,11 +168,20 @@ def main(model_name=None):
                     "How much each color/seal guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.12},
             "discrete_weights": {
                 "return_policy": {"30_days": 0.7, "none": -0.8},
                 "color_seal_guarantee": {"sealed_lemon_yellow": 0.9, "standard": -0.35},
+                "user_product_preference": {
+                    "strong_match": 0.21,
+                    "partial_match": 0.085,
+                    "mismatch_or_uncertain": -0.17,
+                },
             },
         },
         "seller_preferences": {
@@ -184,11 +203,20 @@ def main(model_name=None):
                     "How much each color/seal guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.10},
             "discrete_weights": {
                 "return_policy": {"30_days": -0.9, "none": 0.6},
                 "color_seal_guarantee": {"sealed_lemon_yellow": -0.4, "standard": 0.15},
+                "user_product_preference": {
+                    "strong_match": -0.055,
+                    "partial_match": -0.028,
+                    "mismatch_or_uncertain": 0.011,
+                },
             },
         },
     }

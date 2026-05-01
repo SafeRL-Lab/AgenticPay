@@ -103,18 +103,22 @@ def main(model_name=None):
     
     print("Creating agents...")
     # Same ride (route): v_base / c_base are confidential reservation prices; product_info reference_total_amount is a higher public anchor.
-    user_requirement = "I want a yellow cab from West Village to Sutton Place, all-in fare."
+    user_requirement = (
+        "I want a yellow cab from West Village to Sutton Place, all-in fare. "
+        "I also prefer the path to zigzag via shorter hops between avenues and cross streets rather than spanning "
+        "most of Midtown as one uninterrupted long crosstown stroke."
+    )
     product_request = user_requirement
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No all-in fare price, passenger wait time before pickup, or route preference "
-                "(tunnel vs local streets) has been selected or agreed before negotiation starts."
+                "No all-in fare price, passenger wait time before pickup, route preference (tunnel vs local streets), "
+                "or user product preference match has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
-                "and discrete_terms.route_preference."
+                "discrete_terms.route_preference, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -128,9 +132,18 @@ def main(model_name=None):
             "discrete_terms.route_preference": (
                 "`tunnel` uses a tolled crossing when it saves time; `local_streets` stays on congested surface streets without added toll."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the plotted path matches the buyer's stated preference for many short hops versus one long "
+                "unbroken crosstown stroke. Use `strong_match` when the preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is "
+                "not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {"wait_time_mins": {"min": 0, "max": 30}},
-        "discrete_options": {"route_preference": ["tunnel", "local_streets"]},
+        "discrete_options": {
+            "route_preference": ["tunnel", "local_streets"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
+        },
         "buyer_preferences": {
             "v_base": 25.84,
             "weight_descriptions": {
@@ -143,10 +156,18 @@ def main(model_name=None):
                 "discrete_weights.route_preference": (
                     "USD utility per route; tunnel is better when you are time-constrained."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated route-shape preference changes your utility, measured in dollars."
+                ),
             },
             "continuous_weights": {"wait_time_mins": 1.0},
             "discrete_weights": {
                 "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
     }
@@ -164,10 +185,19 @@ def main(model_name=None):
                 "discrete_weights.route_preference": (
                     "USD utility per route; tunnel often implies tolls you bear."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated route-shape preference changes your "
+                    "utility (USD). Stronger commitments imply a small nonzero representation risk."
+                ),
             },
             "continuous_weights": {"wait_time_mins": -1.65},
             "discrete_weights": {
                 "route_preference": {"tunnel": -3.2, "local_streets": 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }
@@ -179,6 +209,11 @@ def main(model_name=None):
             "continuous_weights": {"wait_time_mins": -1.35},
             "discrete_weights": {
                 "route_preference": {"tunnel": -2.85, "local_streets": 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

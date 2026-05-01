@@ -118,17 +118,21 @@ def main(model_name=None):
     
     # Same toothpaste SKU from two listings; each buyer-seller pair has private MAUT weights (score_design.md).
     print("Creating agents...")
-    product_request = "I want ARM & HAMMER Peroxicare toothpaste, Clean Mint—6-pack (new)."
+    product_request = (
+        "I want ARM & HAMMER Peroxicare toothpaste, Clean Mint—6-pack (new). "
+        "I also prefer the tubes look neatly aligned in the carton with no visibly crushed corners on the box."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -144,11 +148,16 @@ def main(model_name=None):
                 "Shipment packaging. `protective` adds padding for the toothpaste tubes; "
                 "`standard` means normal packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's stated preference that the tubes appear neatly aligned in the carton and "
+                "the box corners look uncrushed. `strong_match` / `partial_match` / `mismatch_or_uncertain` as usual."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -166,11 +175,19 @@ def main(model_name=None):
             "discrete_weights.packaging": (
                 "Utility impact ($) of each packaging option; positive is good for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "Utility impact ($) of each preference match tier; positive is good for you."
+            ),
         },
         "continuous_weights": {"delivery_days": -0.28},
         "discrete_weights": {
             "return_policy": {"30_days": 1.05, "none": -1.25},
             "packaging": {"protective": 0.95, "standard": -0.38},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -193,11 +210,19 @@ def main(model_name=None):
             "discrete_weights.packaging": (
                 "Utility impact ($) of each packaging option for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "Utility impact ($) per match tier; stronger match carries small nonzero assurance cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.18},
         "discrete_weights": {
             "return_policy": {"30_days": -1.35, "none": 0.95},
             "packaging": {"protective": -0.72, "standard": 0.28},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

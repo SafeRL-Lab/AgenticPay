@@ -106,7 +106,10 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    user_requirement = "I want a Gramercy → Murray Hill yellow cab—flat all-in fare."
+    user_requirement = (
+        "I want a Gramercy → Murray Hill yellow cab—flat all-in fare. "
+        "I also prefer the cab body looks freshly washed without obvious large scrapes along the doors."
+    )
     product_request = user_requirement
 
     buyer1_max_price = 10.18  # Maximum acceptable all-in total for Buyer 1 (confidential; below listing reference total)
@@ -118,12 +121,12 @@ def main(model_name=None):
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No all-in fare, curbside wait time, or route preference has been selected or agreed "
-                "before negotiation starts."
+                "No all-in fare, curbside wait time, route preference, or user product preference match has been "
+                "selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
-                "and discrete_terms.route_preference."
+                "discrete_terms.route_preference, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -139,9 +142,16 @@ def main(model_name=None):
                 "Routing choice for Manhattan traffic: `tunnel` uses tolled crossings when they save time; "
                 "`local_streets` stays on congested surface streets to avoid tunnel tolls."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's stated check that the cab exterior looks cleanly washed without obvious large "
+                "scrape marks along the doors. `strong_match` / `partial_match` / `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {"wait_time_mins": {"min": 0, "max": 30}},
-        "discrete_options": {"route_preference": ["tunnel", "local_streets"]},
+        "discrete_options": {
+            "route_preference": ["tunnel", "local_streets"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
+        },
     }
     buyer1_preferences = {
         "v_base": buyer1_max_price,
@@ -157,10 +167,18 @@ def main(model_name=None):
             "discrete_weights.route_preference": (
                 "Dollar utility shift for each route option; positive is good for you, negative is bad."
             ),
+            "discrete_weights.user_product_preference": (
+                "Dollar utility shift per match level versus your stated vehicle appearance preference."
+            ),
         },
         "continuous_weights": {"wait_time_mins": 1.0},
         "discrete_weights": {
             "route_preference": {"tunnel": 4.0, "local_streets": -2.0},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -182,10 +200,18 @@ def main(model_name=None):
             "discrete_weights.route_preference": (
                 "Dollar utility shift for each route option; tolls and traffic trade off here."
             ),
+            "discrete_weights.user_product_preference": (
+                "Dollar shift per match tier; stronger appearance confirmation carries small nonzero assurance cost."
+            ),
         },
         "continuous_weights": {"wait_time_mins": -1.5},
         "discrete_weights": {
             "route_preference": {"tunnel": -3.0, "local_streets": 0.0},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

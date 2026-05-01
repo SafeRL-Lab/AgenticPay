@@ -124,7 +124,8 @@ def main(model_name=None):
     seller2_min_price = 20.58  # Minimum acceptable all-in bundle fare for seller2 (confidential)
 
     product_request = (
-        "I want West Village to Sutton Place—base fare plus surcharges, all-in."
+        "I want West Village to Sutton Place—base fare plus surcharges, all-in. "
+        "I also prefer the side view to show any checker strip or waistline trim tracked as a straight horizontal line."
     )
     _m = 1.39  # MAUT weight scale vs paper baseline (~$18 v_base)
 
@@ -132,13 +133,13 @@ def main(model_name=None):
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total all-in fare, curb wait time, or route preference has been selected "
-                "or agreed before negotiation starts."
+                "No total all-in fare, curb wait time, route preference, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.wait_time_mins, "
-                "and discrete_terms.route_preference. The price is the passenger-paid total "
-                "for both fare components (metered base + mandatory fees)."
+                "discrete_terms.route_preference, and discrete_terms.user_product_preference. The price is the passenger-paid "
+                "total for both fare components (metered base + mandatory fees)."
             ),
         },
         "field_descriptions": {
@@ -151,9 +152,17 @@ def main(model_name=None):
             "discrete_terms.route_preference": (
                 "`tunnel` uses tolled crossings when faster; `local_streets` avoids tolls on congested surface roads."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the imagery matches the buyer's stated preference that side-view checker strip or waistline trim "
+                "read as a straight horizontal line. `strong_match` when clearly satisfied; `partial_match` when ambiguous "
+                "or partly satisfied; `mismatch_or_uncertain` when not satisfied or unconfirmable."
+            ),
         },
         "continuous_bounds": {"wait_time_mins": {"min": 0, "max": 30}},
-        "discrete_options": {"route_preference": ["tunnel", "local_streets"]},
+        "discrete_options": {
+            "route_preference": ["tunnel", "local_streets"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
+        },
     }
 
     buyer1_preferences = {
@@ -168,10 +177,18 @@ def main(model_name=None):
             "discrete_weights.route_preference": (
                 "Extra dollar utility for tunnel vs local routing beyond price."
             ),
+            "discrete_weights.user_product_preference": (
+                "Extra dollar utility for how well imagery matches your stated side-trim alignment preference."
+            ),
         },
         "continuous_weights": {"wait_time_mins": 1.0 * _m},
         "discrete_weights": {
             "route_preference": {"tunnel": 4.0 * _m, "local_streets": -2.0 * _m},
+            "user_product_preference": {
+                "strong_match": 0.45 * _m,
+                "partial_match": 0.16 * _m,
+                "mismatch_or_uncertain": -0.30 * _m,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -194,10 +211,18 @@ def main(model_name=None):
             "discrete_weights.route_preference": (
                 "Extra dollar utility/cost for tunnel tolls vs surface routing."
             ),
+            "discrete_weights.user_product_preference": (
+                "Small dollar cost or benefit when affirming alignment with the buyer's stated trim-line preference."
+            ),
         },
         "continuous_weights": {"wait_time_mins": -1.5 * _m},
         "discrete_weights": {
             "route_preference": {"tunnel": -3.0 * _m, "local_streets": 0.0},
+            "user_product_preference": {
+                "strong_match": -0.11 * _m,
+                "partial_match": -0.055 * _m,
+                "mismatch_or_uncertain": 0.012 * _m,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))
@@ -382,8 +407,9 @@ def main(model_name=None):
             "and output that choice in a dedicated <selected_seller> block containing only "
             "the digit 1 or 2. Then put only your negotiation text in <message>, including "
             "one complete <contract>...</contract> JSON block with price (all-in total), "
-            "continuous_terms.wait_time_mins in [0,30], and discrete_terms.route_preference "
-            "either tunnel or local_streets."
+            "continuous_terms.wait_time_mins in [0,30], discrete_terms.route_preference "
+            "either tunnel or local_streets, and discrete_terms.user_product_preference "
+            "one of strong_match, partial_match, mismatch_or_uncertain."
         )
         buyer1_response, buyer1_selected_seller = _run_buyer_routing(
             buyer1, combined_history_b1, observation, routing_instruction

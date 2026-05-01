@@ -101,14 +101,18 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want to rent the East Village Living studio, monthly rent.",
+            "product_request": (
+                "I want to rent the East Village Living studio, monthly rent. "
+                "I also prefer the main interior shot to show clear wall trim like crown molding or wide baseboards, not "
+                "just plain paint to the edge."
+            ),
             "initial_contract_status": (
-                "No monthly rent, lease length, or utilities-included term has been selected or agreed "
-                "before negotiation starts."
+                "No monthly rent, lease length, utilities-included term, or user product preference match has been "
+                "selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.lease_months, "
-                "and discrete_terms.include_utilities."
+                "discrete_terms.include_utilities, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -120,12 +124,19 @@ def main(model_name=None):
                 "Whether the monthly rent includes basic utilities. `true` means utilities are included; "
                 "`false` means the tenant pays utilities separately."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listing photos match the buyer's stated preference for clear wall trim such as crown "
+                "molding or wide baseboards in the main interior shot, not just plain paint to the edge. Use "
+                "`strong_match` when trim is clearly visible, `partial_match` when trim is minimal or partly visible, "
+                "and `mismatch_or_uncertain` when it looks untrimmed or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "lease_months": {"min": 1, "max": 24}
         },
         "discrete_options": {
             "include_utilities": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 1092,
@@ -142,10 +153,19 @@ def main(model_name=None):
                     "How much each utilities-included option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated interior-detail preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"lease_months": -10.0},
             "discrete_weights": {
                 "include_utilities": {True: 100.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -163,10 +183,19 @@ def main(model_name=None):
                     "How much each utilities-included option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated interior-detail preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"lease_months": 20.0},
             "discrete_weights": {
                 "include_utilities": {True: -60.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

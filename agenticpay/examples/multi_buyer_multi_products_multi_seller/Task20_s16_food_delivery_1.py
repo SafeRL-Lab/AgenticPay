@@ -120,17 +120,21 @@ def main(model_name=None):
     # Multi-dimensional contract (food delivery): same fields across b×s pairs; private MAUT weights differ.
     # Scoring: env picks market_best_pair = argmax Z_max over pairs; r_b = U_b / z_market, Q = 4*r_b*r_s (Task3 contract mode).
     print("Creating agents...")
-    product_request = "I want Karaage over Rice and Karaage Sliders & Fries delivered—one total."
+    product_request = (
+        "I want Karaage over Rice and Karaage Sliders & Fries delivered—one total. "
+        "I also prefer the fried chicken to show rough, craggy breading texture on the crust, not an ultra-smooth batter skin only."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No all-in bundle price, delivery_speed tier, or extra_condiments add-on flag has been "
-                "selected or agreed before negotiation starts."
+                "No all-in bundle price, delivery_speed tier, extra_condiments add-on flag, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
-                "A valid offer must explicitly set price, discrete_terms.delivery_speed, and "
-                "discrete_terms.extra_condiments. Use an empty JSON object for continuous_terms: {}. "
+                "A valid offer must explicitly set price, discrete_terms.delivery_speed, "
+                "discrete_terms.extra_condiments, and discrete_terms.user_product_preference. "
+                "Use an empty JSON object for continuous_terms: {}. "
                 "Price is the all-in total for both items (including delivery-related fees)."
             ),
         },
@@ -142,11 +146,18 @@ def main(model_name=None):
             "discrete_terms.extra_condiments": (
                 "Whether the order includes extra sauces, sides, or add-ons beyond the default (`true` or `false`)."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the menu imagery matches the buyer's stated preference that the fried chicken show rough, craggy "
+                "breading texture on the crust rather than an ultra-smooth batter surface only. "
+                "`strong_match` when clearly satisfied; `partial_match` when ambiguous or partly satisfied; "
+                "`mismatch_or_uncertain` when not satisfied or unconfirmable."
+            ),
         },
         "continuous_bounds": {},
         "discrete_options": {
             "delivery_speed": ["rush", "standard", "batched"],
             "extra_condiments": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -162,11 +173,19 @@ def main(model_name=None):
             "discrete_weights.extra_condiments": (
                 "Utility impact in dollars for including extra condiments or add-ons."
             ),
+            "discrete_weights.user_product_preference": (
+                "Utility impact in dollars for how well photos match your stated breading-texture preference."
+            ),
         },
         "continuous_weights": {},
         "discrete_weights": {
             "delivery_speed": {"rush": 2.85, "standard": 0.0, "batched": -1.95},
             "extra_condiments": {True: 1.18, False: 0.0},
+            "user_product_preference": {
+                "strong_match": 0.24,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -186,11 +205,19 @@ def main(model_name=None):
             "discrete_weights.extra_condiments": (
                 "Dollar impact of supplying extra condiments or add-ons."
             ),
+            "discrete_weights.user_product_preference": (
+                "Small dollar cost when strongly matching the buyer's stated breading-texture preference versus looser claims."
+            ),
         },
         "continuous_weights": {},
         "discrete_weights": {
             "delivery_speed": {"rush": -3.55, "standard": 0.0, "batched": 3.1},
             "extra_condiments": {True: -0.5, False: 0.0},
+            "user_product_preference": {
+                "strong_match": -0.065,
+                "partial_match": -0.032,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))
@@ -346,7 +373,8 @@ def main(model_name=None):
             "the digit 1 or 2. Then put only your negotiation text in <message>, including "
             "one complete <contract>...</contract> JSON block for the selected seller. "
             "The contract price is the **all-in total** for both items in the cart; "
-            "discrete_terms must include delivery_speed (rush|standard|batched) and extra_condiments (true|false); "
+            "discrete_terms must include delivery_speed (rush|standard|batched), extra_condiments (true|false), and "
+            "user_product_preference (strong_match|partial_match|mismatch_or_uncertain); "
             "continuous_terms must be {}."
         )
         buyer1_response, buyer1_selected_seller = _run_buyer_routing(

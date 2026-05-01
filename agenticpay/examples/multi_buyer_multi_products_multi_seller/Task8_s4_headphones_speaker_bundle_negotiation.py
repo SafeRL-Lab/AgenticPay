@@ -119,18 +119,21 @@ def main(model_name=None):
     
     # Same two-SKU bundle from two offers: each buyer-seller pair has private contract utility values (MAUT; score_design §3–5).
     print("Creating agents...")
-    product_request = "I want kids BT headphones and Sony SRS-XB33 speaker together."
+    product_request = (
+        "I want kids BT headphones and Sony SRS-XB33 speaker together. "
+        "I also prefer the portable speaker listing to show a carry strap actually looped onto the unit."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle price, delivery time, return policy, or gift-wrap option has been selected "
-                "or agreed before negotiation starts."
+                "No total bundle price, delivery time, return policy, gift-wrap option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.gift_wrap. The price is the total "
-                "bundle price for both products."
+                "discrete_terms.return_policy, discrete_terms.gift_wrap, and discrete_terms.user_product_preference. "
+                "The price is the total bundle price for both products."
             ),
         },
         "field_descriptions": {
@@ -146,11 +149,17 @@ def main(model_name=None):
                 "`yes` means gift-style boxing and extra padding (useful for kids headphones + portable speaker); "
                 "`no` means standard packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listings match the buyer's stated preference that the portable speaker be shown "
+                "with a carry strap looped onto the unit. `strong_match` when clearly satisfied; `partial_match` when "
+                "ambiguous or partly satisfied; `mismatch_or_uncertain` when not satisfied or unconfirmable."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "gift_wrap": ["yes", "no"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -172,11 +181,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much each match level for your stated speaker-strap preference changes your utility, measured in dollars. "
+                "Positive numbers are good for you; negative numbers are bad for you."
+            ),
         },
         "continuous_weights": {"delivery_days": -0.52},
         "discrete_weights": {
             "return_policy": {"30_days": 4.2, "none": -4.8},
             "gift_wrap": {"yes": 3.2, "no": -0.75},
+            "user_product_preference": {
+                "strong_match": 0.24,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -203,11 +221,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much committing to each match level on the buyer's strap visibility preference changes your utility, measured in dollars. "
+                "Stronger commitments carry a small nonzero risk or handling cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.42},
         "discrete_weights": {
             "return_policy": {"30_days": -4.5, "none": 2.8},
             "gift_wrap": {"yes": -3.0, "no": 0.65},
+            "user_product_preference": {
+                "strong_match": -0.065,
+                "partial_match": -0.032,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

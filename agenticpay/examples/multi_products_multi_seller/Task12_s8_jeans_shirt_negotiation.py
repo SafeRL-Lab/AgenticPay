@@ -82,18 +82,21 @@ def main(model_name=None):
     print(f"✓ Successfully initialized: {model}")
 
     print("Creating agents...")
-    product_request = "I want myhehthw ripped high-waist jeans and JSPOYOU tie-dye tee—best total."
+    product_request = (
+        "I want myhehthw ripped high-waist jeans and JSPOYOU tie-dye tee—best total. "
+        "I also prefer the jeans' waistband and pocket seams to look cleanly finished without frayed loops or loose ends hanging off."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle price, delivery time, return policy, or packaging option has been "
-                "selected or agreed before negotiation starts."
+                "No total bundle price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging. The price is the total "
-                "bundle price for the jeans and shirt together."
+                "discrete_terms.return_policy, discrete_terms.packaging, and discrete_terms.user_product_preference. "
+                "The price is the total bundle price for the jeans and shirt together."
             ),
         },
         "field_descriptions": {
@@ -110,11 +113,17 @@ def main(model_name=None):
             "discrete_terms.packaging": (
                 "`protective` reduces fold-wear and dye-transfer risk for denim and graphic tees; `standard` is normal packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the jeans match the buyer's stated preference for a cleanly finished waistband and pocket seams without "
+                "frayed loops or dangling loose ends. Use `strong_match` when clearly satisfied, `partial_match` when only partly satisfied, "
+                "and `mismatch_or_uncertain` when not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 26.66,
@@ -132,11 +141,19 @@ def main(model_name=None):
                 "discrete_weights.packaging": (
                     "Utility ($) per packaging option; positive is good for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "Utility ($) for each match level to your stated product preference; positive is good for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.35},
             "discrete_weights": {
                 "return_policy": {"30_days": 1.6, "none": -1.8},
                 "packaging": {"protective": 1.4, "standard": -0.4},
+                "user_product_preference": {
+                    "strong_match": 0.28,
+                    "partial_match": 0.11,
+                    "mismatch_or_uncertain": -0.22,
+                },
             },
         },
     }
@@ -158,11 +175,20 @@ def main(model_name=None):
                 "discrete_weights.packaging": (
                     "Utility ($) per packaging option for the seller."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "Utility ($) for each commitment level on the buyer's stated product preference; "
+                    "stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.25},
             "discrete_weights": {
                 "return_policy": {"30_days": -2.0, "none": 1.2},
                 "packaging": {"protective": -1.0, "standard": 0.35},
+                "user_product_preference": {
+                    "strong_match": -0.07,
+                    "partial_match": -0.035,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }
@@ -175,6 +201,11 @@ def main(model_name=None):
             "discrete_weights": {
                 "return_policy": {"30_days": -1.6, "none": 0.9},
                 "packaging": {"protective": -1.25, "standard": 0.45},
+                "user_product_preference": {
+                    "strong_match": -0.07,
+                    "partial_match": -0.035,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

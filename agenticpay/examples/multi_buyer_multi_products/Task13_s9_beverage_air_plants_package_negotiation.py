@@ -121,17 +121,21 @@ def main(model_name=None):
 
     # Public anchor: SKU line-sum ~$51.95 ($32.00 elderflower + $19.95 air plants); confidential band is materially lower.
     print("Creating agents...")
-    product_request = "I want Belvoir elderflower rose sparkling case and the tillandsia 6-pack."
+    product_request = (
+        "I want Belvoir elderflower rose sparkling case and the tillandsia 6-pack. "
+        "I also prefer the sparkling bottles to seal with crown caps that need a bottle opener rather than twist-off caps."
+    )
     buyer1_contract_config = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle price, delivery time, return policy, or packaging option has been selected "
-                "or agreed before negotiation starts."
+                "No total bundle price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging for the beverage + live plants bundle."
+                "discrete_terms.return_policy, discrete_terms.packaging, and discrete_terms.user_product_preference "
+                "for the beverage + live plants bundle."
             ),
         },
         "field_descriptions": {
@@ -146,11 +150,18 @@ def main(model_name=None):
                 "`protective` shields glass bottles and living plants from crush/shock; "
                 "`standard` is normal corrugated shipping."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the bundle matches the buyer's stated preference for the sparkling bottles to seal with crown caps "
+                "that need a bottle opener rather than twist-off caps. Use `strong_match` when that preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is not satisfied or "
+                "cannot be confirmed."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 38.86,
@@ -167,11 +178,20 @@ def main(model_name=None):
                 "discrete_weights.packaging": (
                     "Utility ($) per packaging choice."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, measured in dollars. "
+                    "Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.55},
             "discrete_weights": {
                 "return_policy": {"30_days": 1.8, "none": -2.0},
                 "packaging": {"protective": 1.4, "standard": -0.6},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -189,11 +209,20 @@ def main(model_name=None):
                 "discrete_weights.packaging": (
                     "Utility ($) per packaging option."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your utility, measured in dollars. "
+                    "Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.35},
             "discrete_weights": {
                 "return_policy": {"30_days": -2.2, "none": 1.5},
                 "packaging": {"protective": -1.3, "standard": 0.5},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

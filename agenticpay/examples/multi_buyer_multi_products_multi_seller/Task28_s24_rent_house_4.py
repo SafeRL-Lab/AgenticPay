@@ -128,20 +128,24 @@ def main(model_name=None):
     seller1 = SellerAgent(model=model, name="Seller1", seller_min_price=seller1_min_price)
     seller2 = SellerAgent(model=model, name="Seller2", seller_min_price=seller2_min_price)
 
-    user_requirement = "I want Bungan Beach House and The Best location in Santa Teresa—one monthly rent."
+    user_requirement = (
+        "I want Bungan Beach House and The Best location in Santa Teresa—one monthly rent. "
+        "I also prefer at least one exterior frame to show leafy landscape or sky beyond a deck rail, not exclusively white interior walls."
+    )
     product_request = user_requirement
 
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total combined monthly rent, bundled lease length, or utilities-included policy "
-                "has been selected before negotiation starts."
+                "No total combined monthly rent, bundled lease length, utilities-included policy, "
+                "or user product preference match has been selected before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must set price (total USD monthly rent for both listings together), "
-                "continuous_terms.lease_months (integer months within bounds), and "
-                "discrete_terms.include_utilities (boolean true/false)."
+                "continuous_terms.lease_months (integer months within bounds), "
+                "discrete_terms.include_utilities (boolean true/false), and discrete_terms.user_product_preference "
+                "(strong_match|partial_match|mismatch_or_uncertain)."
             ),
         },
         "field_descriptions": {
@@ -154,9 +158,18 @@ def main(model_name=None):
             "discrete_terms.include_utilities": (
                 "If true, quoted rent includes bundled utilities where applicable; if false, tenant pays utilities separately."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well listing photos align with the buyer's stated preference that at least one exterior framing show "
+                "leafy landscape or sky beyond a deck rail, not exclusively white interior walls. "
+                "`strong_match` when clearly satisfied for both listings; `partial_match` when mixed or ambiguous; "
+                "`mismatch_or_uncertain` when not satisfied or unconfirmable."
+            ),
         },
         "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
-        "discrete_options": {"include_utilities": [True, False]},
+        "discrete_options": {
+            "include_utilities": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
+        },
     }
     buyer1_preferences = {
         "v_base": buyer1_max_price,
@@ -170,14 +183,29 @@ def main(model_name=None):
             "discrete_weights.include_utilities": (
                 "Utility change for each utilities-included option (USD); higher is better for you when included."
             ),
+            "discrete_weights.user_product_preference": (
+                "USD change for photo alignment with your stated outdoor-greenery framing preference."
+            ),
         },
         "continuous_weights": {"lease_months": -7.0},
-        "discrete_weights": {"include_utilities": {True: 320.0, False: 0.0}},
+        "discrete_weights": {
+            "include_utilities": {True: 320.0, False: 0.0},
+            "user_product_preference": {
+                "strong_match": 32.0,
+                "partial_match": 13.0,
+                "mismatch_or_uncertain": -25.0,
+            },
+        },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
     buyer2_preferences["v_base"] = buyer2_max_price
     buyer2_preferences["continuous_weights"]["lease_months"] = -9.0
     buyer2_preferences["discrete_weights"]["include_utilities"] = {True: 350.0, False: 0.0}
+    buyer2_preferences["discrete_weights"]["user_product_preference"] = {
+        "strong_match": 35.0,
+        "partial_match": 14.2,
+        "mismatch_or_uncertain": -27.3,
+    }
     seller1_preferences = {
         "c_base": seller1_min_price,
         "weight_descriptions": {
@@ -190,14 +218,29 @@ def main(model_name=None):
             "discrete_weights.include_utilities": (
                 "Utility/cost impact when utilities are bundled into the rent (USD); negative values are costs to you."
             ),
+            "discrete_weights.user_product_preference": (
+                "Small USD carrying cost when you commit to strong photo alignment with the buyer's exterior-greenery preference."
+            ),
         },
         "continuous_weights": {"lease_months": 15.0},
-        "discrete_weights": {"include_utilities": {True: -150.0, False: 0.0}},
+        "discrete_weights": {
+            "include_utilities": {True: -150.0, False: 0.0},
+            "user_product_preference": {
+                "strong_match": -7.2,
+                "partial_match": -3.5,
+                "mismatch_or_uncertain": 0.92,
+            },
+        },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))
     seller2_preferences["c_base"] = seller2_min_price
     seller2_preferences["continuous_weights"]["lease_months"] = 17.0
     seller2_preferences["discrete_weights"]["include_utilities"] = {True: -130.0, False: 0.0}
+    seller2_preferences["discrete_weights"]["user_product_preference"] = {
+        "strong_match": -6.25,
+        "partial_match": -3.05,
+        "mismatch_or_uncertain": 0.8,
+    }
     buyer_seller_contract_configs = {
         "b1s1": {
             **shared_contract_fields,

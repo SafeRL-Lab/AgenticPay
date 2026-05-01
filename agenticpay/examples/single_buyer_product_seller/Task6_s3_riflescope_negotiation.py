@@ -97,14 +97,18 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want a Crimson Trace Brushline Pro riflescope, 2.5-10x42mm Plex, new.",
+            "product_request": (
+                "I want a Crimson Trace Brushline Pro riflescope, 2.5-10x42mm Plex, new. "
+                "I also prefer slip-on scope caps that fit over the bells rather than hinged flip-up covers."
+            ),
             "initial_contract_status": (
-                "No price, delivery time, return policy, or included accessory guarantee has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, included accessory guarantee, or user product preference "
+                "match has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.accessory_guarantee."
+                "discrete_terms.return_policy, discrete_terms.accessory_guarantee, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -121,6 +125,12 @@ def main(model_name=None):
                 "caps and lens cloth are included as described; `standard` means normal new-item fulfillment without "
                 "an extra accessory guarantee."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the product matches the buyer's stated preference for slip-on scope caps over the bells "
+                "rather than hinged flip-up covers. Use `strong_match` when slip-on caps are clearly shown or confirmed, "
+                "`partial_match` when it is only partly clear, and `mismatch_or_uncertain` when flip-up covers appear "
+                "likely or it cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 10}
@@ -128,6 +138,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "accessory_guarantee": ["scope_caps_lens_cloth", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 171,
@@ -148,11 +159,20 @@ def main(model_name=None):
                     "How much each accessory-guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -1.2},
             "discrete_weights": {
                 "return_policy": {"30_days": 12.0, "none": -15.0},
                 "accessory_guarantee": {"scope_caps_lens_cloth": 8.0, "standard": -5.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -174,11 +194,20 @@ def main(model_name=None):
                     "How much each accessory-guarantee option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.9},
             "discrete_weights": {
                 "return_policy": {"30_days": -14.0, "none": 9.0},
                 "accessory_guarantee": {"scope_caps_lens_cloth": -4.0, "standard": 2.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

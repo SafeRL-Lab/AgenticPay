@@ -123,17 +123,20 @@ def main(model_name=None):
     
     # Create Agents (confidential reservation prices: buyer ceilings and seller floor; unknown across parties)
     print("Creating agents...")
-    product_request = "I want Dripped Birria dripped nachos—all-in delivered."
+    product_request = (
+        "I want Dripped Birria dripped nachos—all-in delivered. "
+        "I also prefer if cheese or sauce visibly coats chips toward the tray edges, not only heaped in the center."
+    )
     buyer1_contract_config = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No all-in price, delivery speed, or extra condiments option has been selected or agreed "
-                "before negotiation starts."
+                "No all-in price, delivery speed, extra condiments option, or assessed user product preference "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, discrete_terms.delivery_speed, "
-                "and discrete_terms.extra_condiments."
+                "discrete_terms.extra_condiments, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -148,11 +151,16 @@ def main(model_name=None):
             "discrete_terms.extra_condiments": (
                 "Whether the order includes extra condiments, sauces, or small sides requested by the buyer."
             ),
+            "discrete_terms.user_product_preference": (
+                "Whether toppings spread toward outer chips as the buyer wants vs staying only in a central mound. "
+                "Return `strong_match`, `partial_match`, or `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {},
         "discrete_options": {
             "delivery_speed": ["rush", "standard", "batched"],
             "extra_condiments": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 9.88,
@@ -169,11 +177,19 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much receiving extra condiments changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How each match level on your stated nacho coverage preference changes your utility, dollars."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": 3.0, "standard": 0.0, "batched": -2.0},
                 "extra_condiments": {True: 1.5, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -191,11 +207,19 @@ def main(model_name=None):
                 "discrete_weights.extra_condiments": (
                     "How much including extra condiments changes your utility, measured in dollars."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "Small handling or dispute risk from attesting to the buyer's photo-based presentation preference."
+                ),
             },
             "continuous_weights": {},
             "discrete_weights": {
                 "delivery_speed": {"rush": -4.0, "standard": 0.0, "batched": 3.5},
                 "extra_condiments": {True: -0.5, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

@@ -150,17 +150,20 @@ def main(model_name=None):
     
     # Same product (SKU) from two listings: each seller can differ in private contract utility values.
     print("Creating agents...")
-    product_request = "I want an Epson TM-T20 Ethernet receipt printer, dark grey, new."
+    product_request = (
+        "I want an Epson TM-T20 Ethernet receipt printer, dark grey, new. "
+        "I also prefer the front paper exit to read as a wide horizontal slot rather than a narrow vertical slit."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No price, delivery time, return policy, or Ethernet-cable option has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, Ethernet-cable option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.ethernet_cable."
+                "discrete_terms.return_policy, discrete_terms.ethernet_cable, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -176,6 +179,12 @@ def main(model_name=None):
                 "Whether an Ethernet cable is included with the printer. `included` means the seller adds a compatible "
                 "Ethernet cable; `not_included` means the printer ships without a cable."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the product matches the buyer's stated preference for a wide horizontal front paper exit slot "
+                "rather than a narrow vertical slit. Use `strong_match` when the preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is not "
+                "satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 10}
@@ -183,6 +192,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "ethernet_cable": ["included", "not_included"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 248.96,
@@ -203,11 +213,20 @@ def main(model_name=None):
                     "How much each Ethernet-cable option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -2.0},
             "discrete_weights": {
                 "return_policy": {"30_days": 18.0, "none": -20.0},
                 "ethernet_cable": {"included": 10.0, "not_included": -3.0},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
     }
@@ -232,11 +251,20 @@ def main(model_name=None):
                     "How much each Ethernet-cable option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 1.4},
             "discrete_weights": {
                 "return_policy": {"30_days": -20.0, "none": 12.0},
                 "ethernet_cable": {"included": -6.0, "not_included": 1.5},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }
@@ -249,6 +277,11 @@ def main(model_name=None):
             "discrete_weights": {
                 "return_policy": {"30_days": -16.0, "none": 10.0},
                 "ethernet_cable": {"included": -8.0, "not_included": 2.0},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

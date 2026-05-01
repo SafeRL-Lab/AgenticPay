@@ -97,14 +97,18 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want a Sea Gull Wynfield one-light outdoor wall lantern, black.",
+            "product_request": (
+                "I want a Sea Gull Wynfield one-light outdoor wall lantern, black. "
+                "I also prefer a straight mounting arm between the wall plate and the lantern with no gooseneck bend."
+            ),
             "initial_contract_status": (
-                "No price, delivery time, return policy, or glass/finish confirmation has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, glass/finish confirmation, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.glass_finish_confirmation."
+                "discrete_terms.return_policy, discrete_terms.glass_finish_confirmation, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -121,6 +125,12 @@ def main(model_name=None):
                 "`confirmed` means both requested attributes are guaranteed; `standard` means normal product "
                 "fulfillment without an extra attribute confirmation."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the product matches the buyer's stated preference for a straight mounting arm with no "
+                "gooseneck bend between the wall plate and the lantern. Use `strong_match` when a straight arm is "
+                "clearly shown or confirmed, `partial_match` when it is only partly clear, and "
+                "`mismatch_or_uncertain` when a gooseneck appears likely or it cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 10}
@@ -128,6 +138,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "glass_finish_confirmation": ["confirmed", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 47.35,
@@ -148,11 +159,20 @@ def main(model_name=None):
                     "How much each glass/finish confirmation option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.45},
             "discrete_weights": {
                 "return_policy": {"30_days": 3.0, "none": -3.5},
                 "glass_finish_confirmation": {"confirmed": 2.5, "standard": -1.2},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -174,11 +194,20 @@ def main(model_name=None):
                     "How much each glass/finish confirmation option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.35},
             "discrete_weights": {
                 "return_policy": {"30_days": -3.2, "none": 2.0},
                 "glass_finish_confirmation": {"confirmed": -1.0, "standard": 0.4},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }

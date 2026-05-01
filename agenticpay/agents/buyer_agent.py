@@ -162,6 +162,10 @@ class BuyerAgent(BaseAgent):
             or self.context.get("environment_info", {}).get("seller_contract_configs")
             or current_state.get("contract_configs")
         )
+        message_reasoning_rule = (
+            "MESSAGE RULE: Before giving your <contract>, briefly explain your reasoning. "
+            "When relevant, mention what you observe in the product text or image."
+        )
 
         selected_seller_rules = f"""
 - MULTI-SELLER ROUTING: You are negotiating in a multi-seller setting.
@@ -235,7 +239,7 @@ DEAL AGREEMENT INSTRUCTION:
 - A deal is finalized only when you and the selected seller output compatible contract JSONs.
 - If you accept, repeat the accepted final contract JSON exactly in `<contract>...</contract>`.
 """
-            message_instruction = "[Your actual negotiation message to the selected seller. You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block for that seller.]"
+            message_instruction = f"[Your actual negotiation message to the selected seller. {message_reasoning_rule} You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block for that seller.]"
         elif contract_config:
             continuous_bounds = contract_config.get("continuous_bounds", {})
             discrete_options = contract_config.get("discrete_options", {})
@@ -267,7 +271,7 @@ DEAL AGREEMENT INSTRUCTION:
 - A deal is finalized only when both sides output compatible contract JSONs.
 - If you accept, repeat the accepted final contract JSON exactly in `<contract>...</contract>`.
 """
-            message_instruction = "[Your actual negotiation message to the seller. You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block.]"
+            message_instruction = f"[Your actual negotiation message to the seller. {message_reasoning_rule} You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block.]"
         else:
             contract_rules = """
 - **CRITICAL: In each turn, you MUST include exactly ONE ### BUYER_PRICE($X) ### inside `<message>` — including when you accept or confirm a deal.** There are no exceptions: if you only say you accept without this tag, the environment keeps your previous numeric offer and the deal will fail to register as agreed.

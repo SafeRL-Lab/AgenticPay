@@ -97,14 +97,18 @@ def main(model_name=None):
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
-            "product_request": "I want a 4-tier black iron ladder bookshelf.",
+            "product_request": (
+                "I want a 4-tier black iron ladder bookshelf. I also prefer the ladder sides to taper evenly toward "
+                "the top without obvious bends or kinks in the metal."
+            ),
             "initial_contract_status": (
-                "No price, delivery time, return policy, or assembly hardware confirmation has been selected or agreed "
-                "before negotiation starts."
+                "No price, delivery time, return policy, assembly hardware confirmation, or user product preference "
+                "match has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.assembly_hardware_confirmation."
+                "discrete_terms.return_policy, discrete_terms.assembly_hardware_confirmation, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -121,6 +125,12 @@ def main(model_name=None):
                 "`complete_kit` means the hardware and installation parts are guaranteed; `standard` means normal "
                 "new-item fulfillment without an extra hardware confirmation."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listing matches the buyer's stated preference for evenly tapered ladder sides toward "
+                "the top without obvious bends or kinks in the metal framing. Use `strong_match` when this is "
+                "clearly satisfied, `partial_match` when only partly satisfied, and `mismatch_or_uncertain` when "
+                "it is not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 10}
@@ -128,6 +138,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "assembly_hardware_confirmation": ["complete_kit", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 28.78,
@@ -148,11 +159,20 @@ def main(model_name=None):
                     "How much each assembly-hardware confirmation option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.35},
             "discrete_weights": {
                 "return_policy": {"30_days": 2.5, "none": -3.0},
                 "assembly_hardware_confirmation": {"complete_kit": 3.0, "standard": -1.5},
+                "user_product_preference": {
+                    "strong_match": 0.24,
+                    "partial_match": 0.10,
+                    "mismatch_or_uncertain": -0.20,
+                },
             },
         },
         "seller_preferences": {
@@ -174,11 +194,20 @@ def main(model_name=None):
                     "How much each assembly-hardware confirmation option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.28},
             "discrete_weights": {
                 "return_policy": {"30_days": -2.8, "none": 1.8},
                 "assembly_hardware_confirmation": {"complete_kit": -1.2, "standard": 0.4},
+                "user_product_preference": {
+                    "strong_match": -0.07,
+                    "partial_match": -0.035,
+                    "mismatch_or_uncertain": 0.015,
+                },
             },
         },
     }

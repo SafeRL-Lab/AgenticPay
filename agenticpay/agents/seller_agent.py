@@ -130,6 +130,10 @@ class SellerAgent(BaseAgent):
             self.context.get("buyer_contract_configs")
             or self.context.get("environment_info", {}).get("buyer_contract_configs")
         )
+        message_reasoning_rule = (
+            "MESSAGE RULE: Before giving your <contract>, briefly explain your reasoning. "
+            "When relevant, mention what you observe in the product text or image."
+        )
         selected_buyer_rules = f"""
 - MULTI-BUYER ROUTING: You are negotiating with multiple potential buyers.
 - You MUST choose exactly one buyer for this turn and output it in a dedicated `<selected_buyer>` block.
@@ -166,7 +170,7 @@ class SellerAgent(BaseAgent):
   - The `<contract>` JSON in your message is your current complete proposal for the selected buyer, with every field filled by you.
   - Each `<message>` must contain exactly one `<contract>...</contract>` JSON block following the selected buyer's schema/options.
 """
-            structure_message_line = "[Your actual negotiation message to the selected buyer. You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block for that buyer.]"
+            structure_message_line = f"[Your actual negotiation message to the selected buyer. {message_reasoning_rule} You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block for that buyer.]"
         elif contract_config:
             continuous_bounds = contract_config.get("continuous_bounds", {})
             discrete_options = contract_config.get("discrete_options", {})
@@ -192,7 +196,7 @@ class SellerAgent(BaseAgent):
   - The `<contract>` JSON in your message is your current complete proposal, with every field filled by you.
   - Each `<message>` must contain exactly one `<contract>...</contract>` JSON block following the schema above.
 """
-            structure_message_line = "[Your actual negotiation message to the buyer. You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block.]"
+            structure_message_line = f"[Your actual negotiation message to the buyer. {message_reasoning_rule} You can discuss any contract terms, but must include exactly one valid <contract>...</contract> JSON block.]"
         else:
             contract_rules = """
 - **CRITICAL: In each turn, you MUST include exactly ONE ### SELLER_PRICE($X) ### inside `<message>` — including when you accept the buyer's offer or confirm terms.** There are no exceptions: without this tag each round, the environment may keep an outdated price and agreement checks will be wrong.

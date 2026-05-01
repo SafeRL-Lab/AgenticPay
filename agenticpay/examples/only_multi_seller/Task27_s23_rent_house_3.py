@@ -103,17 +103,20 @@ def main(model_name=None):
     
     # Same property from two offers: each seller can differ in private contract utility values.
     print("Creating agents...")
-    product_request = "I want the Rio Alugo suíte individual private suite."
+    product_request = (
+        "I want the Rio Alugo suíte individual private suite. "
+        "I also prefer the suite tour to highlight floor-to-ceiling mirrored wardrobe doors bouncing light instead of an open rolling rack crowding the walkway."
+    )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No monthly rent, lease length, or utility-inclusion term has been selected or agreed "
-                "before negotiation starts."
+                "No monthly rent, lease length, utility-inclusion term, or user product preference match has been selected "
+                "or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.lease_months, "
-                "and discrete_terms.include_utilities."
+                "discrete_terms.include_utilities, and discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -123,9 +126,18 @@ def main(model_name=None):
                 "Whether standard utilities are included in the monthly rent. true means utilities are included; "
                 "false means the tenant pays utilities separately."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listing presentation matches the buyer's stated preference for mirrored wardrobe doors versus "
+                "a prominent open garment rack. Use `strong_match` when the preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is "
+                "not satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
-        "discrete_options": {"include_utilities": [True, False]},
+        "discrete_options": {
+            "include_utilities": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
+        },
         "buyer_preferences": {
             "v_base": 1505.0,
             "weight_descriptions": {
@@ -138,9 +150,19 @@ def main(model_name=None):
                     "A negative number means longer commitment is worse for you."
                 ),
                 "discrete_weights.include_utilities": "How much utility inclusion changes your utility, measured in dollars.",
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated storage-presentation preference changes your utility, measured in dollars."
+                ),
             },
             "continuous_weights": {"lease_months": -10.0},
-            "discrete_weights": {"include_utilities": {True: 100.0, False: 0.0}},
+            "discrete_weights": {
+                "include_utilities": {True: 100.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": 12.0,
+                    "partial_match": 5.0,
+                    "mismatch_or_uncertain": -10.0,
+                },
+            },
         },
     }
     seller1_contract_config = {
@@ -157,9 +179,20 @@ def main(model_name=None):
                     "A positive number means longer occupancy reduces vacancy risk for you."
                 ),
                 "discrete_weights.include_utilities": "How much including utilities changes your utility, measured in dollars.",
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the tenant's stated presentation preference changes your utility, "
+                    "measured in dollars. Stronger confirmations carry modest legal/marketing friction."
+                ),
             },
             "continuous_weights": {"lease_months": 20.0},
-            "discrete_weights": {"include_utilities": {True: -60.0, False: 0.0}},
+            "discrete_weights": {
+                "include_utilities": {True: -60.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -4.0,
+                    "partial_match": -2.0,
+                    "mismatch_or_uncertain": 0.5,
+                },
+            },
         },
     }
     seller2_contract_config = {
@@ -168,7 +201,14 @@ def main(model_name=None):
             "c_base": 1209.0,
             "weight_descriptions": seller1_contract_config["seller_preferences"]["weight_descriptions"],
             "continuous_weights": {"lease_months": 18.0},
-            "discrete_weights": {"include_utilities": {True: -55.0, False: 0.0}},
+            "discrete_weights": {
+                "include_utilities": {True: -55.0, False: 0.0},
+                "user_product_preference": {
+                    "strong_match": -4.0,
+                    "partial_match": -2.0,
+                    "mismatch_or_uncertain": 0.5,
+                },
+            },
         },
     }
     seller_contract_configs = {1: seller1_contract_config, 2: seller2_contract_config}

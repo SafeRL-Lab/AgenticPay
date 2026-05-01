@@ -121,7 +121,10 @@ def main(model_name=None):
     
     # Two comparable listings: each buyer-seller pair has private contract utility values (rent + lease + utilities).
     print("Creating agents...")
-    user_requirement = "I want furnished monthly Sydney rent—CBD studio vs. near Bondi."
+    user_requirement = (
+        "I want furnished monthly Sydney rent—CBD studio vs. near Bondi. "
+        "I also prefer the kitchen counters shown keep a visible stretch of clear workspace, not fully covered by appliances and clutter."
+    )
     product_request = user_requirement
 
     buyer1_max_price = 2554.0  # Maximum acceptable monthly rent for buyer1 (confidential); lower ceiling than buyer2; below listing anchor
@@ -134,11 +137,13 @@ def main(model_name=None):
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No monthly rent, lease length in months, or utilities-included flag has been agreed before negotiation."
+                "No monthly rent, lease length in months, utilities-included flag, or user product preference match "
+                "has been agreed before negotiation."
             ),
             "contract_completion_requirement": (
                 "A valid offer must set price (monthly USD rent), continuous_terms.lease_months, "
-                "and discrete_terms.include_utilities (JSON boolean true or false)."
+                "discrete_terms.include_utilities (JSON boolean true or false), and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -149,9 +154,16 @@ def main(model_name=None):
             "discrete_terms.include_utilities": (
                 "If true, quoted rent includes major utilities bundled; if false, tenant pays utilities separately."
             ),
+            "discrete_terms.user_product_preference": (
+                "Match to the buyer's kitchen-workspace cue (meaningful clear counter runway visible, counters not "
+                "fully covered by clutter). `strong_match` / `partial_match` / `mismatch_or_uncertain`."
+            ),
         },
         "continuous_bounds": {"lease_months": {"min": 1, "max": 24}},
-        "discrete_options": {"include_utilities": [True, False]},
+        "discrete_options": {
+            "include_utilities": [True, False],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
+        },
     }
     buyer1_preferences = {
         "v_base": buyer1_max_price,
@@ -165,9 +177,19 @@ def main(model_name=None):
             "discrete_weights.include_utilities": (
                 "One-time monthly-rent-equivalent value of bundled utilities vs paying separately."
             ),
+            "discrete_weights.user_product_preference": (
+                "Utility shift ($) per preference match tier for the stated listing-condition check."
+            ),
         },
         "continuous_weights": {"lease_months": round(-10.0 * _scale, 2)},
-        "discrete_weights": {"include_utilities": {True: round(100.0 * _scale), False: 0.0}},
+        "discrete_weights": {
+            "include_utilities": {True: round(100.0 * _scale), False: 0.0},
+            "user_product_preference": {
+                "strong_match": 0.22,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
+        },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
     buyer2_preferences["v_base"] = buyer2_max_price
@@ -188,9 +210,19 @@ def main(model_name=None):
             "discrete_weights.include_utilities": (
                 "Cost burden of bundling utilities into rent (typically negative when include_utilities is true)."
             ),
+            "discrete_weights.user_product_preference": (
+                "Utility shift ($); stronger match tiers carry small nonzero staging or representation cost."
+            ),
         },
         "continuous_weights": {"lease_months": round(20.0 * _scale, 2)},
-        "discrete_weights": {"include_utilities": {True: round(-60.0 * _scale), False: 0.0}},
+        "discrete_weights": {
+            "include_utilities": {True: round(-60.0 * _scale), False: 0.0},
+            "user_product_preference": {
+                "strong_match": -0.06,
+                "partial_match": -0.03,
+                "mismatch_or_uncertain": 0.008,
+            },
+        },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))
     seller2_preferences["c_base"] = seller2_min_price

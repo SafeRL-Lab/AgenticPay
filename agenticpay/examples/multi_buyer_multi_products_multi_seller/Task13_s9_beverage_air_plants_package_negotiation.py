@@ -121,19 +121,20 @@ def main(model_name=None):
     # buyer_max_price and seller_min_price are bundle totals below the summed public list prices shown in product_info (confidential ZOPA).
     print("Creating agents...")
     product_request = (
-        "I want Belvoir Sparkling Elderflower Rose case and tillandsia 6-pack together."
+        "I want Belvoir Sparkling Elderflower Rose case and tillandsia 6-pack together. "
+        "I also prefer every bottle cap in the beverage case photo to look evenly sealed and undented."
     )
     shared_contract_fields = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle price, delivery time, return policy, or gift-wrap option has been selected "
-                "or agreed before negotiation starts."
+                "No total bundle price, delivery time, return policy, gift-wrap option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.gift_wrap. The price is the total "
-                "bundle price for both products (beverage case + air plants)."
+                "discrete_terms.return_policy, discrete_terms.gift_wrap, and discrete_terms.user_product_preference. "
+                "The price is the total bundle price for both products (beverage case + air plants)."
             ),
         },
         "field_descriptions": {
@@ -149,11 +150,17 @@ def main(model_name=None):
                 "`yes` means the seller uses upgraded packing (e.g., cushioning / gifting presentation) for plants and bottles; "
                 "`no` means standard parcel packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the listings match the buyer's stated preference that every bottle cap in the beverage case "
+                "photo look evenly sealed and undented. `strong_match` when clearly satisfied; `partial_match` when ambiguous "
+                "or partly satisfied; `mismatch_or_uncertain` when not satisfied or unconfirmable."
+            ),
         },
         "continuous_bounds": {"delivery_days": {"min": 1, "max": 7}},
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "gift_wrap": ["yes", "no"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
     }
     buyer1_preferences = {
@@ -175,11 +182,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much each match level for your stated bottle-cap preference changes your utility, measured in dollars. "
+                "Positive numbers are good for you; negative numbers are bad for you."
+            ),
         },
         "continuous_weights": {"delivery_days": -0.48},
         "discrete_weights": {
             "return_policy": {"30_days": 1.5, "none": -1.7},
             "gift_wrap": {"yes": 1.15, "no": -0.3},
+            "user_product_preference": {
+                "strong_match": 0.24,
+                "partial_match": 0.09,
+                "mismatch_or_uncertain": -0.18,
+            },
         },
     }
     buyer2_preferences = json.loads(json.dumps(buyer1_preferences))
@@ -206,11 +222,20 @@ def main(model_name=None):
                 "How much each gift-wrap option changes your utility, measured in dollars. "
                 "Positive numbers are good for you; negative numbers are bad for you."
             ),
+            "discrete_weights.user_product_preference": (
+                "How much committing to each match level on the buyer's bottle-cap presentation preference changes your utility, "
+                "measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+            ),
         },
         "continuous_weights": {"delivery_days": 0.33},
         "discrete_weights": {
             "return_policy": {"30_days": -1.85, "none": 1.12},
             "gift_wrap": {"yes": -1.05, "no": 0.2},
+            "user_product_preference": {
+                "strong_match": -0.065,
+                "partial_match": -0.032,
+                "mismatch_or_uncertain": 0.008,
+            },
         },
     }
     seller2_preferences = json.loads(json.dumps(seller1_preferences))

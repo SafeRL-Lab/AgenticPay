@@ -108,18 +108,22 @@ def main(model_name=None):
     # buyer_max_price and seller_min_price are confidential bundle reservation bounds below the public listing reference total.
     # Scenario: Beauty bundle - Maybelline Eyeshadow + NOU Oliban Eau de Toilette
     print("Creating agents...")
-    product_request = "I want the Maybelline Turquoise Glass eyeshadow and NOU Oliban men's EDT."
+    product_request = (
+        "I want the Maybelline Turquoise Glass eyeshadow and NOU Oliban men's EDT. "
+        "I also prefer the eyeshadow compact to include a clear window showing the pressed powder rather than fully opaque casing."
+    )
     # Multi-dimensional contract setup for reusable MAUT scoring in env.
     contract_config = {
         "contrainfo": {
             "product_request": product_request,
             "initial_contract_status": (
-                "No total bundle price, delivery time, return policy, or packaging option has been selected or agreed "
-                "before negotiation starts."
+                "No total bundle price, delivery time, return policy, packaging option, or user product preference match "
+                "has been selected or agreed before negotiation starts."
             ),
             "contract_completion_requirement": (
                 "A valid offer must explicitly fill price, continuous_terms.delivery_days, "
-                "discrete_terms.return_policy, and discrete_terms.packaging."
+                "discrete_terms.return_policy, discrete_terms.packaging, and "
+                "discrete_terms.user_product_preference."
             ),
         },
         "field_descriptions": {
@@ -135,6 +139,12 @@ def main(model_name=None):
                 "The packaging used for shipment. `protective` means extra protection for the eyeshadow and fragrance bottle; "
                 "`standard` means normal packaging."
             ),
+            "discrete_terms.user_product_preference": (
+                "How well the bundle matches the buyer's stated preference for an eyeshadow compact with a clear window "
+                "showing the pressed powder rather than fully opaque casing. Use `strong_match` when the preference is clearly satisfied, "
+                "`partial_match` when it is only partly satisfied, and `mismatch_or_uncertain` when it is not "
+                "satisfied or cannot be confirmed."
+            ),
         },
         "continuous_bounds": {
             "delivery_days": {"min": 1, "max": 7}
@@ -142,6 +152,7 @@ def main(model_name=None):
         "discrete_options": {
             "return_policy": ["30_days", "none"],
             "packaging": ["protective", "standard"],
+            "user_product_preference": ["strong_match", "partial_match", "mismatch_or_uncertain"],
         },
         "buyer_preferences": {
             "v_base": 23.35,
@@ -162,11 +173,20 @@ def main(model_name=None):
                     "How much each packaging option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of match to your stated product preference changes your utility, "
+                    "measured in dollars. Positive numbers are good for you; negative numbers are bad for you."
+                ),
             },
             "continuous_weights": {"delivery_days": -0.25},
             "discrete_weights": {
                 "return_policy": {"30_days": 1.0, "none": -1.2},
                 "packaging": {"protective": 0.9, "standard": -0.3},
+                "user_product_preference": {
+                    "strong_match": 0.30,
+                    "partial_match": 0.12,
+                    "mismatch_or_uncertain": -0.25,
+                },
             },
         },
         "seller_preferences": {
@@ -188,11 +208,20 @@ def main(model_name=None):
                     "How much each packaging option changes your utility, measured in dollars. "
                     "Positive numbers are good for you; negative numbers are bad for you."
                 ),
+                "discrete_weights.user_product_preference": (
+                    "How much each level of commitment to the buyer's stated product preference changes your "
+                    "utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+                ),
             },
             "continuous_weights": {"delivery_days": 0.20},
             "discrete_weights": {
                 "return_policy": {"30_days": -1.4, "none": 1.0},
                 "packaging": {"protective": -0.8, "standard": 0.3},
+                "user_product_preference": {
+                    "strong_match": -0.08,
+                    "partial_match": -0.04,
+                    "mismatch_or_uncertain": 0.01,
+                },
             },
         },
     }
