@@ -2,7 +2,7 @@
 
 <h1 align="center" style="font-size: 30px;"><strong><em>AgenticPay</em></strong>: A Multi-Agent LLM Negotiation System for Buyer–Seller Transactions</h1>
 
-**A Multi-Agent Negotiation Framework for Buyer-Seller Transactions using LLM-based Agents.**
+**A Multi-Agent Negotiation Framework for Buyer-Seller Transactions using LLM-based Agents.** 
 
 - [Overview](#overview)
 - [Features](#features)
