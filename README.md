@@ -9,7 +9,7 @@
 
  
   
-<h1 align="center" style="font-size: 30px;"><strong><em>AgenticPay</em></strong>: A Multi-Agent LLM Negotiation System for Buyer–Seller Transactions</h1>
+<h1 align="center" style="font-size: 30px;"><strong><em>AgenticPay</em></strong>: A Multimodal Benchmark for LLM-Powered Negotiation in Multi-Agent Commerce</h1>
 <p align="center">
     <a href="https://arxiv.org/pdf/2602.06008">Paper</a>
     ·
@@ -31,7 +31,7 @@
 <h3 align="center" style="font-size: 30px;">Figure 1: AgenticPay Framework Overview</h3>
 
 ![Tasks Overview](./rm_img/figure_2_tasks.png)
-<h3 align="center" style="font-size: 30px;">Figure 2: Senario and Task Categories</h3>
+<h3 align="center" style="font-size: 30px;">Figure 2: Scenario and Task Categories</h3>
 
 ---
 
@@ -48,10 +48,12 @@
   * [Agents](#agents)
   * [Environment Registration System](#environment-registration-system)
   * [ConversationMemory](#conversationmemory)
+  * [Metrics](#metrics)
 - [Configuration](#configuration)
   * [Environment Parameters](#environment-parameters)
   * [Agent Configuration](#agent-configuration)
   * [User Profile](#user-profile)
+  * [Contract Configuration](#contract-configuration)
   * [LLM Configuration](#llm-configuration)
 - [Examples](#examples)
   * [Available Examples](#available-examples)
@@ -66,21 +68,20 @@
 
 ## Overview
 
-AgenticPay is a framework for simulating multi-agent negotiations between buyers and sellers. It uses Large Language Models (LLMs) as the foundation for intelligent agents that can engage in realistic price negotiations. The framework is designed with a Gymnasium-like API for easy integration and extensibility.
+AgenticPay is a framework and benchmark for evaluating LLM/VLM agents in realistic buyer–seller commerce. It extends negotiation beyond text-only, bilateral price haggling into multimodal, multi-dimensional contract negotiation across 4 real-world scenarios (E-commerce, Food Delivery, Ride-hailing, and Apartment Rental) and 8 market topologies, from 1-to-1 bargaining to many-to-many markets. The codebase keeps a Gymnasium-like API for easy integration, reproducible examples, and extensible environment registration.
 
 ## Features
 
-- 🤖 **LLM-based Agents**: Buyer and Seller agents powered by LLMs (currently supports OpenAI, vLLM, and SGLang)
-- 💬 **Multi-turn Conversations**: Support for extended negotiation dialogues
-- 🧠 **Memory System**: Conversation history management for context-aware negotiations
-- 📊 **State Tracking**: Comprehensive tracking of prices, rounds, and negotiation status
-- 🎯 **Flexible Configuration**: Customizable negotiation parameters and agent behaviors
-- 🔌 **Extensible Design**: Easy to add new agent types or LLM providers
+- 🤖 **LLM/VLM-based Agents**: Buyer and Seller agents powered by text and vision-language models (OpenAI-compatible APIs, vLLM, SGLang, Qwen3-VL)
+- 🖼️ **Multimodal Product Grounding**: Tasks can include product images, visual route context, listings, menus, and rich text attributes
+- 📄 **Multi-dimensional Contracts**: Agents negotiate complete JSON contracts with price, continuous terms, and discrete terms instead of a single scalar price
+- 💬 **Multi-turn Conversations**: Support for extended natural-language negotiation dialogues with structured contract proposals
+- 🧠 **Memory and Mental Models**: Conversation history plus prompt-level opponent modeling for information-asymmetric bargaining
+- 📊 **Utility-based Metrics**: GlobalScore, BuyerScore, and SellerScore evaluate feasibility, welfare, surplus split, and efficiency
 - 🏪 **Environment Registration System**: Gymnasium-like environment registration for easy environment management
-- 🛍️ **Multi-Product Negotiations**: Support for negotiating multiple products with context preservation
-- 👥 **Multi-Agent Scenarios**: Support for multiple buyers, sellers, and products in various combinations
-- 🔄 **Parallel & Sequential Negotiations**: Support for both parallel and sequential negotiation modes
-- 👤 **User Profiles**: Personal preference system that influences agent negotiation behavior
+- 🛍️ **160 Benchmark Tasks**: 4 scenarios × 8 market topologies × 5 tasks, with additional legacy/demo scripts
+- 👥 **Multi-Agent Scenarios**: Multiple buyers, sellers, and products in parallel or sequential negotiation modes
+- 👤 **User Profiles**: Personal preference system that influences product matching and negotiation behavior
 
 ## Installation
 
@@ -105,23 +106,40 @@ pip install -e .
 
 ### Before Running Examples
 
-1. **Configure the project**: Rename `agenticpay/examples/config_example.py` to `config.py` before running any example scripts.
-2. **Different model invocation examples**: For the basic price negotiation task (Task1), we provide three example files demonstrating different ways to call LLMs:
+1. **Configure the project**: Copy `agenticpay/examples/config_example.py` to `agenticpay/examples/config.py` and set API keys, local model paths, and common environment parameters.
+2. **Choose a model backend**: The current examples use OpenAI-compatible text/VLM APIs, local VLM backends, and legacy local LLM backends depending on the task:
+   - `OpenAIVLM` / `OpenAILLM` — cloud or OpenAI-compatible APIs
+   - `Qwen3VL`, `SGLangVLM`, `VLLMLLM` — local multimodal/text inference
+3. **Legacy Task1 model invocation examples**: For the basic price negotiation task, the repo still provides three example files demonstrating different ways to call LLMs:
    - `Task1_basic_price_negotiation_api_example.py` — OpenAI/compatible API
    - `Task1_basic_price_negotiation_sglang_example.py` — SGLang for local inference
    - `Task1_basic_price_negotiation_vllm_example.py` — vLLM for local inference (multi-GPU)
 
 ### Running the Example Script
 
-To quickly try a negotiation simulation, you can run the provided example script from the command line:
+To quickly try a current multimodal, multi-dimensional contract negotiation task, run one of the scenario scripts:
+
+```bash
+python agenticpay/examples/single_buyer_product_seller/Task4_s1_beauty_product_negotiation.py
+```
+
+This script runs a single-buyer/single-seller E-commerce task grounded in a product image and a contract schema with price, delivery time, return policy, packaging, and user preference match.
+
+To run all example groups, use:
+
+```bash
+bash agenticpay/examples/run_all_examples.sh
+```
+
+You can still run the original text-only price negotiation demo with:
 
 ```bash
 python agenticpay/examples/single_buyer_product_seller/Task1_basic_price_negotiation.py
 ```
 
-This script runs a simple negotiation task between a buyer and a seller.
-
 ### Basic Single-Product Negotiation
+
+The low-level environment loop remains the same for legacy price-only tasks and current contract-mode tasks. For full multimodal `contract_config` examples, see the scenario scripts under `agenticpay/examples/*/Task*_s*.py`.
 
 ```python
 from agenticpay import make  # Recommended: use registration system
@@ -131,16 +149,16 @@ import os
 
 
 # Local models (SGLang, vLLM, etc.)
-from agenticpay.models.sglang_lm import SGLangLM
-from agenticpay.models.vllm_lm import VLLMLM
+from agenticpay.models.sglang_vlm import SGLangVLM
+from agenticpay.models.vllm_lm import VLLMLLM
 
-model_path = "agenticpay/models/download_models/Qwen3-8B-Instruct"
+model_path = "agenticpay/models/download_models/Qwen3-VL-8B-Instruct"
 
-# Option 1: SGLang LM
-model = SGLangLM(model_path=model_path)
+# Option 1: SGLang VLM
+model = SGLangVLM(model_path=model_path)
 
 # Option 2: vLLM LM (for multi-GPU setups)
-# model = VLLMLM(
+# model = VLLMLLM(
 #     model_path=model_path,
 #     trust_remote_code=True,
 #     gpu_memory_utilization=0.9,
@@ -246,10 +264,12 @@ AgenticPay/
 │   │   ├── only_multi_seller/     # Multi-seller scenarios
 │   │   ├── only_multi_buyer/      # Multi-buyer scenarios
 │   │   └── multi_*/               # Complex multi-agent scenarios
-│   ├── models/                    # LLM implementations (supports vLLM, SGLang, OpenAI API)
+│   ├── models/                    # LLM/VLM implementations (OpenAI API, vLLM, SGLang, Qwen3-VL)
 │   ├── memory/                    # Conversation history management
+│   ├── results/                   # Evaluation outputs and paper-related materials
 │   ├── utils/                     # Utilities (state, user profile)
-│   └── examples/                   # Example scripts organized by scenario
+│   └── examples/                  # Example scripts organized by market topology
+├── rm_img/                        # README figures
 ├── README.md
 ├── setup.py
 └── requirements.txt
@@ -259,19 +279,18 @@ AgenticPay/
 
 ### Environments
 
-The framework provides a comprehensive set of negotiation environments organized by complexity:
+The framework provides negotiation environments organized by market topology. The latest benchmark instantiates 160 multimodal tasks: 4 real-world scenarios × 8 market topologies × 5 tasks per cell. Several legacy price-only demos remain for backward compatibility.
 
 #### Single Buyer + Product + Seller (`single_buyer_product_seller/`)
 
-Basic negotiation scenarios with one buyer, one product, and one seller.
+Basic negotiation scenarios with one buyer, one product, and one seller. The current examples include E-commerce, taxi/ride-hailing, food delivery, and apartment rental tasks, plus legacy price-only demos.
 
-- **Task1: Basic Price Negotiation** - Fundamental price negotiation environment
-- **Task2: Close Price Negotiation** - Tests edge cases with narrow price ranges
-- **Task3: Close to Market Price Negotiation** - Tests scenarios near market price
+- **Task1-3** - Legacy price-only negotiation demos
+- **Task4+ scenario scripts** - Multimodal, multi-dimensional contract tasks such as beauty products, taxi rides, food delivery, and rental housing
 
 #### Only Multi-Products (`only_multi_products/`)
 
-Environments for negotiating multiple products with a single buyer and seller.
+Environments for negotiating multiple products or bundled products with a single buyer and seller.
 
 - **Task1: Multi-Product Negotiation** - General multi-product negotiation
 - **Task2: Two Product Negotiation** - Two products negotiation
@@ -280,14 +299,14 @@ Environments for negotiating multiple products with a single buyer and seller.
 
 #### Only Multi-Seller (`only_multi_seller/`)
 
-Environments with multiple sellers competing for a single buyer.
+Environments with multiple sellers competing for a single buyer, in both parallel and sequential modes.
 
 - **Task1-2: Parallel Multi-Seller** - Parallel negotiations with multiple sellers
 - **Task3-4: Sequential Multi-Seller** - Sequential negotiations with multiple sellers
 
 #### Only Multi-Buyer (`only_multi_buyer/`)
 
-Environments with multiple buyers competing for products.
+Environments with multiple buyers competing for products, in both parallel and sequential modes.
 
 - **Task1-2: Parallel Multi-Buyer** - Parallel negotiations with multiple buyers
 - **Task3-4: Sequential Multi-Buyer** - Sequential negotiations with multiple buyers
@@ -306,11 +325,11 @@ Environments with multiple buyers and multiple products.
 
 #### Multi-Buyer Multi-Products Multi-Seller (`multi_buyer_multi_products_multi_seller/`)
 
-Most complex environments with multiple buyers, products, and sellers.
+Full-market environments with multiple buyers, products, and sellers.
 
 **Common Environment Methods:**
 - `reset()`: Initialize a new negotiation
-- `step()`: Execute one negotiation turn (accepts agent actions)
+- `step()`: Execute one negotiation turn (accepts agent actions and parses contract proposals)
 - `render()`: Display current negotiation state
 - `close()`: Close environment and clean up
 
@@ -357,6 +376,13 @@ Manages conversation history and context.
 - History retrieval (full or recent)
 - Role-based filtering
 
+### Metrics
+
+AgenticPay reports utility-based scores for contract-mode tasks:
+- `GlobalScore`: Overall welfare, agreement quality, and negotiation efficiency
+- `BuyerScore`: Buyer-side normalized utility and efficiency
+- `SellerScore`: Seller-side normalized utility and efficiency
+
 ## Configuration
 
 ### Environment Parameters
@@ -368,6 +394,7 @@ Common parameters across environments:
 - `seller_min_price`: Minimum acceptable price for seller (confidential)
 - `price_tolerance`: Price difference threshold for agreement
 - `environment_info`: Contextual information (weather, season, etc.)
+- `contract_config`: Multi-dimensional contract schema and private utility weights for contract-mode tasks
 - `reward_weights`: Dictionary controlling the relative importance of different reward components
   - `buyer_savings`: Weight for buyer savings (difference between max price and agreed price)
   - `seller_profit`: Weight for seller profit (difference between agreed price and min price)
@@ -380,20 +407,29 @@ Common parameters across environments:
 
 ### User Profile
 
-User description is passed as a string to agents during negotiation initialization.
+User descriptions are passed as strings during negotiation initialization and can affect product preference matching, style, and bargaining behavior.
+
+### Contract Configuration
+
+Current benchmark tasks use `contract_config` to define:
+- `field_descriptions`: Meaning of `price`, `continuous_terms`, and `discrete_terms`
+- `continuous_bounds`: Numeric ranges such as delivery days, wait time, or lease months
+- `discrete_options`: Enumerated terms such as return policy, packaging, utilities, or preference match
+- `buyer_preferences` / `seller_preferences`: Private base values and utility weights used for scoring
 
 ### LLM Configuration
 
 Supports multiple providers:
-- **Local Models**: `SGLangLM`, `VLLMLM` - for local model inference (supports multi-GPU setups)
+- **Vision-Language Models**: `OpenAIVLM`, `Qwen3VL`, `SGLangVLM` - for image-grounded negotiation tasks
+- **Local Text Models**: `VLLMLLM` - for local text model inference (supports multi-GPU setups)
 - **OpenAI** (API): `OpenAILLM` - requires API key
-- **HuggingFace** (local/online): `HuggingFaceLLM` - requires model name and device
+- **Custom/OpenAI-compatible APIs**: `CustomLLM` - for compatible hosted endpoints
 
 ## Examples
 
 ### Available Examples
 
-Examples are organized by environment category:
+Examples are organized by market topology. Each topology directory contains `Task*.py` scenario scripts plus a `run_all_tasks.sh` helper; the root `run_all_examples.sh` runs all available groups.
 
 1. **Single Buyer + Product + Seller** (`examples/single_buyer_product_seller/`)
    - `Task1_basic_price_negotiation_api_example.py` - Basic price negotiation via API (OpenAI/compatible)
@@ -401,11 +437,11 @@ Examples are organized by environment category:
    - `Task1_basic_price_negotiation_vllm_example.py` - Basic price negotiation via vLLM
    - `Task2_close_price_negotiation.py` - Close price negotiation
    - `Task3_close_to_market_price_negotiation.py` - Market price negotiation
-   - `registration_example.py` - Registration system demonstration
+   - `Task4_s1_beauty_product_negotiation.py` and later scenario scripts - multimodal contract-mode benchmark tasks
 
 2. **Multi-Product Negotiations** (`examples/only_multi_products/`)
-   - Multiple products negotiation examples
-   - Product selection scenarios
+   - Multiple-product and bundle negotiation examples
+   - Product selection and contract trade-off scenarios
 
 3. **Multi-Seller Negotiations** (`examples/only_multi_seller/`)
    - Parallel and sequential multi-seller scenarios
@@ -418,6 +454,8 @@ Examples are organized by environment category:
    - `examples/multi_products_multi_seller/` - Multiple products and sellers
    - `examples/multi_buyer_multi_products/` - Multiple buyers and products
    - `examples/multi_buyer_multi_products_multi_seller/` - Full multi-agent scenarios
+
+The benchmark covers four scenario families: E-commerce, Ride-hailing, Food Delivery, and Apartment Rental. Current task scripts use names such as `Task*_s*_taxi_*.py`, `Task*_s*_food_delivery_*.py`, and `Task*_s*_rent_house_*.py` to indicate scenario instances.
 
 ### Registering New Environments
 
@@ -451,10 +489,12 @@ register(
 
 The framework is designed to be extensible. Key extension points:
 - Custom reward functions
+- Custom contract schemas and utility weights
 - Advanced price extraction
 - Custom negotiation strategies
 - Learning-based agent behaviors
 - Additional agent types
+- Additional VLM/LLM providers
 - Custom memory systems
 
 For detailed guides, see:
