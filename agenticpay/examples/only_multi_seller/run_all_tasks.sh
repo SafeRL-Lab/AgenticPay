@@ -49,7 +49,7 @@ save_run_history() {
 # If the list is empty, each script will use its default model
 # Example:
 # MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "claude-opus-4-7" "Qwen/Qwen2.5-VL-72B-Instruct" "Qwen/Qwen3-VL-32B-Instruct" "internvl3-38b")
-MODELS=("Qwen/Qwen3-VL-32B-Instruct")
+MODELS=("gpt-5.4")
 
 
 # ============================================

@@ -12,21 +12,6 @@ cd "$(dirname "$0")"
 # Get the base directory
 BASE_DIR="$(pwd)"
 
-# Directories to skip (names must match subdir entries, usually with trailing slash: "foo/")
-SKIP_DIRS=(
-    "single_buyer_product_seller/"
-)
-
-should_skip_dir() {
-    local candidate="$1"
-    local s
-    for s in "${SKIP_DIRS[@]}"; do
-        [[ -z "$s" ]] && continue
-        [[ "$candidate" == "$s" ]] && return 0
-    done
-    return 1
-}
-
 # Find all subdirectories containing run_all_tasks.sh
 echo "=========================================="
 echo "Searching for run_all_tasks.sh in subdirectories..."
@@ -46,10 +31,6 @@ if [ ${#ALL_SUBDIRS[@]} -gt 0 ]; then
     mapfile -t SORTED < <(printf '%s\n' "${ALL_SUBDIRS[@]}" | LC_ALL=C sort -r)
     for dir in "${SORTED[@]}"; do
         if [ -f "${dir}run_all_tasks.sh" ]; then
-            if should_skip_dir "$dir"; then
-                echo "Skip (SKIP_DIRS): ${dir}run_all_tasks.sh"
-                continue
-            fi
             DIRS+=("$dir")
             echo "Found: ${dir}run_all_tasks.sh"
         fi

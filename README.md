@@ -281,51 +281,79 @@ AgenticPay/
 
 The framework provides negotiation environments organized by market topology. The latest benchmark instantiates 160 multimodal tasks: 4 real-world scenarios × 8 market topologies × 5 tasks per cell. Several legacy price-only demos remain for backward compatibility.
 
+Every category below ships with a set of structural/base tasks (the legacy price-only or "shape" demos that vary the number of buyers, sellers, products, and parallel/sequential mode), plus a shared bank of **25 multimodal, multi-dimensional scenario tasks** (`s1`–`s25`) that each category instantiates against its own market shape:
+
+- **`s1`–`s10`** — Consumer / e-commerce products (beauty, toothpaste, riflescope, headphones, wall lantern, bookshelf, sandals/flip-flops, jeans/T-shirt/men's shirt, beverages/air plants, food coloring/smokehouse treats)
+- **`s11`–`s15`** — Taxi / ride-hailing (`taxi_1` … `taxi_5`)
+- **`s16`–`s20`** — Food delivery (`food_delivery_1` … `food_delivery_5`)
+- **`s21`–`s25`** — Apartment rental (`rent_house_1` … `rent_house_5`)
+
+Concrete file names vary slightly per category (e.g. bundle vs. single product, package vs. parallel), but the scenario index `sN` is consistent across categories so the same underlying scenario can be compared across market structures.
+
 #### Single Buyer + Product + Seller (`single_buyer_product_seller/`)
 
-Basic negotiation scenarios with one buyer, one product, and one seller. The current examples include E-commerce, taxi/ride-hailing, food delivery, and apartment rental tasks, plus legacy price-only demos.
+Basic negotiation scenarios with one buyer, one product, and one seller.
 
-- **Task1-3** - Legacy price-only negotiation demos
-- **Task4+ scenario scripts** - Multimodal, multi-dimensional contract tasks such as beauty products, taxi rides, food delivery, and rental housing
+- **Task1–Task3** — Legacy price-only negotiation demos (basic / close-price / close-to-market-price). `Task1` additionally provides API, vLLM, and SGLang variants for different inference backends.
+- **Task4–Task28** — The full `s1`–`s25` scenario suite (consumer products, taxi, food delivery, rent house) instantiated as single-buyer / single-product / single-seller multidimensional negotiations.
 
 #### Only Multi-Products (`only_multi_products/`)
 
 Environments for negotiating multiple products or bundled products with a single buyer and seller.
 
-- **Task1: Multi-Product Negotiation** - General multi-product negotiation
-- **Task2: Two Product Negotiation** - Two products negotiation
-- **Task3: Five Product Negotiation** - Five products negotiation
-- **Task4: Select Three from Five Negotiation** - Product selection and negotiation
+- **Task1: Multi-Product Negotiation** — General multi-product negotiation
+- **Task2: Two Product Negotiation** — Two products negotiation
+- **Task3: Five Product Negotiation** — Five products negotiation
+- **Task4: Select Three from Five Negotiation** — Product selection and negotiation
+- **Task5–Task29** — `s1`–`s25` scenarios reformulated as multi-product / bundled-product deals (e.g. beauty bundles, headphones+speaker, bed+wall-lantern, taxi multi-leg, food-delivery combos, rent-house packages).
 
 #### Only Multi-Seller (`only_multi_seller/`)
 
 Environments with multiple sellers competing for a single buyer, in both parallel and sequential modes.
 
-- **Task1-2: Parallel Multi-Seller** - Parallel negotiations with multiple sellers
-- **Task3-4: Sequential Multi-Seller** - Sequential negotiations with multiple sellers
+- **Task1–Task2: Parallel Multi-Seller** — Parallel negotiations with two/three sellers
+- **Task3–Task4: Sequential Multi-Seller** — Sequential negotiations with two/three sellers
+- **Task5–Task29** — `s1`–`s25` scenarios with multiple competing sellers (consumer products, taxi services, food-delivery providers, rental landlords).
 
 #### Only Multi-Buyer (`only_multi_buyer/`)
 
 Environments with multiple buyers competing for products, in both parallel and sequential modes.
 
-- **Task1-2: Parallel Multi-Buyer** - Parallel negotiations with multiple buyers
-- **Task3-4: Sequential Multi-Buyer** - Sequential negotiations with multiple buyers
+- **Task1–Task2: Parallel Multi-Buyer** — Parallel negotiations with two/three buyers
+- **Task3–Task4: Sequential Multi-Buyer** — Sequential negotiations with two/three buyers
+- **Task5–Task28** — `s1`–`s25` scenarios with multiple competing buyers across consumer products, taxi, food delivery, and rent-house markets.
 
 #### Multi-Buyer Multi-Seller (`multi_buyer_multi_seller/`)
 
 Complex environments with multiple buyers and multiple sellers.
 
+- **Task1–Task2: Parallel** — 2-buyer-2-seller and 3-buyer-3-seller parallel negotiations
+- **Task3–Task4: Sequential** — 2-buyer-2-seller and 3-buyer-3-seller sequential negotiations
+- **Task5–Task29** — `s1`–`s25` scenarios under a multi-buyer / multi-seller market.
+
 #### Multi-Products Multi-Seller (`multi_products_multi_seller/`)
 
 Environments with multiple products and multiple sellers.
+
+- **Task1–Task2: Parallel** — Parallel negotiations with two/three sellers, one product each
+- **Task3–Task4: Sequential** — Sequential negotiations with two/three sellers, one product each
+- **Task5–Task29** — `s1`–`s25` scenarios cast as multi-product / multi-seller markets.
 
 #### Multi-Buyer Multi-Products (`multi_buyer_multi_products/`)
 
 Environments with multiple buyers and multiple products.
 
+- **Task1–Task2: Parallel** — Parallel negotiations with multiple buyers over multiple products
+- **Task3–Task4: Sequential** — Sequential negotiations with multiple buyers over multiple products
+- **Task5–Task29** — `s1`–`s25` scenarios as multi-buyer / multi-product (often bundle/package) deals.
+
 #### Multi-Buyer Multi-Products Multi-Seller (`multi_buyer_multi_products_multi_seller/`)
 
 Full-market environments with multiple buyers, products, and sellers.
+
+- **Task1–Task2: Parallel** — Parallel multi-buyer / multi-seller / multi-product negotiations
+- **Task3–Task4: Sequential** — Sequential multi-buyer / multi-seller / multi-product negotiations
+- **Task5–Task29** — `s1`–`s25` scenarios under a full multi-buyer × multi-product × multi-seller market.
 
 **Common Environment Methods:**
 - `reset()`: Initialize a new negotiation

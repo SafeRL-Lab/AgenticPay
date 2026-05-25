@@ -49,7 +49,7 @@ save_run_history() {
 # If the list is empty, each script will use its default model
 # Example:
 # MODELS=("gpt-5.4" "gemini-3.1-pro-preview" "claude-opus-4-7" "Qwen/Qwen2.5-VL-72B-Instruct" "Qwen/Qwen3-VL-32B-Instruct" "internvl3-38b")
-MODELS=("Qwen/Qwen3-VL-32B-Instruct")
+MODELS=("gemini-3.1-pro-preview-medium")
 
 
 # ============================================
@@ -62,7 +62,10 @@ MODELS=("Qwen/Qwen3-VL-32B-Instruct")
 #
 # 下面为「最后 20 个」任务（Task9–Task28），可按需增删或改序：
 TASKS=(
-    "Task4"
+    "Task14"
+    "Task15"
+    "Task16"
+    "Task18"
 )
 
 # TASKS=(
